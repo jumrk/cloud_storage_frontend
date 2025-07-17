@@ -11,7 +11,7 @@ import {
 import axiosClient from "@/lib/axiosClient";
 
 // Hàm chia file thành chunk
-const createFileChunks = (file, chunkSize = 5 * 1024 * 1024) => {
+const createFileChunks = (file, chunkSize = 32 * 1024 * 1024) => {
   // 5MB default
   const chunks = [];
   let start = 0;
