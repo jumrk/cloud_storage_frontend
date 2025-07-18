@@ -12,10 +12,9 @@ import axiosClient from "@/lib/axiosClient";
 
 // Hàm chia file thành chunk
 const createFileChunks = (file, chunkSize = 32 * 1024 * 1024) => {
-  // 5MB default
+  // 32MB default
   const chunks = [];
   let start = 0;
-
   while (start < file.size) {
     const end = Math.min(start + chunkSize, file.size);
     chunks.push({
@@ -25,7 +24,6 @@ const createFileChunks = (file, chunkSize = 32 * 1024 * 1024) => {
     });
     start = end;
   }
-
   return chunks;
 };
 
@@ -103,7 +101,6 @@ const MiniStatusBatch = ({
     const file = fileState.file;
     const chunks = createFileChunks(file);
 
-    // Cập nhật state với chunks
     setFileStates((prev) =>
       prev.map((f, idx) =>
         idx === fileIndex ? { ...f, chunks, status: "uploading" } : f
@@ -113,50 +110,47 @@ const MiniStatusBatch = ({
     let uploadId = fileState.uploadId;
     let uploadedChunks = fileState.uploadedChunks;
 
-    // Nếu chưa có uploadId, tạo session mới
+    // Nếu chưa có uploadId, tạo session mới bằng chunk đầu tiên
     if (!uploadId) {
       try {
-        // Gửi chunk đầu tiên để tạo session
         const firstChunk = await readFileChunk(
           file,
           chunks[0].start,
           chunks[0].end
         );
-        const firstChunkBase64 = arrayBufferToBase64(firstChunk);
-
-        const uploadPayload = {
-          uploadId: `${batchId}-${fileIndex}-${Date.now()}`,
-          chunkIndex: 0,
-          totalChunks: chunks.length,
-          chunkData: firstChunkBase64,
-          fileName: file.name,
-          mimeType: file.type || "application/octet-stream",
-          parentId: parentId || null,
-          isFirstChunk: true,
-          isLastChunk: chunks.length === 1,
-          fileSize: file.size,
-          relativePath: fileState.relativePath, // truyền relativePath
+        // Gửi chunk đầu tiên dạng binary, metadata qua headers
+        uploadId = `${batchId}-${fileIndex}-${Date.now()}`;
+        const headers = {
+          "Content-Type": "application/octet-stream",
+          "X-Upload-Id": uploadId,
+          "X-Chunk-Index": 0,
+          "X-Total-Chunks": chunks.length,
+          "X-File-Name": encodeURIComponent(file.name),
+          "X-Mime-Type": file.type || "application/octet-stream",
+          "X-Parent-Id": parentId || "",
+          "X-Is-First-Chunk": "1",
+          "X-Is-Last-Chunk": chunks.length === 1 ? "1" : "0",
+          "X-File-Size": file.size,
+          "X-Relative-Path": fileState.relativePath || "",
         };
-        // Nếu là file đầu tiên của batch folder, truyền emptyFolders
         if (
           isFolder &&
           fileIndex === 0 &&
           emptyFolders &&
           emptyFolders.length > 0
         ) {
-          uploadPayload.emptyFolders = emptyFolders;
+          headers["X-Empty-Folders"] = encodeURIComponent(
+            JSON.stringify(emptyFolders)
+          );
         }
-        const response = await axiosClient.post("/api/upload", uploadPayload);
-
+        const response = await axiosClient.post("/api/upload", firstChunk, {
+          headers,
+        });
         const data = response.data;
         if (response.status !== 200 || !data.success) {
           throw new Error(data.error || "Tạo session upload thất bại");
         }
-
-        uploadId = data.uploadId;
         uploadedChunks = data.uploadedChunks || [0];
-
-        // Cập nhật state với uploadId
         setFileStates((prev) =>
           prev.map((f, idx) =>
             idx === fileIndex ? { ...f, uploadId, uploadedChunks } : f
@@ -177,52 +171,37 @@ const MiniStatusBatch = ({
 
     // Upload các chunk còn lại
     for (let i = 1; i < chunks.length; i++) {
-      // Kiểm tra nếu đã upload chunk này rồi
-      if (uploadedChunks.includes(i)) {
-        continue;
-      }
-
-      // Kiểm tra nếu bị pause
+      if (uploadedChunks.includes(i)) continue;
       const currentFileState = fileStates[fileIndex];
-      if (currentFileState?.isPaused) {
-        console.log(`Upload paused for file ${fileIndex}`);
-        return; // Thoát khỏi function thay vì chỉ break loop
-      }
-
+      if (currentFileState?.isPaused) return;
       try {
         const chunk = chunks[i];
         const chunkData = await readFileChunk(file, chunk.start, chunk.end);
-        const chunkBase64 = arrayBufferToBase64(chunkData);
-
-        const response = await axiosClient.post("/api/upload", {
-          uploadId,
-          chunkIndex: i,
-          totalChunks: chunks.length,
-          chunkData: chunkBase64,
-          fileName: file.name,
-          mimeType: file.type || "application/octet-stream",
-          parentId: parentId || null,
-          isFirstChunk: false,
-          isLastChunk: i === chunks.length - 1,
-          fileSize: file.size,
-          relativePath: fileState.relativePath, // truyền relativePath cho chunk tiếp theo
+        const headers = {
+          "Content-Type": "application/octet-stream",
+          "X-Upload-Id": uploadId,
+          "X-Chunk-Index": i,
+          "X-Total-Chunks": chunks.length,
+          "X-File-Name": encodeURIComponent(file.name),
+          "X-Mime-Type": file.type || "application/octet-stream",
+          "X-Parent-Id": parentId || "",
+          "X-Is-First-Chunk": "0",
+          "X-Is-Last-Chunk": i === chunks.length - 1 ? "1" : "0",
+          "X-File-Size": file.size,
+          "X-Relative-Path": fileState.relativePath || "",
+        };
+        const response = await axiosClient.post("/api/upload", chunkData, {
+          headers,
         });
-
         const data = response.data;
         if (response.status !== 200 || !data.success) {
           throw new Error(data.error || `Upload chunk ${i} thất bại`);
         }
-
         uploadedChunks = data.uploadedChunks || [...uploadedChunks, i];
-
-        // Cập nhật progress
         const chunkProgress = Math.round(
           (uploadedChunks.length / chunks.length) * 100
         );
-
-        // Kiểm tra nếu là chunk cuối cùng và có fileId
         const isCompleted = i === chunks.length - 1 && data.fileId;
-
         setFileStates((prev) =>
           prev.map((f, idx) =>
             idx === fileIndex
@@ -235,8 +214,6 @@ const MiniStatusBatch = ({
               : f
           )
         );
-
-        // Nếu là chunk cuối cùng
         if (isCompleted) {
           console.log(
             `File ${file.name} uploaded successfully with ID: ${data.fileId}`
