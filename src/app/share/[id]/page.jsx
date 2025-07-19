@@ -10,6 +10,7 @@ import {
 } from "react-icons/fi";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
+import axiosClient from "@/lib/axiosClient";
 
 function formatSize(size) {
   if (!size) return "-";
@@ -27,16 +28,15 @@ export default function SharePage() {
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [breadcrumb, setBreadcrumb] = useState([]); // [{id, name}]
+  const [downloadingId, setDownloadingId] = useState(null);
 
   useEffect(() => {
     if (!id) return;
     setLoading(true);
-    fetch(`/api/share/${id}`)
-      .then(async (res) => {
-        if (!res.ok) throw new Error((await res.json()).error || "Lỗi");
-        return res.json();
-      })
-      .then((data) => {
+    axiosClient
+      .get(`/api/share/${id}`)
+      .then((res) => {
+        const data = res.data;
         setItem(data);
         // Breadcrumb logic: if navigating into subfolder, push to breadcrumb
         if (data.type === "folder") {
@@ -48,9 +48,15 @@ export default function SharePage() {
           });
         }
       })
-      .catch((err) =>
-        setError(err.message || "Không tìm thấy file hoặc thư mục")
-      )
+      .catch((err) => {
+        let msg = "Không tìm thấy file hoặc thư mục";
+        if (err.response && err.response.data && err.response.data.error) {
+          msg = err.response.data.error;
+        } else if (err.message) {
+          msg = err.message;
+        }
+        setError(msg);
+      })
       .finally(() => setLoading(false));
     // eslint-disable-next-line
   }, [id]);
@@ -64,6 +70,44 @@ export default function SharePage() {
     const target = breadcrumb[idx];
     router.push(`/share/${target.id}`);
     setBreadcrumb(breadcrumb.slice(0, idx + 1));
+  };
+
+  // Thay thế logic tải xuống file/folder bằng axiosClient để tải và lưu file đúng tên
+  const handleDownload = async (item) => {
+    try {
+      setDownloadingId(item.id);
+      let url = "";
+      let filename = item.name;
+      let isFolder = item.type === "folder";
+      if (isFolder) {
+        url = `/api/share/${item.id}/download`;
+        filename = `${item.name}.zip`;
+      } else {
+        url =
+          item.url ||
+          `https://drive.google.com/uc?export=download&id=${item.id}`;
+        if (item.url) {
+          window.location.href = item.url;
+          setDownloadingId(null);
+          return;
+        }
+      }
+      const res = await axiosClient.get(url, { responseType: "blob" });
+      const blob = new Blob([res.data]);
+      const link = document.createElement("a");
+      link.href = window.URL.createObjectURL(blob);
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(() => {
+        window.URL.revokeObjectURL(link.href);
+        document.body.removeChild(link);
+      }, 200);
+    } catch (err) {
+      alert("Lỗi tải xuống: " + (err?.response?.data?.error || err.message));
+    } finally {
+      setDownloadingId(null);
+    }
   };
 
   if (loading)
@@ -171,27 +215,22 @@ export default function SharePage() {
         {item.type === "file" ? (
           <button
             className="inline-block px-6 py-3 bg-primary text-white rounded-lg text-lg font-semibold hover:bg-blue-700 transition-all shadow"
-            onClick={() => {
-              if (item.url) {
-                window.location.href = item.url;
-              } else {
-                window.location.href = `https://drive.google.com/uc?export=download&id=${item.id}`;
-              }
-            }}
+            onClick={() => handleDownload(item)}
+            disabled={downloadingId === item.id}
           >
-            Tải xuống
+            {downloadingId === item.id ? "Đang tải..." : "Tải xuống"}
           </button>
         ) : (
           <>
             <button
               className="inline-block px-6 py-3 bg-primary text-white rounded-lg text-lg font-semibold hover:bg-blue-700 transition-all shadow mb-2"
-              onClick={() => {
-                // Placeholder: download as zip (implement backend if needed)
-                window.location.href = `/api/share/${item.id}/download`;
-              }}
+              onClick={() => handleDownload(item)}
+              disabled={downloadingId === item.id}
             >
               <FiDownload className="inline mr-2" />
-              Tải xuống thư mục (zip)
+              {downloadingId === item.id
+                ? "Đang nén & tải..."
+                : "Tải xuống thư mục (zip)"}
             </button>
             {/* Danh sách file/thư mục con */}
             <div className="w-full mt-4">
@@ -241,15 +280,16 @@ export default function SharePage() {
                       </span>
                       <button
                         className="ml-2 px-2 py-1 text-xs bg-primary text-white rounded hover:bg-blue-700 flex items-center gap-1"
-                        onClick={() => {
-                          if (f.url) {
-                            window.location.href = f.url;
-                          } else {
-                            window.location.href = `https://drive.google.com/uc?export=download&id=${f.id}`;
-                          }
-                        }}
+                        onClick={() => handleDownload(f)}
+                        disabled={downloadingId === f.id}
                       >
-                        <FiDownload /> Tải xuống
+                        {downloadingId === f.id ? (
+                          "Đang tải..."
+                        ) : (
+                          <>
+                            <FiDownload /> Tải xuống
+                          </>
+                        )}
                       </button>
                     </div>
                   ))}

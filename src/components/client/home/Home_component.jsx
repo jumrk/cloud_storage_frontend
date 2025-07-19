@@ -1,850 +1,507 @@
-// "use client";
-// import React, { useState, useRef, useEffect } from "react";
-// import {
-//   IoAddOutline,
-//   IoMoveOutline,
-//   IoArrowBackOutline,
-// } from "react-icons/io5";
-// import { BsFillGrid3X3GapFill, BsFillGrid3X2GapFill } from "react-icons/bs";
-// import Button_icon from "@/components/ui/Button_icon";
-// import { FiDownload } from "react-icons/fi";
-// import { RiDeleteBin6Line } from "react-icons/ri";
-// import Table from "@/components/ui/Table_custom";
-// import UploadModal from "@/components/Upload_component";
-// import Card_file from "@/components/card_file";
-// import toast from "react-hot-toast";
-// import { useRouter } from "next/navigation";
-// import useDriveActions from "@/hook/useDriveActions";
-// import Loader from "@/components/ui/Loader";
-// import UploadMiniStatus from "@/components/UploadMiniStatus";
-// import { v4 as uuidv4 } from "uuid";
-// import ActionZone from "@/components/ui/ActionZone";
+"use client";
+import React from "react";
+import Skeleton from "react-loading-skeleton";
+import "react-loading-skeleton/dist/skeleton.css";
+import { useState, useEffect } from "react";
+import { formatSize } from "@/utils/driveUtils";
+import axiosClient from "@/lib/axiosClient";
+import EmptyState from "@/components/ui/EmptyState";
 
-// function isMobile() {
-//   if (typeof window === "undefined") return false;
-//   return (
-//     window.innerWidth < 768 ||
-//     /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(
-//       navigator.userAgent
-//     )
-//   );
-// }
+function FilterBar({ sortColumn, sortOrder, onSort }) {
+  // Helper để render mũi tên
+  const renderArrow = (col) => {
+    if (sortColumn !== col) return <span className="ml-1">▼</span>;
+    return <span className="ml-1">{sortOrder === "asc" ? "▲" : "▼"}</span>;
+  };
+  return (
+    <div className="flex gap-3 items-center mx-5 mb-6 mt-4 md:flex">
+      <button
+        className={`${
+          sortColumn === "account"
+            ? "bg-[#189df2] text-white"
+            : "bg-white text-gray-700"
+        } font-semibold rounded-full px-4 py-1.5 text-sm border ${
+          sortColumn === "account"
+            ? "border-white"
+            : "border-dotted border-gray-400"
+        }`}
+        onClick={() => onSort("account")}
+      >
+        Tài khoản {renderArrow("account")}
+      </button>
+      <button
+        className={`${
+          sortColumn === "file"
+            ? "bg-[#189df2] text-white"
+            : "bg-white text-gray-700"
+        } rounded-full px-4 py-1.5 text-sm border ${
+          sortColumn === "file"
+            ? "border-white"
+            : "border-dotted border-gray-400"
+        }`}
+        onClick={() => onSort("file")}
+      >
+        Loại tệp {renderArrow("file")}
+      </button>
+      <button
+        className={`${
+          sortColumn === "date"
+            ? "bg-[#189df2] text-white"
+            : "bg-white text-gray-700"
+        } rounded-full px-4 py-1.5 text-sm border ${
+          sortColumn === "date"
+            ? "border-white"
+            : "border-dotted border-gray-400"
+        }`}
+        onClick={() => onSort("date")}
+      >
+        Ngày đăng {renderArrow("date")}
+      </button>
+      <button
+        className={`${
+          sortColumn === "size"
+            ? "bg-[#189df2] text-white"
+            : "bg-white text-gray-700"
+        } rounded-full px-4 py-1.5 text-sm border ${
+          sortColumn === "size"
+            ? "border-white"
+            : "border-dotted border-gray-400"
+        }`}
+        onClick={() => onSort("size")}
+      >
+        Dung lượng {renderArrow("size")}
+      </button>
+    </div>
+  );
+}
 
-// function Home_Component() {
-//   const router = useRouter();
-//   const scrollRef = useRef();
-//   const header = ["Tên tệp", "Kích thước", "Ngày cập nhật", "Lượt tải"];
-//   const [isChecked, setIsChecked] = useState(false);
-//   const [showModal, setShowModal] = useState(false);
-//   const [showUploadModal, setShowUploadModal] = useState(false);
-//   const [isLayout, setIsLayout] = useState(false);
-//   const [tableData, setTableData] = useState([]);
-//   const [editingFolderId, setEditingFolderId] = useState(null);
-//   const [folders, setFolders] = useState([]);
-//   const [files, setFiles] = useState([]);
-//   const [currentFolderId, setCurrentFolderId] = useState(null); // null là root
-//   const [page, setPage] = useState(1);
-//   const [totalPages, setTotalPages] = useState(1);
-//   const [allFiles, setAllFiles] = useState([]);
-//   const [breadcrumb, setBreadcrumb] = useState([
-//     { id: null, name: "Tất cả tệp" },
-//   ]);
-//   const [loadingMore, setLoadingMore] = useState(false);
-//   const modalRef = useRef(null);
-//   const [filterType, setFilterType] = useState("all");
-//   const [searchTerm, setSearchTerm] = useState("");
+// Bảng basic
+const columns = [
+  { key: "account", label: "Tài khoản" },
+  { key: "file", label: "Tệp & Thư mục" },
+  { key: "date", label: "Ngày đăng" },
+  { key: "size", label: "Dung lượng" },
+];
 
-//   // State chọn nhiều file và kéo nhiều file
-//   const [selectedItems, setSelectedItems] = useState([]); // [{id, type, ...}]
-//   const [draggedItems, setDraggedItems] = useState([]); // [{id, type, ...}]
-//   const [isMobileDevice, setIsMobileDevice] = useState(false);
+function BasicTable({ sortColumn, sortOrder, onSort }) {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [sortedData, setSortedData] = useState([]);
 
-//   // State cho UI mini upload
-//   const [uploadBatches, setUploadBatches] = useState([]); // [{id, files, status}]
-//   // Hàm chọn/bỏ chọn file/folder
-//   const handleSelectItem = (item) => {
-//     setSelectedItems((prev) => {
-//       const exists = prev.find((i) => i.id === item.id);
-//       if (exists) return prev.filter((i) => i.id !== item.id);
-//       return [...prev, item];
-//     });
-//   };
+  useEffect(() => {
+    async function fetchData() {
+      setLoading(true);
+      // Fetch members, folders, files
+      const [membersRes, uploadRes] = await Promise.all([
+        axiosClient.get("/api/user/members").then((r) => r.data),
+        axiosClient
+          .get("/api/upload", { params: { page: 1, limit: 1000 } })
+          .then((r) => r.data),
+      ]);
+      const members = membersRes.members || [];
+      const folders = uploadRes.folders || [];
+      const files = uploadRes.files || [];
+      // Build rows
+      let rows = [];
+      for (const member of members) {
+        // Tìm các folder mà member này có quyền
+        const managedFolders = folders.filter((folder) =>
+          (folder.permissions || []).some(
+            (p) => p.memberId === member._id || p.memberId === member.id
+          )
+        );
+        if (managedFolders.length === 0) {
+          rows.push({
+            account: member.fullName || member.email,
+            file: "-",
+            date: "-",
+            size: "-",
+          });
+        } else {
+          for (const folder of managedFolders) {
+            // Tính tổng dung lượng file trong folder này
+            const filesInFolder = files.filter(
+              (f) => f.folderId === String(folder._id)
+            );
+            const totalSize = filesInFolder.reduce(
+              (sum, f) => sum + (f.size || 0),
+              0
+            );
+            rows.push({
+              account: member.fullName || member.email,
+              file: folder.name,
+              date: folder.createdAt
+                ? new Date(folder.createdAt).toLocaleDateString()
+                : "-",
+              size: formatSize(totalSize),
+            });
+          }
+        }
+      }
+      setData(rows);
+      setLoading(false);
+    }
+    fetchData();
+  }, []);
 
-//   // Hàm chọn tất cả
-//   const handleSelectAll = () => {
-//     if (selectedItems.length === filteredData.length) {
-//       setSelectedItems([]);
-//     } else {
-//       setSelectedItems(filteredData);
-//     }
-//   };
+  useEffect(() => {
+    // Sắp xếp data theo sortColumn/sortOrder
+    if (!sortColumn) {
+      setSortedData(data);
+      return;
+    }
+    const sorted = [...data].sort((a, b) => {
+      let v1 = a[sortColumn] || "";
+      let v2 = b[sortColumn] || "";
+      // Nếu là ngày thì convert về Date
+      if (sortColumn === "date") {
+        v1 = v1 === "-" ? 0 : new Date(v1).getTime();
+        v2 = v2 === "-" ? 0 : new Date(v2).getTime();
+      }
+      // Nếu là size thì convert về số
+      if (sortColumn === "size") {
+        v1 = v1 === "-" ? 0 : Number(v1.replace(/[^\d.]/g, ""));
+        v2 = v2 === "-" ? 0 : Number(v2.replace(/[^\d.]/g, ""));
+      }
+      if (v1 < v2) return sortOrder === "asc" ? -1 : 1;
+      if (v1 > v2) return sortOrder === "asc" ? 1 : -1;
+      return 0;
+    });
+    setSortedData(sorted);
+  }, [data, sortColumn, sortOrder]);
 
-//   // Khi drag start, xác định draggedItems
-//   const handleDragStart = (item) => {
-//     if (selectedItems.find((i) => i.id === item.id)) {
-//       setDraggedItems(selectedItems);
-//     } else {
-//       setDraggedItems([item]);
-//     }
-//   };
-//   const handleDragEnd = () => {
-//     setDraggedItems([]);
-//   };
+  if (!loading && sortedData.length === 0) {
+    return <EmptyState message="Không có dữ liệu để hiển thị" />;
+  }
 
-//   // Use Effect
-//   const [loading, setLoading] = useState(true);
-//   useEffect(() => {
-//     let timeout;
-//     setLoading(true);
-//     setPage(1);
-//     setAllFiles([]);
+  return (
+    <div className="bg-white overflow-x-auto ml-5 md:block hidden">
+      <table className="min-w-full text-sm">
+        <thead>
+          <tr className="bg-[#f7f8fa] text-gray-700">
+            {columns.map((col) => (
+              <th
+                key={col.key}
+                className="px-5 py-3 font-semibold text-left border-b border-gray-200"
+              >
+                {col.label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {loading
+            ? Array.from({ length: 5 }).map((_, idx) => (
+                <tr key={idx} className="border-b border-gray-100">
+                  {columns.map((col, i) => (
+                    <td key={i} className="px-5 py-3">
+                      <Skeleton width={100} height={16} />
+                    </td>
+                  ))}
+                </tr>
+              ))
+            : sortedData.map((row, idx) => (
+                <tr
+                  key={idx}
+                  className="hover:bg-gray-50 border-b border-gray-100"
+                >
+                  <td className="px-5 py-3 whitespace-nowrap font-medium text-gray-800">
+                    {row.account}
+                  </td>
+                  <td className="px-5 py-3 whitespace-nowrap text-gray-700">
+                    {row.file}
+                  </td>
+                  <td className="px-5 py-3 whitespace-nowrap text-gray-600">
+                    {row.date}
+                  </td>
+                  <td className="px-5 py-3 whitespace-nowrap text-gray-600">
+                    {row.size}
+                  </td>
+                </tr>
+              ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
-//     async function load() {
-//       const { files, folders, totalPages: tp } = await fetchData(1);
-//       setFolders(folders);
-//       setAllFiles(files);
-//       setTotalPages(tp);
-//       setFiles(files); // giữ lại cho logic cũ
-//       timeout = setTimeout(() => setLoading(false), 400);
-//     }
-//     load();
+// Sidebar phải giữ nguyên như trước
+function StoragePieChart({ used, total }) {
+  const percent = total > 0 ? Math.min(100, (used / total) * 100) : 0;
+  return (
+    <div className="flex flex-col items-center justify-center my-4">
+      <svg viewBox="0 0 100 100" className="w-28 h-28">
+        <circle
+          cx="50"
+          cy="50"
+          r="45"
+          fill="none"
+          stroke="#e5e7eb"
+          strokeWidth="10"
+        />
+        <circle
+          cx="50"
+          cy="50"
+          r="45"
+          fill="none"
+          stroke="#1cadd9"
+          strokeWidth="10"
+          strokeDasharray={2 * Math.PI * 45}
+          strokeDashoffset={2 * Math.PI * 45 * (1 - percent / 100)}
+          strokeLinecap="round"
+          style={{ transition: "stroke-dashoffset 0.5s" }}
+        />
+        <text
+          x="50"
+          y="54"
+          textAnchor="middle"
+          fontSize="20"
+          fontWeight="bold"
+          fill="#222"
+        >
+          {percent.toFixed(0)}%
+        </text>
+      </svg>
+      <div className="text-xs text-gray-500 mt-1">
+        {used} / {total} đã dùng
+      </div>
+    </div>
+  );
+}
 
-//     // Xử lý click outside
-//     const handleClickOutside = (e) => {
-//       if (modalRef.current && !modalRef.current.contains(e.target)) {
-//         setShowModal(false);
-//       }
-//     };
+function FileTypeRatio({ types }) {
+  const total = types.reduce((sum, t) => sum + t.count, 0);
+  return (
+    <div className="flex flex-col gap-2 mt-2">
+      {types.map((t) => (
+        <div key={t.ext} className="flex items-center gap-2 text-sm">
+          <span className="w-8 text-right font-medium uppercase text-gray-600">
+            {t.ext}
+          </span>
+          <div className="flex-1 h-3 bg-gray-200 rounded-full relative overflow-hidden">
+            <div
+              className="absolute left-0 top-0 h-full rounded-full bg-[#1cadd9]"
+              style={{ width: `${total ? (t.count / total) * 100 : 0}%` }}
+            />
+          </div>
+          <span className="ml-2 text-xs text-gray-500">{t.count} file</span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
-//     // Xử lý thay đổi kích thước
-//     const handleResize = () => {
-//       if (window.innerWidth >= 1020) {
-//         setIsLayout(false);
-//       } else {
-//         setIsLayout(true);
-//       }
-//     };
+function RightSidebar() {
+  const [loading, setLoading] = useState(true);
+  const [leader, setLeader] = useState(null);
+  const [members, setMembers] = useState([]);
+  const [files, setFiles] = useState([]);
+  const [folders, setFolders] = useState([]);
+  // Sidebar data
+  const [fileTypes, setFileTypes] = useState([]);
+  const [overview, setOverview] = useState({});
 
-//     // Gọi lần đầu khi load trang
-//     handleResize();
+  useEffect(() => {
+    async function fetchSidebar() {
+      setLoading(true);
+      const [userRes, membersRes, uploadRes] = await Promise.all([
+        axiosClient.get("/api/user").then((r) => r.data),
+        axiosClient.get("/api/user/members").then((r) => r.data),
+        axiosClient
+          .get("/api/upload", { params: { page: 1, limit: 1000 } })
+          .then((r) => r.data),
+      ]);
+      setLeader(userRes);
+      setMembers(membersRes.members || []);
+      setFiles(uploadRes.files || []);
+      setFolders(uploadRes.folders || []);
+      // Tính tỉ lệ loại file
+      const typeCount = {};
+      (uploadRes.files || []).forEach((f) => {
+        const ext = (f.originalName || "").split(".").pop().toLowerCase();
+        if (ext) typeCount[ext] = (typeCount[ext] || 0) + 1;
+      });
+      setFileTypes(
+        Object.entries(typeCount).map(([ext, count]) => ({ ext, count }))
+      );
+      // Overview
+      const used = userRes.usedStorage || 0;
+      const total = userRes.maxStorage || 1;
+      const remainNum = Math.max(0, total - used);
+      setOverview({
+        totalFiles: uploadRes.files?.length || 0,
+        used: formatSize(used),
+        subAccounts: (membersRes.members || []).length,
+        remain: formatSize(remainNum),
+        plan: userRes.plan?.name || "-",
+        usedNum: used,
+        totalNum: total,
+      });
+      setLoading(false);
+    }
+    fetchSidebar();
+  }, []);
 
-//     // Thêm sự kiện
-//     document.addEventListener("mousedown", handleClickOutside);
-//     window.addEventListener("resize", handleResize);
+  if (loading) {
+    return (
+      <aside className="bg-white border-l border-gray-100 px-4 md:px-6 py-8 h-screen sticky top-0 flex flex-col overflow-y-auto w-full md:max-w-[300px] md:min-w-[220px] md:block">
+        {/* Skeleton giữ nguyên */}
+        {/* Tổng quan + biểu đồ */}
+        <div className="mb-6 p-5 rounded-xl bg-[#f7f8fa] border border-gray-100 shadow-sm">
+          <Skeleton width={100} height={24} className="mb-3" />
+          <div className="flex justify-center">
+            <Skeleton circle width={112} height={112} />
+          </div>
+        </div>
+        {/* Tổng dung lượng & đã sử dụng */}
+        <div className="mb-6 p-5 rounded-xl bg-white border border-gray-100 shadow-sm">
+          <Skeleton width={100} height={20} className="mb-3" />
+          <Skeleton width={180} height={16} className="mb-2" />
+          <Skeleton width={180} height={16} />
+        </div>
+        {/* Tỉ lệ file */}
+        <div className="mb-6 p-5 rounded-xl bg-white border border-gray-100 shadow-sm">
+          <Skeleton width={100} height={20} className="mb-3" />
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-2 text-sm mb-2">
+              <Skeleton width={32} height={16} />
+              <Skeleton width={120} height={12} />
+              <Skeleton width={40} height={12} />
+            </div>
+          ))}
+        </div>
+        {/* Thông tin tài khoản */}
+        <div className="mb-2 p-5 rounded-xl bg-white border border-gray-100 shadow-sm">
+          <Skeleton width={120} height={20} className="mb-3" />
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex flex-col gap-0.5">
+                <Skeleton width={60} height={12} />
+                <Skeleton width={40} height={18} />
+              </div>
+            ))}
+            <div className="col-span-2 flex flex-col gap-0.5 mt-2">
+              <Skeleton width={80} height={12} />
+              <Skeleton width={100} height={18} />
+            </div>
+          </div>
+        </div>
+      </aside>
+    );
+  }
 
-//     // Cleanup
-//     return () => {
-//       clearTimeout(timeout);
-//       document.removeEventListener("mousedown", handleClickOutside);
-//       window.removeEventListener("resize", handleResize);
-//     };
-//   }, [filterType, searchTerm]);
+  return (
+    <aside className="bg-white border-l border-gray-100 px-4 md:px-6 py-8 h-screen sticky top-0 flex flex-col overflow-y-auto w-full md:max-w-[300px] md:min-w-[220px] md:block">
+      {/* Tổng quan + biểu đồ */}
+      <div className="mb-6 p-5 rounded-xl bg-[#f7f8fa] border border-gray-100 shadow-sm">
+        <div className="font-semibold text-gray-700 mb-3 text-lg tracking-wide">
+          Tổng quan
+        </div>
+        <StoragePieChart used={overview.usedNum} total={overview.totalNum} />
+      </div>
+      {/* Tổng dung lượng & đã sử dụng */}
+      <div className="mb-6 p-5 rounded-xl bg-white border border-gray-100 shadow-sm">
+        <div className="font-semibold text-gray-700 mb-3 text-base tracking-wide">
+          Tổng dung lượng
+        </div>
+        <div className="flex flex-col gap-2 text-sm">
+          <div className="flex justify-between items-center py-1">
+            <span className="text-gray-500">Đã sử dụng</span>
+            <span className="font-semibold text-[#1cadd9]">
+              {overview.used}
+            </span>
+          </div>
+          <div className="flex justify-between items-center py-1">
+            <span className="text-gray-500">Tổng dung lượng</span>
+            <span className="font-semibold">
+              {formatSize(overview.totalNum)}
+            </span>
+          </div>
+        </div>
+      </div>
+      {/* Tỉ lệ file */}
+      <div className="mb-6 p-5 rounded-xl bg-white border border-gray-100 shadow-sm">
+        <div className="font-semibold text-gray-700 mb-3 text-base tracking-wide">
+          Tỉ lệ file
+        </div>
+        <FileTypeRatio types={fileTypes} />
+      </div>
+      {/* Tổng quan mới */}
+      <div className="mb-2 p-5 rounded-xl bg-white border border-gray-100 shadow-sm">
+        <div className="font-semibold text-gray-700 mb-3 text-base tracking-wide">
+          Thông tin tài khoản
+        </div>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-gray-400">Tổng số file</span>
+            <span className="font-bold text-base text-gray-800">
+              {overview.totalFiles}
+            </span>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-gray-400">Đã sử dụng</span>
+            <span className="font-bold text-base text-gray-800">
+              {overview.used}
+            </span>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-gray-400">Tài khoản con</span>
+            <span className="font-bold text-base text-gray-800">
+              {overview.subAccounts}
+            </span>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-gray-400">Còn lại</span>
+            <span className="font-bold text-base text-gray-800">
+              {overview.remain}
+            </span>
+          </div>
+          <div className="col-span-2 flex flex-col gap-0.5 mt-2">
+            <span className="text-gray-400">Gói đăng ký</span>
+            <span className="font-bold text-base text-gray-800">
+              {overview.plan}
+            </span>
+          </div>
+        </div>
+      </div>
+    </aside>
+  );
+}
 
-//   useEffect(() => {
-//     setIsMobileDevice(isMobile());
-//     const handleResize = () => setIsMobileDevice(isMobile());
-//     window.addEventListener("resize", handleResize);
-//     return () => window.removeEventListener("resize", handleResize);
-//   }, []);
+export default function Home() {
+  const [sortColumn, setSortColumn] = useState(null);
+  const [sortOrder, setSortOrder] = useState("asc");
 
-//   // Tải thêm trang mới
-//   const loadMore = async () => {
-//     if (page >= totalPages) return;
-//     setLoadingMore(true);
-//     const nextPage = page + 1;
-//     const { files } = await fetchData(nextPage);
-//     setAllFiles((prev) => [...prev, ...files]);
-//     setPage(nextPage);
-//     setLoadingMore(false);
-//   };
+  const handleSort = (col) => {
+    if (sortColumn === col) {
+      setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortColumn(col);
+      setSortOrder("asc");
+    }
+  };
 
-//   // Infinite scroll
-//   useEffect(() => {
-//     const handleScroll = () => {
-//       if (!scrollRef.current) return;
-//       const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
-//       if (
-//         scrollHeight - scrollTop - clientHeight < 100 &&
-//         !loadingMore &&
-//         page < totalPages
-//       ) {
-//         loadMore();
-//       }
-//     };
-//     const el = scrollRef.current;
-//     if (el) el.addEventListener("scroll", handleScroll);
-//     return () => {
-//       if (el) el.removeEventListener("scroll", handleScroll);
-//     };
-//   }, [loadingMore, page, totalPages]);
-
-//   // Lọc dữ liệu theo folder hiện tại
-//   useEffect(() => {
-//     const folderRows = (folders || [])
-//       .filter((f) => (f.parentId ?? null) === currentFolderId)
-//       .map((f) => ({
-//         ...f,
-//         id: f.driveFolderId,
-//         type: "folder",
-//         size: "-",
-//         date: f.updatedAt, // lưu raw date
-//         download: "-",
-//       }));
-//     // File thuộc folder hiện tại
-//     const fileRows = (allFiles || [])
-//       .filter((file) => (file.folderId ?? null) === currentFolderId)
-//       .map((f) => ({
-//         ...f,
-//         id: f.driveFileId,
-//         type: "file",
-//         name: f.originalName,
-//         size: f.size,
-//         date: f.updatedAt, // lưu raw date
-//         download: f.url ? (
-//           <a
-//             href={f.url}
-//             target="_blank"
-//             rel="noopener noreferrer"
-//             className="underline text-blue-600"
-//           >
-//             Tải xuống
-//           </a>
-//         ) : (
-//           "-"
-//         ),
-//       }));
-//     setTableData([...folderRows, ...fileRows]);
-//   }, [folders, allFiles, currentFolderId]);
-
-//   // Click vào folder trong table
-//   const handleRowClick = (row) => {
-//     if (row.type === "folder") {
-//       setCurrentFolderId(row.id);
-//       setBreadcrumb((prev) => [...prev, { id: row.id, name: row.name }]);
-//     }
-//   };
-
-//   // Handle
-//   const handleCheck = (isValid) => {
-//     setIsChecked(isValid);
-//   };
-
-//   const [loadingNewFolder, setLoadingNewFolder] = useState(false);
-
-//   const createNewFolder = async () => {
-//     setLoadingNewFolder(true);
-//     const folderName = "Thư mục mới";
-//     try {
-//       const res = await fetch("/api/upload/create_folder", {
-//         method: "POST",
-//         headers: { "Content-Type": "application/json" },
-//         body: JSON.stringify({
-//           name: folderName,
-//           parentId: currentFolderId, // null nếu là root
-//         }),
-//       });
-//       const data = await res.json();
-//       if (data.success) {
-//         toast.success("Tạo thư mục thành công!");
-//         fetchData().then(({ files, folders }) => {
-//           setFolders(folders);
-//           setFiles(files);
-//           window.dispatchEvent(new Event("reload-folder"));
-//         });
-//       } else {
-//         toast.error(data.error || "Tạo thư mục thất bại");
-//       }
-//     } catch (err) {
-//       toast.error("Lỗi khi tạo thư mục");
-//     } finally {
-//       setLoadingNewFolder(false);
-//     }
-//   };
-
-//   const handleRename = (id, newName) => {
-//     setTableData((prev) =>
-//       prev.map((item) => (item.id === id ? { ...item, name: newName } : item))
-//     );
-//     setEditingFolderId(null);
-//   };
-
-//   // Thay thế các hàm xử lý bằng hook
-//   const {
-//     loading: apiLoading,
-//     fetchData,
-//     upload,
-//     move,
-//     deleteItems,
-//     rename,
-//   } = useDriveActions();
-
-//   const filteredData = tableData.filter((item) => {
-//     // Lọc theo loại
-//     if (filterType === "folder" && item.type !== "folder") return false;
-//     if (
-//       filterType === "image" &&
-//       !/\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(item.name)
-//     )
-//       return false;
-//     if (
-//       filterType === "video" &&
-//       !/\.(mp4|avi|mov|wmv|flv|mkv)$/i.test(item.name)
-//     )
-//       return false;
-//     if (filterType === "word" && !/\.(doc|docx)$/i.test(item.name))
-//       return false;
-//     // Lọc theo search
-//     if (
-//       searchTerm &&
-//       !item.name.toLowerCase().includes(searchTerm.toLowerCase())
-//     )
-//       return false;
-//     return true;
-//   });
-
-//   // Hàm xử lý di chuyển file/folder
-//   const handleMoveItem = async ({ id, type, targetFolderId }) => {
-//     setLoading(true);
-//     const ok = await move({ id, type, targetFolderId });
-//     if (ok) {
-//       await reloadData();
-//       setSelectedItems([]);
-//       setDraggedItems([]); // Reset draggedItems để ActionZone ẩn đi
-//       window.dispatchEvent(new Event("reload-folder"));
-//     }
-//   };
-
-//   // Modal chọn folder đích
-//   const [showMoveModal, setShowMoveModal] = useState(false);
-//   const [moveTargetFolder, setMoveTargetFolder] = useState(null);
-//   const [pendingMoveItems, setPendingMoveItems] = useState([]);
-
-//   // Action khi drop vào nút chức năng
-//   // Callback cho ActionZone
-//   const handleDropMove = (items) => {
-//     setLoading(true);
-//     setPendingMoveItems(items);
-//     setShowMoveModal(true);
-//     setDraggedItems([]); // Reset draggedItems để ActionZone ẩn đi
-//     setLoading(false);
-//   };
-//   const handleDownload = (items) => {
-//     setLoading(true);
-//     if (!Array.isArray(items)) items = [items];
-//     items.forEach((item) => {
-//       if (item.type === "file" && item.url) {
-//         window.open(item.url, "_blank");
-//       }
-//     });
-//     toast.success("Đã tải xuống các file đã chọn");
-//     setDraggedItems([]); // Reset draggedItems để ActionZone ẩn đi
-//     setLoading(false);
-//   };
-//   const handleShare = (item) => {
-//     setLoading(true);
-//     const shareUrl = `${window.location.origin}/share/${item.id}`;
-//     navigator.clipboard.writeText(shareUrl);
-//     setDraggedItems([]); // Reset draggedItems để ActionZone ẩn đi
-//     setLoading(false);
-//   };
-//   const handleConfirmMove = async () => {
-//     setLoading(true);
-//     if (moveTargetFolder && pendingMoveItems.length > 0) {
-//       await Promise.all(
-//         pendingMoveItems.map((item) =>
-//           handleMoveItem({
-//             id: item.id,
-//             type: item.type,
-//             targetFolderId: moveTargetFolder.id,
-//           })
-//         )
-//       );
-//       await reloadData();
-//       setSelectedItems([]);
-//       setDraggedItems([]); // Reset draggedItems để ActionZone ẩn đi
-//       window.dispatchEvent(new Event("reload-folder"));
-//     }
-//     setShowMoveModal(false);
-//     setMoveTargetFolder(null);
-//     setPendingMoveItems([]);
-//     setLoading(false);
-//   };
-//   const handleCancelMove = () => {
-//     setShowMoveModal(false);
-//     setMoveTargetFolder(null);
-//     setPendingMoveItems([]);
-//   };
-//   const handleDropDelete = async (items) => {
-//     setLoading(true);
-//     const ok = await deleteItems(items);
-//     if (ok) {
-//       await reloadData();
-//       setSelectedItems([]);
-//       setDraggedItems([]); // Reset draggedItems để ActionZone ẩn đi
-//       window.dispatchEvent(new Event("reload-folder"));
-//     }
-//     setLoading(false);
-//   };
-
-//   // Hàm back folder
-//   const handleBackFolder = () => {
-//     if (breadcrumb.length > 1) {
-//       const prev = breadcrumb[breadcrumb.length - 2];
-//       setCurrentFolderId(prev.id);
-//       setBreadcrumb(breadcrumb.slice(0, breadcrumb.length - 1));
-//     }
-//   };
-
-//   // Đổi tên file/folder
-//   const handleRenameFolder = async (id, type, newName) => {
-//     setLoading(true);
-//     const ok = await rename(id, type, newName);
-//     if (ok)
-//       fetchData().then(({ files, folders }) => {
-//         setFolders(folders);
-//         setFiles(files);
-//       });
-//     setLoading(false);
-//   };
-
-//   // Xem file
-//   const [previewFile, setPreviewFile] = useState(null);
-//   const handlePreviewFile = (file) => {
-//     setPreviewFile(file);
-//   };
-//   const closePreview = () => setPreviewFile(null);
-
-//   // Callback truyền cho UploadModal
-//   const handleShowMiniUploadStatus = (files) => {
-//     const batchId = uuidv4();
-//     setUploadBatches((prev) => [
-//       ...prev,
-//       {
-//         id: batchId,
-//         files: files.map((f) => ({
-//           name: f.name,
-//           icon: "/images/icon/png.png",
-//           status: "Đang tải...",
-//         })),
-//         status: "Đang bắt đầu tải lên...",
-//       },
-//     ]);
-//     return batchId;
-//   };
-//   // Callback cập nhật trạng thái upload
-//   const handleUpdateMiniUploadStatus = (batchId, status, files) => {
-//     setUploadBatches((prev) =>
-//       prev.map((b) =>
-//         b.id === batchId
-//           ? {
-//               ...b,
-//               status,
-//               files: files || b.files,
-//             }
-//           : b
-//       )
-//     );
-//   };
-//   // Callback ẩn UI mini upload cho batch cụ thể
-//   const handleHideMiniUploadStatus = (batchId) => {
-//     setTimeout(() => {
-//       setUploadBatches((prev) => prev.filter((b) => b.id !== batchId));
-//     }, 2000);
-//   };
-
-//   const [showPageLoading, setShowPageLoading] = useState(true);
-
-//   useEffect(() => {
-//     setShowPageLoading(true);
-//     let timeout = setTimeout(() => setShowPageLoading(false), 2000);
-//     fetchData().then(({ files, folders }) => {
-//       setFolders(folders);
-//       setFiles(files);
-//       // Nếu fetch xong mà timeout đã hết thì tắt loading luôn
-//       if (timeout) {
-//         clearTimeout(timeout);
-//         setTimeout(() => setShowPageLoading(false), 0);
-//       }
-//     });
-//     return () => clearTimeout(timeout);
-//   }, []);
-
-//   // Khi fetch lại data (ví dụ tạo folder, xóa file), cũng set loading
-//   const reloadData = async () => {
-//     setLoading(true);
-//     setPage(1);
-//     setAllFiles([]);
-//     const { files, folders, totalPages: tp } = await fetchData(1);
-//     setFolders(folders);
-//     setAllFiles(files);
-//     setTotalPages(tp);
-//     setFiles(files);
-//     setTimeout(() => setLoading(false), 400);
-//   };
-
-//   // Tính tổng số file + folder thực tế ở root
-//   const allFilesLength = Array.isArray(allFiles) ? allFiles.length : 0;
-//   const rootFoldersLength = Array.isArray(folders)
-//     ? folders.filter((f) => (f.parentId ?? null) === null).length
-//     : 0;
-//   const totalItems = allFilesLength + rootFoldersLength;
-
-//   const driveActions = useDriveActions();
-//   // Thay vì chỉ dùng state loading cục bộ, đồng bộ với driveActions.loading
-//   const isLoading = loading || driveActions.loading;
-
-//   return (
-//     <div>
-//       {/* Overlay loading */}
-//       {isLoading && <Loader position="center" bg="black" hideText />}
-//       <div
-//         className="min-h-screen w-full px-5 py-5 pr-5"
-//         ref={scrollRef}
-//         style={{ overflowY: "auto", maxHeight: "calc(100vh - 40px)" }}
-//       >
-//         {/* Tìm kiếm */}
-//         <div className="grid mt-5">
-//           <input
-//             name="search"
-//             className="w-full lg:w-[60%] placeholder:text-[#8897AD] p-3 border focus:outline-none border-[#D4D7E3] bg-[#F7FBFF] rounded-xl"
-//             type="text"
-//             placeholder="Tìm kiếm tệp của bạn"
-//             value={searchTerm}
-//             onChange={(e) => setSearchTerm(e.target.value)}
-//           />
-//         </div>
-
-//         <div className="grid lg:flex lg:p-5 lg:justify-between relative">
-//           {/* Button left */}
-//           <div className="flex gap-2 mt-5 items-center relative" ref={modalRef}>
-//             <select
-//               className="min-w-[165px] min-h-10 max-w-xs p-2 rounded-[6px] border-none text-primary font-medium transition-all bg-[#E5E7EB] duration-300 ease-in-out shadow-xl"
-//               value={filterType}
-//               onChange={(e) => setFilterType(e.target.value)}
-//             >
-//               <option value="all">Tất cả</option>
-//               <option value="folder">Thư mục</option>
-//               <option value="image">Tệp ảnh</option>
-//               <option value="video">Tệp video</option>
-//               <option value="word">Tệp word</option>
-//             </select>
-
-//             {/* Modal tải lên thư mục */}
-//             <div className="relative">
-//               <button
-//                 onClick={() => setShowModal(!showModal)}
-//                 className="flex bg-primary p-2 cursor-pointer shadow-xl/20 hover:scale-105 transition-all rounded-[8px] text-white justify-center items-center gap-3 disabled:bg-blue-300"
-//                 disabled={loadingNewFolder}
-//               >
-//                 {loadingNewFolder ? (
-//                   <span className="animate-spin mr-2">⏳</span>
-//                 ) : (
-//                   <IoAddOutline />
-//                 )}
-//                 <p>Mới</p>
-//               </button>
-//               {showModal && (
-//                 <div className="absolute top-12 left-0 z-50 w-[200px] bg-white rounded-md shadow-lg border border-gray-200">
-//                   <ul className="flex flex-col text-sm">
-//                     <li
-//                       className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-//                       onClick={() => {
-//                         setShowModal(false);
-//                         createNewFolder();
-//                       }}
-//                     >
-//                       {loadingNewFolder ? (
-//                         <span className="animate-spin mr-2">⏳</span>
-//                       ) : (
-//                         "📁"
-//                       )}{" "}
-//                       Tạo thư mục mới
-//                     </li>
-//                     <li
-//                       className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-//                       onClick={() => {
-//                         setShowModal(false);
-//                         setShowUploadModal(true);
-//                       }}
-//                     >
-//                       📤 Tải lên
-//                     </li>
-//                   </ul>
-//                 </div>
-//               )}
-//             </div>
-
-//             <div className="hidden lg:flex gap-2">
-//               <BsFillGrid3X3GapFill
-//                 onClick={() => setIsLayout(false)} // Chuyển sang table
-//                 style={{ cursor: "pointer", transition: "all 0.3s" }}
-//                 size={30}
-//                 color={isLayout ? "#A2A2A2" : "#1E293B"}
-//               />
-//               <BsFillGrid3X2GapFill
-//                 onClick={() => setIsLayout(true)} // Chuyển sang card
-//                 style={{ cursor: "pointer", transition: "all 0.3s" }}
-//                 size={30}
-//                 color={isLayout ? "#1E293B" : "#A2A2A2"}
-//               />
-//             </div>
-//           </div>
-
-//           {/* Button right */}
-//           {isChecked && (
-//             <div className="flex flex-wrap gap-5 mt-3">
-//               <Button_icon
-//                 text="Di chuyển"
-//                 icon={<IoMoveOutline />}
-//                 bg="bg-primary"
-//               />
-//               <Button_icon
-//                 text="Tải xuống"
-//                 icon={<FiDownload />}
-//                 bg="bg-[#828DAD]"
-//               />
-//               <Button_icon
-//                 text="Xóa"
-//                 icon={<RiDeleteBin6Line />}
-//                 bg="bg-[#DC2626]"
-//               />
-//             </div>
-//           )}
-//         </div>
-//         {/* Nút back khi không ở root */}
-//         <button
-//           className={`block items-center h-2  gap-2 mb-2 transition-all mt-5 text-primary hover:underline hover:text-blue-700 font-medium text-base ${
-//             breadcrumb.length > 1 ? "opacity-100" : "opacity-0"
-//           }`}
-//           onClick={handleBackFolder}
-//         >
-//           <IoArrowBackOutline size={22} />
-//         </button>
-//         {/* Card/Table view: mobile luôn là Card, desktop cho phép chuyển đổi qua lại bằng isLayout */}
-//         {!loading && (
-//           <>
-//             {isMobileDevice || isLayout ? (
-//               <div className="mt-4 w-full justify-center flex flex-wrap gap-4 transition-opacity duration-300">
-//                 {filteredData.map((item) => (
-//                   <Card_file
-//                     key={item.id}
-//                     data={item}
-//                     onClick={() => {
-//                       if (item.type === "folder") handleRowClick(item);
-//                     }}
-//                     onMoveItem={handleMoveItem}
-//                     selectedItems={selectedItems}
-//                     onSelectItem={handleSelectItem}
-//                     draggedItems={draggedItems}
-//                     onDragStart={handleDragStart}
-//                     onDragEnd={handleDragEnd}
-//                     onRenameFolder={handleRenameFolder}
-//                     onPreviewFile={handlePreviewFile}
-//                   />
-//                 ))}
-//               </div>
-//             ) : (
-//               <div className="lg:block hidden transition-opacity duration-300">
-//                 <Table
-//                   header={header}
-//                   data={filteredData}
-//                   handleChecked={handleCheck}
-//                   editingFolderId={editingFolderId}
-//                   handleRename={handleRename}
-//                   onRowClick={handleRowClick}
-//                   onMoveItem={handleMoveItem}
-//                   selectedItems={selectedItems}
-//                   onSelectItem={handleSelectItem}
-//                   onSelectAll={handleSelectAll}
-//                   draggedItems={draggedItems}
-//                   onDragStart={handleDragStart}
-//                   onDragEnd={handleDragEnd}
-//                   onRenameFolder={handleRenameFolder}
-//                   onPreviewFile={handlePreviewFile}
-//                 />
-//               </div>
-//             )}
-//             {/* Nút tải thêm chỉ ở root và chỉ khi còn dữ liệu */}
-//             {currentFolderId == null &&
-//               allFilesLength + rootFoldersLength < totalItems &&
-//               page < totalPages && (
-//                 <div className="flex justify-center my-4">
-//                   <button
-//                     onClick={loadMore}
-//                     disabled={loadingMore}
-//                     className="px-4 py-2 rounded bg-primary text-white disabled:bg-gray-300"
-//                   >
-//                     {loadingMore ? "Đang tải..." : "Tải thêm"}
-//                   </button>
-//                 </div>
-//               )}
-//           </>
-//         )}
-
-//         {/* Upload Modal */}
-//         <UploadModal
-//           isOpen={showUploadModal}
-//           onClose={() => setShowUploadModal(false)}
-//           onUploaded={reloadData}
-//           onShowMiniUploadStatus={handleShowMiniUploadStatus}
-//           onUpdateMiniUploadStatus={handleUpdateMiniUploadStatus}
-//           onHideMiniUploadStatus={handleHideMiniUploadStatus}
-//         />
-
-//         {/* Render nhiều UI mini upload xếp chồng nhau */}
-//         <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 9999 }}>
-//           {uploadBatches.map((batch, idx) => (
-//             <div key={batch.id} style={{ marginBottom: idx > 0 ? 12 : 0 }}>
-//               <UploadMiniStatus files={batch.files} status={batch.status} />
-//             </div>
-//           ))}
-//         </div>
-
-//         {/* Thay thế action zone cũ bằng ActionZone */}
-//         <ActionZone
-//           isMobile={isMobileDevice}
-//           selectedItems={selectedItems}
-//           draggedItems={draggedItems}
-//           onMove={handleDropMove}
-//           onDownload={handleDownload}
-//           onDelete={handleDropDelete}
-//           onShare={handleShare}
-//           showMoveModal={showMoveModal}
-//           setShowMoveModal={setShowMoveModal}
-//         />
-
-//         {/* Modal chọn folder đích khi di chuyển */}
-//         {showMoveModal && (
-//           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-//             <div className="bg-white rounded-xl p-6 min-w-[320px] shadow-2xl relative">
-//               <h3 className="font-bold text-lg mb-4">Chọn thư mục đích</h3>
-//               <div className="max-h-60 overflow-y-auto mb-4">
-//                 <div
-//                   className={`p-2 rounded cursor-pointer mb-1 ${
-//                     moveTargetFolder && moveTargetFolder.id === null
-//                       ? "bg-blue-200"
-//                       : "hover:bg-blue-100"
-//                   }`}
-//                   onClick={() =>
-//                     setMoveTargetFolder({ id: null, name: "Thư mục gốc" })
-//                   }
-//                 >
-//                   �� Ra ngoài tất cả thư mục (Thư mục gốc)
-//                 </div>
-//                 {folders.map((folder) => (
-//                   <div
-//                     key={folder.driveFolderId}
-//                     className={`p-2 rounded cursor-pointer mb-1 ${
-//                       moveTargetFolder &&
-//                       moveTargetFolder.id === folder.driveFolderId
-//                         ? "bg-blue-200"
-//                         : "hover:bg-blue-100"
-//                     }`}
-//                     onClick={() =>
-//                       setMoveTargetFolder({
-//                         id: folder.driveFolderId,
-//                         name: folder.name,
-//                       })
-//                     }
-//                   >
-//                     📁 {folder.name}
-//                   </div>
-//                 ))}
-//               </div>
-//               <div className="flex gap-3 justify-end">
-//                 <button
-//                   onClick={handleCancelMove}
-//                   className="px-4 py-2 rounded bg-gray-200"
-//                 >
-//                   Hủy
-//                 </button>
-//                 <button
-//                   onClick={handleConfirmMove}
-//                   className="px-4 py-2 rounded bg-primary text-white disabled:bg-gray-300"
-//                   disabled={moveTargetFolder === null}
-//                 >
-//                   Di chuyển
-//                 </button>
-//               </div>
-//             </div>
-//           </div>
-//         )}
-
-//         {/* Modal xem file */}
-//         {previewFile && (
-//           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-//             <div className="relative bg-white rounded-xl shadow-2xl max-w-full max-h-full w-[90vw] h-[90vh] flex flex-col">
-//               <button
-//                 className="absolute top-2 right-2 text-gray-500 hover:text-red-500 text-2xl z-10"
-//                 onClick={closePreview}
-//                 aria-label="Đóng"
-//               >
-//                 ×
-//               </button>
-//               <div className="flex-1 flex items-center justify-center p-4 overflow-auto">
-//                 {(() => {
-//                   const fileId = previewFile.id || previewFile.driveFileId;
-//                   const name =
-//                     previewFile.name || previewFile.originalName || "";
-//                   const ext = name.split(".").pop().toLowerCase();
-//                   const previewUrl = fileId
-//                     ? `https://drive.google.com/file/d/${fileId}/preview`
-//                     : null;
-//                   const downloadUrl = fileId
-//                     ? `https://drive.google.com/uc?export=download&id=${fileId}`
-//                     : previewFile.url ||
-//                       (typeof previewFile.download === "string"
-//                         ? previewFile.download
-//                         : null);
-//                   // Nếu là ảnh, video, audio: chỉ hiện nút xem file
-//                   if (
-//                     /\.(jpg|jpeg|png|gif|bmp|webp|mp4|webm|ogg|mp3|wav)$/i.test(
-//                       name
-//                     )
-//                   ) {
-//                     return (
-//                       <a
-//                         href={previewUrl || downloadUrl}
-//                         target="_blank"
-//                         rel="noopener noreferrer"
-//                         className="inline-block px-6 py-3 bg-primary text-white rounded-lg text-lg font-semibold hover:bg-blue-700 transition-all shadow"
-//                       >
-//                         Xem file
-//                       </a>
-//                     );
-//                   }
-//                   // PDF: nhúng preview
-//                   if (/\.(pdf)$/i.test(name)) {
-//                     return (
-//                       <iframe
-//                         src={previewUrl}
-//                         title={name}
-//                         className="w-full h-[70vh] rounded shadow"
-//                       />
-//                     );
-//                   }
-//                   // File khác: hiện nút tải về
-//                   return (
-//                     <a
-//                       href={downloadUrl}
-//                       target="_blank"
-//                       rel="noopener noreferrer"
-//                       className="inline-block px-6 py-3 bg-primary text-white rounded-lg text-lg font-semibold hover:bg-blue-700 transition-all shadow"
-//                     >
-//                       Tải xuống hoặc mở file này
-//                     </a>
-//                   );
-//                 })()}
-//               </div>
-//               <div className="p-2 text-center text-gray-500 text-xs truncate">
-//                 {previewFile.name || previewFile.originalName}
-//               </div>
-//             </div>
-//           </div>
-//         )}
-//       </div>
-//     </div>
-//   );
-// }
-
-// export default Home_Component;
+  return (
+    <div className="w-full min-h-screen flex bg-white">
+      {/* Main content left: chỉ hiện trên md trở lên */}
+      <div className="flex-1 flex-col pt-8 pb-8 hidden md:flex">
+        <FilterBar
+          sortColumn={sortColumn}
+          sortOrder={sortOrder}
+          onSort={handleSort}
+        />
+        <div className="mt-2">
+          <BasicTable
+            sortColumn={sortColumn}
+            sortOrder={sortOrder}
+            onSort={handleSort}
+          />
+        </div>
+      </div>
+      {/* Sidebar phải: ở mobile chiếm full width, ở desktop là sidebar */}
+      <div className="w-full md:w-auto">
+        <RightSidebar />
+      </div>
+    </div>
+  );
+}

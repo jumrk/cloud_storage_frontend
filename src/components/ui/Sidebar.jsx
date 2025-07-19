@@ -13,6 +13,7 @@ import {
   CiLogout,
 } from "react-icons/ci";
 import toast from "react-hot-toast";
+import { decodeTokenGetUser } from "@/lib/jwt";
 
 export default function Sidebar({
   isMobile = false,
@@ -23,6 +24,18 @@ export default function Sidebar({
   const pathname = usePathname();
   const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [slast, setSlast] = useState("");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("token");
+      if (token) {
+        const user = decodeTokenGetUser(token);
+        setSlast(user?.slast || "");
+        console.log(slast);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (isMobile) {
@@ -43,38 +56,43 @@ export default function Sidebar({
     router.push("/Login");
   };
 
+  // Nếu chưa có slast thì không render menu (hoặc render loading)
+  if (!slast) {
+    return null;
+  }
+
   // Sidebar menu items
   const menu = [
     {
       label: "Trang chủ",
       icon: <CiHome className="text-2xl" />,
-      href: "/home",
+      href: `/${slast}/home`,
     },
     {
       label: "Quản lý tệp",
       icon: <CiFolderOn className="text-2xl" />,
-      href: "/file_management",
+      href: `/${slast}/file_management`,
     },
     {
       label: "Quản lý tài khoản",
       icon: <CiUser className="text-2xl" />,
-      href: "/user_management",
+      href: `/${slast}/user_management`,
     },
     {
       label: "Thông báo",
       icon: <CiBellOn className="text-2xl" />,
-      href: "/notification",
+      href: `/${slast}/notification`,
       badge: 8,
     },
     {
       label: "Thông tin tài khoản",
       icon: <CiFileOn className="text-2xl" />,
-      href: "/infor_user",
+      href: `/${slast}/infor_user`,
     },
     {
       label: "Cài đặt",
       icon: <CiSettings className="text-2xl" />,
-      href: "/settings",
+      href: `/${slast}/settings`,
     },
   ];
 

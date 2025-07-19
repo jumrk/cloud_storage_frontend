@@ -9,10 +9,11 @@ import {
   FiPlay,
 } from "react-icons/fi";
 import axiosClient from "@/lib/axiosClient";
+import toast from "react-hot-toast";
 
 // Hàm chia file thành chunk
-const createFileChunks = (file, chunkSize = 32 * 1024 * 1024) => {
-  // 32MB default
+const createFileChunks = (file, chunkSize = 64 * 1024 * 1024) => {
+  // 64MB default
   const chunks = [];
   let start = 0;
   while (start < file.size) {
@@ -35,16 +36,6 @@ const readFileChunk = (file, start, end) => {
     reader.onerror = reject;
     reader.readAsArrayBuffer(file.slice(start, end));
   });
-};
-
-// Hàm convert ArrayBuffer sang base64
-const arrayBufferToBase64 = (buffer) => {
-  const bytes = new Uint8Array(buffer);
-  let binary = "";
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary);
 };
 
 // MiniStatus cho 1 batch (files hoặc folders hoặc create_folder)
@@ -80,22 +71,29 @@ const MiniStatusBatch = ({
   const [progress, setProgress] = useState(0);
 
   // Tính progress tổng thể dựa trên status của các file
-  const calculateOverallProgress = () => {
-    if (fileStates.length === 0) return 0;
-
-    const completedFiles = fileStates.filter(
-      (f) => f.status === "success"
-    ).length;
-    const totalFiles = fileStates.length;
-
-    return Math.round((completedFiles / totalFiles) * 100);
+  const calculateOverallProgress = (currentFileStates) => {
+    if (!currentFileStates.length) return 0;
+    let totalChunks = 0;
+    let uploadedChunks = 0;
+    currentFileStates.forEach((f) => {
+      if (f.chunks && f.chunks.length > 0) {
+        totalChunks += f.chunks.length;
+        uploadedChunks += f.uploadedChunks?.length || 0;
+      } else {
+        // Nếu file nhỏ, coi như 1 chunk
+        totalChunks += 1;
+        uploadedChunks += f.status === "success" ? 1 : 0;
+      }
+    });
+    if (totalChunks === 0) return 0;
+    return Math.round((uploadedChunks / totalChunks) * 100);
   };
   const [isVisible, setIsVisible] = useState(true);
   const [status, setStatus] = useState("pending"); // for create_folder
   const [result, setResult] = useState(null); // for create_folder
   const hasUploaded = useRef(false);
   const uploadAbortController = useRef(null);
-
+  console.log("nè nè " + fileStates.file);
   // Hàm upload file bằng chunked upload
   const uploadFileWithChunks = async (fileState, fileIndex) => {
     const file = fileState.file;
@@ -120,18 +118,21 @@ const MiniStatusBatch = ({
         );
         // Gửi chunk đầu tiên dạng binary, metadata qua headers
         uploadId = `${batchId}-${fileIndex}-${Date.now()}`;
-        const headers = {
+        const firstHeaders = {
           "Content-Type": "application/octet-stream",
-          "X-Upload-Id": uploadId,
+          "X-Upload-Id": encodeURIComponent(uploadId),
           "X-Chunk-Index": 0,
           "X-Total-Chunks": chunks.length,
           "X-File-Name": encodeURIComponent(file.name),
-          "X-Mime-Type": file.type || "application/octet-stream",
-          "X-Parent-Id": parentId || "",
+          "X-Mime-Type": encodeURIComponent(
+            file.type || "application/octet-stream"
+          ),
+          "X-Parent-Id": encodeURIComponent(parentId || ""),
           "X-Is-First-Chunk": "1",
           "X-Is-Last-Chunk": chunks.length === 1 ? "1" : "0",
           "X-File-Size": file.size,
-          "X-Relative-Path": fileState.relativePath || "",
+          "X-Relative-Path": encodeURIComponent(fileState.relativePath || ""),
+          "X-Batch-Id": encodeURIComponent(batchId || ""),
         };
         if (
           isFolder &&
@@ -139,30 +140,36 @@ const MiniStatusBatch = ({
           emptyFolders &&
           emptyFolders.length > 0
         ) {
-          headers["X-Empty-Folders"] = encodeURIComponent(
+          firstHeaders["X-Empty-Folders"] = encodeURIComponent(
             JSON.stringify(emptyFolders)
           );
         }
         const response = await axiosClient.post("/api/upload", firstChunk, {
-          headers,
+          headers: firstHeaders,
         });
         const data = response.data;
         if (response.status !== 200 || !data.success) {
-          throw new Error(data.error || "Tạo session upload thất bại");
+          toast.error(data.error || "Lỗi upload");
+          throw new Error(data.error || "Lỗi upload");
         }
         uploadedChunks = data.uploadedChunks || [0];
-        setFileStates((prev) =>
-          prev.map((f, idx) =>
+        setFileStates((prev) => {
+          const next = prev.map((f, idx) =>
             idx === fileIndex ? { ...f, uploadId, uploadedChunks } : f
-          )
-        );
+          );
+          setProgress(calculateOverallProgress(next));
+          return next;
+        });
       } catch (error) {
-        console.error("Error creating upload session:", error);
+        // Lấy message từ axios error object
+        const errorMsg =
+          error?.response?.data?.error ||
+          error?.message ||
+          "Lỗi không xác định";
+        toast.error(errorMsg);
         setFileStates((prev) =>
           prev.map((f, idx) =>
-            idx === fileIndex
-              ? { ...f, status: "error", error: error.message }
-              : f
+            idx === fileIndex ? { ...f, status: "error", error: errorMsg } : f
           )
         );
         return;
@@ -183,12 +190,15 @@ const MiniStatusBatch = ({
           "X-Chunk-Index": i,
           "X-Total-Chunks": chunks.length,
           "X-File-Name": encodeURIComponent(file.name),
-          "X-Mime-Type": file.type || "application/octet-stream",
-          "X-Parent-Id": parentId || "",
+          "X-Mime-Type": encodeURIComponent(
+            file.type || "application/octet-stream"
+          ),
+          "X-Parent-Id": encodeURIComponent(parentId || ""),
           "X-Is-First-Chunk": "0",
           "X-Is-Last-Chunk": i === chunks.length - 1 ? "1" : "0",
           "X-File-Size": file.size,
-          "X-Relative-Path": fileState.relativePath || "",
+          "X-Relative-Path": encodeURIComponent(fileState.relativePath || ""),
+          "X-Batch-Id": encodeURIComponent(batchId || ""),
         };
         const response = await axiosClient.post("/api/upload", chunkData, {
           headers,
@@ -202,8 +212,8 @@ const MiniStatusBatch = ({
           (uploadedChunks.length / chunks.length) * 100
         );
         const isCompleted = i === chunks.length - 1 && data.fileId;
-        setFileStates((prev) =>
-          prev.map((f, idx) =>
+        setFileStates((prev) => {
+          const next = prev.map((f, idx) =>
             idx === fileIndex
               ? {
                   ...f,
@@ -212,8 +222,10 @@ const MiniStatusBatch = ({
                   status: isCompleted ? "success" : "uploading",
                 }
               : f
-          )
-        );
+          );
+          setProgress(calculateOverallProgress(next));
+          return next;
+        });
         if (isCompleted) {
           console.log(
             `File ${file.name} uploaded successfully with ID: ${data.fileId}`
@@ -460,7 +472,7 @@ const MiniStatusBatch = ({
         }
 
         // Cập nhật progress tổng thể
-        setProgress(calculateOverallProgress());
+        setProgress(calculateOverallProgress(fileStates));
       }
 
       // Kiểm tra xem có file nào thành công không
@@ -516,7 +528,7 @@ const MiniStatusBatch = ({
       ).length;
       const hasErrors = fileStates.some((f) => f.status === "error");
 
-      setProgress(calculateOverallProgress());
+      setProgress(calculateOverallProgress(fileStates));
       setTimeout(() => {
         setIsVisible(false);
         if (onComplete)
@@ -556,7 +568,7 @@ const MiniStatusBatch = ({
   if (batchType === "move") {
     return (
       <div
-        className="fixed bottom-6 right-6 bg-white rounded-lg shadow-lg p-4 flex flex-col gap-3 min-w-[280px] max-w-sm border border-gray-200 z-[9999]"
+        className="fixed bottom-6 right-6 bg-white rounded-lg shadow-lg p-4 flex flex-col gap-3 max-w-[340px] w-full border border-gray-200 z-[9999]"
         style={style}
       >
         <div className="flex items-center gap-2 mb-2">
@@ -591,7 +603,7 @@ const MiniStatusBatch = ({
           {moveItems &&
             moveItems.length > 0 &&
             moveItems.map((item, idx) => (
-              <div key={idx} className="flex items-center gap-2 text-xs">
+              <div key={idx} className="flex w-full items-center gap-2 text-xs">
                 <img
                   src={
                     item.type === "folder"
@@ -601,7 +613,10 @@ const MiniStatusBatch = ({
                   alt="icon"
                   className="w-4 h-4 object-contain flex-shrink-0"
                 />
-                <span className="truncate flex-1 text-blue-700 font-semibold">
+                <span
+                  className="flex-1 truncate overflow-hidden min-w-0 file-name-fixed-width text-blue-700 font-semibold"
+                  title={item.name || item.id}
+                >
                   {item.name || item.id}
                 </span>
               </div>
@@ -669,7 +684,7 @@ const MiniStatusBatch = ({
   if (batchType === "delete") {
     return (
       <div
-        className="fixed bottom-6 right-6 bg-white rounded-lg shadow-lg p-4 flex flex-col gap-3 min-w-[280px] max-w-sm border border-gray-200 z-[9999]"
+        className="fixed bottom-6 right-6 bg-white rounded-lg shadow-lg p-4 flex flex-col gap-3 max-w-[340px] w-full border border-gray-200 z-[9999]"
         style={style}
       >
         <div className="flex items-center gap-2 mb-2">
@@ -704,7 +719,7 @@ const MiniStatusBatch = ({
           {moveItems &&
             moveItems.length > 0 &&
             moveItems.map((item, idx) => (
-              <div key={idx} className="flex items-center gap-2 text-xs">
+              <div key={idx} className="flex w-full items-center gap-2 text-xs">
                 <img
                   src={
                     item.type === "folder"
@@ -714,7 +729,10 @@ const MiniStatusBatch = ({
                   alt="icon"
                   className="w-4 h-4 object-contain flex-shrink-0"
                 />
-                <span className="truncate flex-1 text-red-700 font-semibold">
+                <span
+                  className="flex-1 truncate overflow-hidden min-w-0 file-name-fixed-width text-red-700 font-semibold"
+                  title={item.name || item.id}
+                >
                   {item.name || item.id}
                 </span>
               </div>
@@ -726,7 +744,7 @@ const MiniStatusBatch = ({
 
   return (
     <div
-      className="fixed bottom-6 right-6 bg-white rounded-lg shadow-lg p-4 flex flex-col gap-3 min-w-[280px] max-w-sm border border-gray-200 z-[9999]"
+      className="fixed bottom-6 right-6 bg-white rounded-lg shadow-lg p-4 flex flex-col gap-3 max-w-[340px] w-full border border-gray-200 z-[9999]"
       style={style}
     >
       {/* Header */}
@@ -777,97 +795,147 @@ const MiniStatusBatch = ({
           </div>
         ) : (
           fileStates.map((file, idx) => (
-            <div key={idx} className="flex items-center gap-2 text-xs">
-              <img
-                src={file.icon}
-                alt="icon"
-                className="w-4 h-4 object-contain flex-shrink-0"
-              />
-              <span
-                className={`truncate flex-1 ${
-                  file.status === "success"
-                    ? "text-green-600"
-                    : file.status === "error"
-                    ? "text-red-600"
-                    : file.status === "uploading"
-                    ? "text-blue-600"
-                    : file.status === "paused"
-                    ? "text-yellow-600"
-                    : "text-gray-500"
-                }`}
-              >
-                {file.name}
-                {file.chunks && file.chunks.length > 0 && (
-                  <span className="text-xs text-gray-400 ml-1">
-                    ({file.uploadedChunks?.length || 0}/{file.chunks.length}{" "}
-                    chunks)
-                  </span>
-                )}
-              </span>
-              <div className="flex-shrink-0 flex items-center gap-1">
-                {file.status === "success" ? (
-                  <FiCheck className="text-green-500" size={14} />
-                ) : file.status === "error" ? (
-                  <FiX className="text-red-500" size={14} />
-                ) : file.status === "uploading" ? (
-                  <FiUpload className="text-blue-500 animate-pulse" size={14} />
-                ) : file.status === "paused" ? (
-                  <FiPause className="text-yellow-500" size={14} />
-                ) : (
-                  <FiClock className="text-gray-400" size={14} />
-                )}
+            <div key={idx} className="flex flex-col gap-0.5 w-full">
+              <div className="flex w-full items-center gap-2 text-xs">
+                <img
+                  src={file.icon}
+                  alt="icon"
+                  className="w-4 h-4 object-contain flex-shrink-0"
+                />
+                <span
+                  className={
+                    "flex-1 truncate overflow-hidden min-w-0 file-name-fixed-width" +
+                    (file.status === "success"
+                      ? " text-green-600"
+                      : file.status === "error"
+                      ? " text-red-600"
+                      : file.status === "uploading"
+                      ? " text-blue-600"
+                      : file.status === "paused"
+                      ? " text-yellow-600"
+                      : " text-gray-500")
+                  }
+                  title={file.name}
+                >
+                  {file.name}
+                </span>
+                <div className="flex-shrink-0 flex items-center gap-1">
+                  {file.chunks && file.chunks.length > 0 && (
+                    <CircularProgress
+                      percent={
+                        file.chunks.length > 0
+                          ? Math.round(
+                              ((file.uploadedChunks?.length || 0) /
+                                file.chunks.length) *
+                                100
+                            )
+                          : 0
+                      }
+                      size={18}
+                      stroke={3}
+                    />
+                  )}
+                  {file.status === "success" ? (
+                    <FiCheck className="text-green-500" size={14} />
+                  ) : file.status === "error" ? (
+                    <FiX className="text-red-500" size={14} />
+                  ) : file.status === "uploading" ? (
+                    <FiUpload
+                      className="text-blue-500 animate-pulse"
+                      size={14}
+                    />
+                  ) : file.status === "paused" ? (
+                    <FiPause className="text-yellow-500" size={14} />
+                  ) : (
+                    <FiClock className="text-gray-400" size={14} />
+                  )}
 
-                {/* Action buttons for paused/error files */}
-                {file.status === "paused" && (
-                  <button
-                    onClick={() => resumeUpload(idx)}
-                    className="text-blue-500 hover:text-blue-700"
-                    title="Resume upload"
-                  >
-                    <FiPlay size={12} />
-                  </button>
-                )}
-                {file.status === "error" && (
-                  <button
-                    onClick={() => resumeUpload(idx)}
-                    className="text-blue-500 hover:text-blue-700"
-                    title="Retry upload"
-                  >
-                    <FiUpload size={12} />
-                  </button>
-                )}
-                {file.status === "uploading" && (
-                  <button
-                    onClick={() => pauseUpload(idx)}
-                    className="text-yellow-500 hover:text-yellow-700"
-                    title="Pause upload"
-                  >
-                    <FiPause size={12} />
-                  </button>
-                )}
-                {(file.status === "uploading" || file.status === "paused") && (
-                  <button
-                    onClick={() => cancelUpload(idx)}
-                    className="text-red-500 hover:text-red-700"
-                    title="Cancel upload"
-                  >
-                    <FiX size={12} />
-                  </button>
-                )}
+                  {/* Action buttons for paused/error files */}
+                  {file.status === "paused" && (
+                    <button
+                      onClick={() => resumeUpload(idx)}
+                      className="text-blue-500 hover:text-blue-700"
+                      title="Resume upload"
+                    >
+                      <FiPlay size={12} />
+                    </button>
+                  )}
+                  {file.status === "error" && (
+                    <button
+                      onClick={() => resumeUpload(idx)}
+                      className="text-blue-500 hover:text-blue-700"
+                      title="Retry upload"
+                    >
+                      <FiUpload size={12} />
+                    </button>
+                  )}
+                  {file.status === "uploading" && (
+                    <button
+                      onClick={() => pauseUpload(idx)}
+                      className="text-yellow-500 hover:text-yellow-700"
+                      title="Pause upload"
+                    >
+                      <FiPause size={12} />
+                    </button>
+                  )}
+                  {(file.status === "uploading" ||
+                    file.status === "paused") && (
+                    <button
+                      onClick={() => cancelUpload(idx)}
+                      className="text-red-500 hover:text-red-700"
+                      title="Cancel upload"
+                    >
+                      <FiX size={12} />
+                    </button>
+                  )}
+                </div>
               </div>
+              {file.status === "error" && file.error && (
+                <div className="text-xs text-red-500 ml-6">{file.error}</div>
+              )}
             </div>
           ))
         )}
       </div>
-      {fileStates.length > 0 && (
-        <div className="text-xs text-gray-500 border-t pt-2">
-          {fileStates.filter((f) => f.status === "success").length} /{" "}
-          {fileStates.length} hoàn thành
-        </div>
-      )}
     </div>
   );
 };
+
+// Circular progress component
+function CircularProgress({ percent = 0, size = 24, stroke = 3 }) {
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const offset = c - (percent / 100) * c;
+  return (
+    <svg
+      width={size}
+      height={size}
+      className="inline-block align-middle"
+      style={{ verticalAlign: "middle" }}
+    >
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={r}
+        fill="none"
+        stroke="#e5e7eb"
+        strokeWidth={stroke}
+      />
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={r}
+        fill="none"
+        stroke="#22c55e"
+        strokeWidth={stroke}
+        strokeDasharray={c}
+        strokeDashoffset={offset}
+        strokeLinecap="round"
+        style={{ transition: "stroke-dashoffset 0.3s" }}
+      />
+    </svg>
+  );
+}
 
 // Component chính
 const UploadMiniStatus = ({

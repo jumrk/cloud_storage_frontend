@@ -53,8 +53,8 @@ export default function Header() {
     <header className="w-full shadow-xl fixed top-0 left-0 z-50 bg-white">
       <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
         {/* Logo */}
-        <Link href="/" className="w-22 md:w-32">
-          <img src="/images/Logo.png" alt="logo" className="object-cover" />
+        <Link href="/" className="w-22 md:w-36">
+          <img src="/images/Logo_2.png" alt="logo" className="object-cover" />
         </Link>
 
         <div className="flex gap-2 md:gap-4 xl:gap-6 items-center">
@@ -86,7 +86,7 @@ export default function Header() {
                     className="w-full text-left cursor-pointer px-4 py-3 hover:bg-gray-50 transition"
                     onClick={() => {
                       setMenuOpen(false);
-                      router.push("/home");
+                      router.push(`/${user.slast}/home`);
                     }}
                   >
                     Quản lý file

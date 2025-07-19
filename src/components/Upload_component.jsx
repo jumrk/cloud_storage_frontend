@@ -9,6 +9,7 @@ import {
 } from "react-icons/fi";
 import { IoClose } from "react-icons/io5";
 import toast from "react-hot-toast";
+import { v4 as uuidv4 } from "uuid";
 
 const UploadModal = ({ isOpen, onClose, onStartUpload, parentId }) => {
   const fileInputRef = useRef();
@@ -128,15 +129,12 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId }) => {
 
   const handleFilesOrFolder = (files) => {
     setSelectedFiles((prev) => {
-      const newFiles = files.filter(
-        (file) =>
-          !prev.some(
-            (item) =>
-              (item.file ? item.file.name : item.name) === file.name &&
-              (item.file ? item.file._relativePath : item._relativePath) ===
-                (file._relativePath || file.webkitRelativePath || "")
-          )
-      );
+      const newFiles = files.filter((file) => {
+        const relPath =
+          file._relativePath || file.webkitRelativePath || file.name;
+        // Chỉ cho phép file lẻ hoặc file nằm trong folder gốc
+        return relPath.split("/").filter(Boolean).length <= 2;
+      });
 
       return [
         ...prev,
@@ -186,6 +184,7 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId }) => {
 
   const handleUploadClick = () => {
     if (selectedFiles.length > 0) {
+      const batchId = uuidv4(); // Sinh batchId duy nhất cho mỗi lần upload
       // Gom các folder gốc
       const folderMap = new Map();
       selectedFiles.forEach((item) => {
@@ -208,13 +207,15 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId }) => {
         ([folderName, items]) => ({
           type: "folder",
           folderName,
+          batchId, // Gán batchId cho batch folder
           files: items.map((item) => ({
             file: item.file,
             name: item.name,
             relativePath: item.path,
+            batchId, // Gán batchId cho từng file
           })),
           emptyFolders: emptyFoldersMap.get(folderName) || [],
-          parentId: parentId || null, // <-- thêm dòng này
+          parentId: parentId || null,
         })
       );
       // Batch file lẻ
@@ -223,16 +224,17 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId }) => {
         .map((item) => ({
           file: item.file,
           name: item.name,
+          batchId, // Gán batchId cho file lẻ
         }));
       const batches = [];
       if (filesOnly.length > 0)
         batches.push({
           type: "file",
           files: filesOnly,
+          batchId,
           parentId: parentId || null,
         });
       batches.push(...folderBatches);
-      console.log(batches);
       if (onStartUpload) onStartUpload(batches);
       onClose();
     }

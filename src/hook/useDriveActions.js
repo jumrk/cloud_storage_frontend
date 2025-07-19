@@ -127,32 +127,12 @@ export default function useDriveActions() {
 
     try {
       const formData = new FormData();
-
-      // Thêm files
       files.forEach((file) => {
         formData.append("files", file, file.webkitRelativePath || file.name);
       });
 
-      // Thêm privacy settings
       if (Object.keys(privacySettings).length > 0) {
         formData.append("privacy", JSON.stringify(privacySettings));
-      }
-
-      // Thêm empty folders nếu có
-      const emptyFolders = [];
-      files.forEach((file) => {
-        const path = file.webkitRelativePath || file.name;
-        const parts = path.split("/");
-        for (let i = 0; i < parts.length - 1; i++) {
-          const folderPath = parts.slice(0, i + 1).join("/") + "/";
-          if (!emptyFolders.includes(folderPath)) {
-            emptyFolders.push(folderPath);
-          }
-        }
-      });
-
-      if (emptyFolders.length > 0) {
-        formData.append("emptyFolders", JSON.stringify(emptyFolders));
       }
 
       const result = await upload(formData, onProgress);

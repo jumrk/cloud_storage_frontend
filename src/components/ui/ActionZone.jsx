@@ -36,6 +36,7 @@ export default function ActionZone({
 
   // Mobile: action zone bên phải
   if (isMobile && selectedItems.length > 0) {
+    const allFolders = selectedItems.every((item) => item.type === "folder");
     return (
       <div
         className={`fixed top-1/2 right-2 z-50 flex flex-col gap-4 items-center -translate-y-1/2 transition-all duration-500 ${
@@ -46,7 +47,7 @@ export default function ActionZone({
         style={{ pointerEvents: "auto" }}
       >
         {/* Cấp quyền */}
-        {canGrantPermission && (
+        {canGrantPermission && allFolders && (
           <CircleActionButton
             icon={<FiUserPlus size={26} />}
             bg="bg-[#1cadd9]"
@@ -110,9 +111,10 @@ export default function ActionZone({
 
   // Desktop: action zone khi kéo thả
   if (!isMobile && draggedItems.length > 0) {
+    const allFolders = draggedItems.every((item) => item.type === "folder");
     return (
       <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 flex gap-8 bg-white/80 rounded-xl shadow-2xl p-6 border border-gray-200">
-        {canGrantPermission && (
+        {canGrantPermission && allFolders && (
           <Button_icon
             text="Cấp quyền"
             icon={<FiUserPlus size={28} />}

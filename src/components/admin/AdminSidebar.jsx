@@ -116,7 +116,7 @@ export default function AdminSidebar(props) {
         <div className="flex flex-col flex-1 px-4 py-8 gap-8">
           {/* Logo/Brand */}
           <div className="flex items-center gap-2 mb-2">
-            <img src="/images/Logo.png" alt="" />
+            <img src="/images/Logo_2.png" alt="" />
           </div>
           {/* Boards */}
           <div>

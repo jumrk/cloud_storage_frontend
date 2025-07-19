@@ -1,44 +1,53 @@
 import Footer from "@/components/ui/footer";
 import Header from "@/components/ui/Header";
 import Hero from "@/components/Hero";
-import PlanList from "@/components/PlanList";
 import ScrollReveal from "@/components/ui/ScrollReveal";
 import React from "react";
+import {
+  LockClosedIcon,
+  BoltIcon,
+  UserGroupIcon,
+  DevicePhoneMobileIcon,
+  UsersIcon,
+  CurrencyDollarIcon,
+} from "@heroicons/react/24/solid";
+import Desription from "@/components/Description";
+import PlanList from "@/components/PlanList";
 export const metadata = {
-  title: "Trang chủ",
+  title: "D2M BOX",
 };
 export default function Home() {
   const features = [
     {
-      icon: <span className="text-4xl mb-2">🔒</span>,
+      icon: <LockClosedIcon className="w-8 h-8 text-[#1cadd9]" />,
       title: "Bảo mật tuyệt đối",
       description:
         "Dữ liệu được mã hóa và bảo vệ nhiều lớp, an toàn tuyệt đối.",
     },
     {
-      icon: <span className="text-4xl mb-2">⚡</span>,
+      icon: <BoltIcon className="w-8 h-8 text-[#1cadd9]" />,
       title: "Tốc độ siêu nhanh",
       description:
         "Tải lên và truy cập file cực nhanh, không giới hạn băng thông.",
     },
     {
-      icon: <span className="text-4xl mb-2">👤</span>,
+      icon: <UserGroupIcon className="w-8 h-8 text-[#1cadd9]" />,
       title: "Phi tập trung & xác minh thủ công",
       description: "Tài khoản xác minh thủ công, không mở đăng ký công khai.",
     },
     {
-      icon: <span className="text-4xl mb-2">💾</span>,
+      icon: <DevicePhoneMobileIcon className="w-8 h-8 text-[#1cadd9]" />,
       title: "Dung lượng lớn",
       description: "Lưu trữ lên đến 1PB, đáp ứng mọi nhu cầu doanh nghiệp.",
     },
     {
-      icon: <span className="text-4xl mb-2">👥</span>,
+      icon: <UsersIcon className="w-8 h-8 text-[#1cadd9]" />,
       title: "Quản lý user thông minh",
       description:
         "Phân quyền theo nhóm, mỗi team như một hệ thống riêng biệt.",
     },
     {
-      icon: <span className="text-4xl mb-2">💸</span>,
+      icon: <CurrencyDollarIcon className="w-8 h-8 text-[#1cadd9]" />,
       title: "Giá siêu rẻ",
       description:
         "Dung lượng khủng, chi phí cực thấp cho cả cá nhân & doanh nghiệp.",
@@ -48,99 +57,23 @@ export default function Home() {
   return (
     <>
       <Header />
-      <main className="w-full pt-20">
+      <main className="w-full pt-20 relative overflow-hidden">
         <div className="max-w-screen-xl mx-auto p-4">
           <Hero />
           <div className="w-full mt-20 flex flex-col justify-center items-center">
-            {/* Tính năng */}
-            <ScrollReveal>
-              <h2 className="text-primary font-bold text-center text-3xl">
-                TÍNH NĂNG NỔI BẬT
-              </h2>
-            </ScrollReveal>
-            <div className="w-full mt-6 flex gap-6 overflow-x-auto pb-2 md:grid md:grid-cols-4 md:gap-8 md:overflow-visible md:pb-0 scrollbar-hide">
-              {features.map((feature, idx) => (
-                <ScrollReveal direction="up" key={idx}>
-                  <div className="bg-white rounded-xl shadow p-6 flex flex-col items-center text-center h-full border border-[#e0f7fa] min-w-[260px] md:min-w-0">
-                    {feature.icon}
-                    <h3 className="text-[#02599c] font-bold text-lg md:text-xl mt-2 mb-1">
-                      {feature.title}
-                    </h3>
-                    <p className="text-gray-600 text-sm md:text-base">
-                      {feature.description}
-                    </p>
-                  </div>
-                </ScrollReveal>
-              ))}
-            </div>
-
             {/* Mô tả */}
-            <div className="mt-8 space-y-8 md:space-y-12">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 items-center">
-                <div className="w-full">
-                  <ScrollReveal>
-                    <img
-                      className="w-full h-72 object-contain rounded-lg"
-                      src="/images/feature_b1.png"
-                      alt="Đồng bộ và lưu trữ thông minh"
-                      loading="lazy"
-                    />
-                  </ScrollReveal>
-                </div>
-                <ScrollReveal direction="down">
-                  <div className="flex flex-col justify-center text-center md:text-left">
-                    <p className="text-[#01579B] font-bold text-sm md:text-lg uppercase tracking-wide">
-                      Đồng bộ & lưu trữ thông minh
-                    </p>
-                    <h2 className="text-primary font-bold text-2xl md:text-4xl mt-2">
-                      Tải lên file dễ dàng
-                    </h2>
-                    <p className="text-primary/80 text-sm md:text-lg mt-3 max-w-md mx-auto md:mx-0">
-                      Chỉ với vài cú nhấp, bạn có thể tải lên bất kỳ tệp nào từ
-                      thiết bị của mình và lưu trữ trực tiếp trên nền tảng.
-                    </p>
-                  </div>
-                </ScrollReveal>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 items-center">
-                <div className="w-full md:order-2">
-                  <ScrollReveal>
-                    <img
-                      className="w-full h-72 object-contain rounded-lg"
-                      src="/images/feature_b2.png"
-                      alt="Chia sẻ tệp nhanh chóng"
-                      loading="lazy"
-                    />
-                  </ScrollReveal>
-                </div>
-                <ScrollReveal direction="down">
-                  <div className="flex flex-col justify-center text-center md:text-left md:order-1">
-                    <p className="text-[#01579B] font-bold text-sm md:text-lg uppercase tracking-wide">
-                      Chia sẻ & quản lý thông minh
-                    </p>
-                    <h2 className="text-primary font-bold text-2xl md:text-4xl mt-2">
-                      Chia sẻ tệp nhanh chóng
-                    </h2>
-                    <p className="text-primary/80 text-sm md:text-lg mt-3 max-w-md mx-auto md:mx-0">
-                      Dễ dàng chia sẻ tệp với đồng nghiệp hoặc bạn bè chỉ trong
-                      vài giây, với các tùy chọn quản lý linh hoạt.
-                    </p>
-                  </div>
-                </ScrollReveal>
-              </div>
-              {/* Bảng giá/thanh toán */}
-              <div className="w-full mt-16" id="plan-section">
-                <ScrollReveal direction="up">
-                  <h2 className="text-primary font-bold text-center text-3xl mb-8">
-                    GÓI DỊCH VỤ
-                  </h2>
-                </ScrollReveal>
-                <ScrollReveal direction="down">
-                  <PlanList />
-                </ScrollReveal>
-              </div>
+            <Desription />
+            {/* Bảng giá/thanh toán */}
+            <div className="w-full mt-16" id="plan-section">
+              <ScrollReveal direction="up">
+                <h2 className="text-primary font-bold text-center text-3xl mb-8">
+                  GÓI DỊCH VỤ
+                </h2>
+              </ScrollReveal>
+              <ScrollReveal direction="down">
+                <PlanList />
+              </ScrollReveal>
             </div>
-
             {/* FAQ - Câu hỏi thường gặp */}
             <div className="w-full mt-16 max-w-2xl mx-auto">
               <ScrollReveal direction="up">
@@ -225,7 +158,7 @@ export default function Home() {
                     href="/Login"
                     className="bg-white text-[#1cadd9] font-bold px-8 py-3 rounded-lg text-lg shadow hover:bg-gray-100 transition"
                   >
-                    Đăng ký ngay
+                    Trải nghiệm ngay
                   </a>
                 </div>
               </ScrollReveal>

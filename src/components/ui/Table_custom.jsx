@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { getFileIcon } from "@/utils/getFileIcon";
 import { FiShare2, FiLock } from "react-icons/fi";
+import EmptyState from "@/components/ui/EmptyState";
 
 function renderDragPreviewHTML(draggedItems) {
   if (!draggedItems || draggedItems.length === 0) return "";
@@ -198,16 +199,7 @@ const Table = ({
   return (
     <div className="overflow-x-auto">
       {data.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16">
-          <img
-            src="/images/empty.png"
-            alt="empty"
-            style={{ width: 220, height: 220, marginBottom: 16 }}
-          />
-          <div className="text-gray-500 text-lg font-medium mt-2">
-            Không có dữ liệu
-          </div>
-        </div>
+        <EmptyState message="Không có dữ liệu" height={180} />
       ) : (
         <>
           <div className="flex gap-2 items-start">

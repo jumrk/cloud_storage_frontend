@@ -28,6 +28,7 @@ import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import SkeletonTable from "@/components/ui/SkeletonTable";
 import axiosClient from "@/lib/axiosClient";
+import EmptyState from "@/components/ui/EmptyState";
 
 // Lấy tất cả ext từ extMap trong getFileIcon
 const extMap = {
@@ -62,6 +63,13 @@ const extMap = {
   ae: "ae.png",
   locked: "locked.png",
 };
+
+// Hàm lấy icon cho file, nếu không có thì trả về word.png
+function getIconForFile(name) {
+  if (!name) return "/images/icon/word.png";
+  const ext = name.split(".").pop().toLowerCase();
+  return `/images/icon/${extMap[ext] || "word.png"}`;
+}
 
 const fileTypes = Object.keys(extMap).map((ext) => ({
   key: ext,
@@ -782,14 +790,7 @@ export default function YourFolder() {
                   {foldersToShowFiltered.length === 0 &&
                   filesToShowFiltered.length === 0 ? (
                     <div className="col-span-full flex flex-col items-center justify-center py-16">
-                      <img
-                        src="/images/empty.png"
-                        alt="empty"
-                        style={{ width: 120, height: 120, marginBottom: 16 }}
-                      />
-                      <div className="text-gray-500 text-lg font-medium mt-2">
-                        Không có dữ liệu
-                      </div>
+                      <EmptyState />
                     </div>
                   ) : (
                     [...foldersToShowFiltered, ...filesToShowFiltered].map(
@@ -838,15 +839,8 @@ export default function YourFolder() {
                 <div className="w-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
                   {foldersToShowFiltered.length === 0 &&
                   filesToShowFiltered.length === 0 ? (
-                    <div className="col-span-full flex flex-col items-center justify-center py-16">
-                      <img
-                        src="/images/empty.png"
-                        alt="empty"
-                        style={{ width: 120, height: 120, marginBottom: 16 }}
-                      />
-                      <div className="text-gray-500 text-lg font-medium mt-2">
-                        Không có dữ liệu
-                      </div>
+                    <div className="col-span-full flex flex-col items-center justify-center ">
+                      <EmptyState />
                     </div>
                   ) : (
                     [...foldersToShowFiltered, ...filesToShowFiltered].map(
@@ -974,7 +968,7 @@ export default function YourFolder() {
           batchId={batch.id}
           batchType={batch.type}
           folderName={batch.name}
-          parentId={batch.parentId}
+          parentId={currentFolderId}
           // Thêm props cho move/delete
           moveItems={
             batch.type === "move" || batch.type === "delete"

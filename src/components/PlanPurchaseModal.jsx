@@ -4,6 +4,8 @@ import axiosClient from "@/lib/axiosClient";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 
+let slastCheckTimeout = null;
+
 export default function PlanPurchaseModal({
   open,
   onClose,
@@ -15,6 +17,7 @@ export default function PlanPurchaseModal({
     email: "",
     phone: "",
     discountCode: "",
+    slast: "", // Thêm trường slast
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -27,11 +30,19 @@ export default function PlanPurchaseModal({
   const [showPayment, setShowPayment] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [discountInfo, setDiscountInfo] = useState(null); // {valid, percent}
+  const [slastChecking, setSlastChecking] = useState(false);
+  const [slastExists, setSlastExists] = useState(false);
 
   // Reset toàn bộ state mỗi khi modal được mở lại
   useEffect(() => {
     if (open) {
-      setForm({ fullName: "", email: "", phone: "", discountCode: "" });
+      setForm({
+        fullName: "",
+        email: "",
+        phone: "",
+        discountCode: "",
+        slast: "",
+      });
       setErrors({});
       setShowSuccess(false);
       setCycle("month");
@@ -57,6 +68,28 @@ export default function PlanPurchaseModal({
     setShowPayment(false);
     setEmailChecked(false);
     setDiscountInfo(null); // Reset discount info when input changes
+
+    // Kiểm tra slast realtime
+    if (e.target.name === "slast") {
+      const value = e.target.value.trim();
+      setSlastExists(false);
+      setSlastChecking(false);
+      if (slastCheckTimeout) clearTimeout(slastCheckTimeout);
+      if (!value || !/^[a-zA-Z0-9_-]+$/.test(value)) return;
+      setSlastChecking(true);
+      slastCheckTimeout = setTimeout(async () => {
+        try {
+          const res = await axiosClient.get("/api/user/check-slast", {
+            params: { slast: value },
+          });
+          setSlastExists(res.data.exists);
+        } catch (err) {
+          setSlastExists(false);
+        } finally {
+          setSlastChecking(false);
+        }
+      }, 500);
+    }
   };
 
   const getPrice = () => {
@@ -84,6 +117,12 @@ export default function PlanPurchaseModal({
     else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email))
       newErrors.email = "Email không hợp lệ";
     if (!form.phone.trim()) newErrors.phone = "Vui lòng nhập số điện thoại";
+    if (!form.slast.trim()) newErrors.slast = "Vui lòng nhập định danh cá nhân";
+    else if (!/^[a-zA-Z0-9_-]+$/.test(form.slast))
+      newErrors.slast = "Chỉ dùng chữ, số, dấu gạch ngang hoặc gạch dưới";
+    else if (slastExists)
+      newErrors.slast =
+        "Định danh này đã được sử dụng, hãy chọn định danh khác.";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -158,6 +197,7 @@ export default function PlanPurchaseModal({
       } else {
         setEmailExists(false);
       }
+      // 1.5. Kiểm tra slast (gọi API check slast nếu có, hoặc kiểm tra khi submit)
       // 2. Nếu có mã giảm giá thì kiểm tra mã
       if (form.discountCode.trim()) {
         try {
@@ -212,6 +252,7 @@ export default function PlanPurchaseModal({
         fullName: form.fullName,
         email: form.email,
         phone: form.phone,
+        slast: form.slast, // Truyền slast lên backend
         plan: {
           _id: selectedPlan._id,
           name: selectedPlan.name,
@@ -238,10 +279,15 @@ export default function PlanPurchaseModal({
       }
       setShowSuccess(true);
     } catch (err) {
-      setErrors({
-        ...errors,
-        payment: "Lỗi đặt hàng hoặc lấy phương thức thanh toán",
-      });
+      // Nếu backend trả về lỗi slast đã tồn tại
+      if (err?.response?.data?.error?.includes("Slast")) {
+        setErrors((prev) => ({ ...prev, slast: err.response.data.error }));
+      } else {
+        setErrors({
+          ...errors,
+          payment: "Lỗi đặt hàng hoặc lấy phương thức thanh toán",
+        });
+      }
     } finally {
       setSubmitting(false);
     }
@@ -328,6 +374,44 @@ export default function PlanPurchaseModal({
                 {errors.phone && (
                   <div className="text-xs text-red-500 mt-1">
                     {errors.phone}
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className="block text-base font-medium text-gray-700 mb-1">
+                  Định danh cá nhân (plans)
+                </label>
+                <input
+                  type="text"
+                  name="slast"
+                  className="border border-gray-300 rounded-lg px-4 py-3 w-full focus:outline-none focus:ring-2 focus:ring-blue-200 text-lg"
+                  placeholder="Nhập định danh cá nhân (ví dụ: tên viết liền, nickname, mã riêng...)"
+                  value={form.slast}
+                  onChange={handleChange}
+                  disabled={checkingEmail || loading || submitting}
+                />
+                <div className="text-xs text-gray-500 mt-1">
+                  Định danh này sẽ xuất hiện trên đường dẫn truy cập cá nhân của
+                  bạn (ví dụ:{" "}
+                  <b>
+                    cloudstorage.com/leader/<i>slast</i>/home
+                  </b>
+                  ). Mỗi người dùng phải có một định danh duy nhất, không trùng
+                  với người khác.
+                </div>
+                {slastChecking && (
+                  <div className="text-xs text-blue-500 mt-1">
+                    Đang kiểm tra định danh...
+                  </div>
+                )}
+                {slastExists && !slastChecking && (
+                  <div className="text-xs text-red-500 mt-1">
+                    Định danh này đã được sử dụng, hãy chọn định danh khác.
+                  </div>
+                )}
+                {errors.slast && (
+                  <div className="text-xs text-red-500 mt-1">
+                    {errors.slast}
                   </div>
                 )}
               </div>

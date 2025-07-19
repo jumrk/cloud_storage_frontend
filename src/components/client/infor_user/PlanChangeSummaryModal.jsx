@@ -160,6 +160,7 @@ export default function PlanChangeSummaryModal({
         fullName: user.fullName,
         email: user.email,
         phone: user.phone,
+        slast: user.slast,
         type: actionType, // "renew" | "upgrade" | "downgrade"
         plan: {
           _id: targetPlan._id,

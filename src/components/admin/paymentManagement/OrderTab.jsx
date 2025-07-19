@@ -5,6 +5,7 @@ import Modal from "@/components/Modal";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import axiosClient from "@/lib/axiosClient";
+import EmptyState from "@/components/ui/EmptyState";
 
 const STATUS_LABEL = {
   pending: "Chờ duyệt",
@@ -190,8 +191,8 @@ export default function OrderTab({
           </table>
         </div>
       ) : orders.length === 0 ? (
-        <div className="text-center text-gray-400 py-12">
-          Không có đơn hàng nào.
+        <div className="flex flex-col items-center justify-center w-full py-12">
+          <EmptyState message="Không có đơn hàng nào." height={180} />
         </div>
       ) : (
         <div className="overflow-x-auto rounded-2xl shadow border border-gray-100 bg-white">

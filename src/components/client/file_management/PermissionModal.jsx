@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import axiosClient from "@/lib/axiosClient";
+import toast from "react-hot-toast";
 
 const PermissionModal = ({ isOpen, onClose, folder, onPermissionChange }) => {
   const [members, setMembers] = useState([]);
@@ -85,6 +86,8 @@ const PermissionModal = ({ isOpen, onClose, folder, onPermissionChange }) => {
         onPermissionChange();
       }
     } catch (error) {
+      const msg = error?.response?.data?.error || "Có lỗi xảy ra khi cấp quyền";
+      toast.error(msg);
       console.error("Error granting permissions:", error);
     } finally {
       setLoading(false);
@@ -111,6 +114,9 @@ const PermissionModal = ({ isOpen, onClose, folder, onPermissionChange }) => {
         onPermissionChange();
       }
     } catch (error) {
+      const msg =
+        error?.response?.data?.error || "Có lỗi xảy ra khi thu hồi quyền";
+      toast.error(msg);
       console.error("Error revoking permission:", error);
     } finally {
       setLoading(false);
@@ -126,6 +132,9 @@ const PermissionModal = ({ isOpen, onClose, folder, onPermissionChange }) => {
     );
     return p ? p.locked : null;
   };
+
+  // Helper: kiểm tra chỉ cho phép cấp quyền folder
+  const isFolder = folder && (!folder.type || folder.type === "folder");
 
   if (!isOpen || !folder) return null;
 
@@ -202,28 +211,29 @@ const PermissionModal = ({ isOpen, onClose, folder, onPermissionChange }) => {
                           Đang bị khóa
                         </span>
                       )}
-                      {locked === false ? (
-                        <button
-                          onClick={() =>
-                            handleGrantPermission(member._id, true)
-                          }
-                          disabled={loading}
-                          className="ml-2 px-3 py-1 rounded-lg bg-red-500 text-white text-sm font-semibold hover:bg-red-600 transition disabled:opacity-50 shadow"
-                        >
-                          Khóa quyền
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() =>
-                            handleGrantPermission(member._id, false)
-                          }
-                          disabled={loading}
-                          className="ml-2 px-3 py-1 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-blue-600 transition disabled:opacity-50 shadow"
-                        >
-                          Mở quyền
-                        </button>
-                      )}
-                      {locked !== null && (
+                      {isFolder &&
+                        (locked === false ? (
+                          <button
+                            onClick={() =>
+                              handleGrantPermission(member._id, true)
+                            }
+                            disabled={loading}
+                            className="ml-2 px-3 py-1 rounded-lg bg-red-500 text-white text-sm font-semibold hover:bg-red-600 transition disabled:opacity-50 shadow"
+                          >
+                            Khóa quyền
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() =>
+                              handleGrantPermission(member._id, false)
+                            }
+                            disabled={loading}
+                            className="ml-2 px-3 py-1 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-blue-600 transition disabled:opacity-50 shadow"
+                          >
+                            Mở quyền
+                          </button>
+                        ))}
+                      {isFolder && locked !== null && (
                         <button
                           onClick={() => handleRevokePermission(member._id)}
                           disabled={loading}

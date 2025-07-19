@@ -31,7 +31,7 @@ export default function MemberHeader() {
   return (
     <header className="w-full flex items-center justify-between px-6 py-3 bg-white rounded-2xl shadow-lg mb-6 mt-2 border border-gray-100">
       <div className="flex items-center gap-3">
-        <img src="/images/Logo.png" className="w-30" alt="Logo" />
+        <img src="/images/Logo_2.png" className="w-30" alt="Logo" />
       </div>
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2 bg-gray-100 px-3 py-1 rounded-full">

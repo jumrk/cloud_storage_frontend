@@ -1,15 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Modal from "../Modal";
 import InputCustom from "../ui/input_custom";
-
-const ICON_OPTIONS = [
-  { value: "🔒", label: "🔒 Khóa" },
-  { value: "💼", label: "💼 Cơ bản" },
-  { value: "🚀", label: "🚀 Chuyên nghiệp" },
-  { value: "🏢", label: "🏢 Doanh nghiệp" },
-  { value: "⭐", label: "⭐ Premium" },
-  { value: "💎", label: "💎 VIP" },
-];
+import { PLAN_ICON_OPTIONS } from "./planIcons";
 
 const STATUS_OPTIONS = [
   { value: "active", label: "Hoạt động" },
@@ -50,10 +42,11 @@ export default function PlanModal({
     priceMonth: 0,
     priceYear: 0,
     sale: 0,
-    features: [""],
+    description: [""],
     status: "active",
   });
   const [errors, setErrors] = useState({});
+  const [iconModalOpen, setIconModalOpen] = useState(false);
 
   const isEdit = !!plan;
 
@@ -69,7 +62,7 @@ export default function PlanModal({
         priceMonth: plan.priceMonth || 0,
         priceYear: plan.priceYear || 0,
         sale: plan.sale || 0,
-        features: plan.features?.length ? [...plan.features] : [""],
+        description: plan.description || [""],
         status: plan.status || "active",
       });
     } else {
@@ -82,7 +75,7 @@ export default function PlanModal({
         priceMonth: 0,
         priceYear: 0,
         sale: 0,
-        features: [""],
+        description: [""],
         status: "active",
       });
     }
@@ -151,9 +144,11 @@ export default function PlanModal({
     if (form.priceYear < 0) newErrors.priceYear = "Giá năm không được âm";
     if (form.sale < 0 || form.sale > 100)
       newErrors.sale = "Phần trăm giảm giá phải từ 0-100";
-    const validFeatures = form.features.filter((f) => f.trim());
-    if (validFeatures.length === 0) {
-      newErrors.features = "Vui lòng nhập ít nhất 1 tính năng";
+    if (
+      form.description.length === 0 ||
+      form.description.every((desc) => !desc.trim())
+    ) {
+      newErrors.description = "Vui lòng nhập mô tả cho gói dịch vụ";
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -162,12 +157,11 @@ export default function PlanModal({
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!validate()) return;
-    const validFeatures = form.features.filter((f) => f.trim());
     const storage = storageToBytes(form.storageValue, form.storageUnit);
     const planData = {
       ...form,
       storage,
-      features: validFeatures,
+      description: form.description,
       _id: plan?._id,
     };
     onSubmit && onSubmit(planData);
@@ -200,31 +194,58 @@ export default function PlanModal({
               <label className="text-primary/60 text-sm lg:text-xl mb-2">
                 Icon gói
               </label>
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                {ICON_OPTIONS.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() =>
-                      handleChange({
-                        target: { name: "icon", value: option.value },
-                      })
-                    }
-                    className={`p-2 sm:p-3 border rounded-lg text-center transition ${
-                      form.icon === option.value
-                        ? "border-primary bg-primary/10"
-                        : "border-gray-200 hover:border-gray-300"
-                    }`}
-                  >
-                    <div className="text-lg sm:text-2xl mb-1">
-                      {option.value}
-                    </div>
-                    <div className="text-xs text-gray-600 hidden sm:block">
-                      {option.label.split(" ")[1]}
-                    </div>
-                  </button>
-                ))}
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  className="border rounded-lg px-3 py-2 flex items-center gap-2 hover:border-[#1cadd9]"
+                  onClick={() => setIconModalOpen(true)}
+                >
+                  {form.icon &&
+                    (() => {
+                      const Icon = PLAN_ICON_OPTIONS.find(
+                        (i) => i.key === form.icon
+                      )?.icon;
+                      return Icon ? <Icon className="w-6 h-6" /> : null;
+                    })()}
+                  <span>Chọn icon</span>
+                </button>
+                {form.icon && (
+                  <span className="ml-2 text-gray-600 text-xs">
+                    {PLAN_ICON_OPTIONS.find((i) => i.key === form.icon)?.label}
+                  </span>
+                )}
               </div>
+              {iconModalOpen && (
+                <Modal onClose={() => setIconModalOpen(false)}>
+                  <div className="p-4">
+                    <div className="grid grid-cols-5 sm:grid-cols-6 gap-4">
+                      {PLAN_ICON_OPTIONS.map((option) => {
+                        const Icon = option.icon;
+                        return (
+                          <button
+                            key={option.key}
+                            type="button"
+                            onClick={() => {
+                              handleChange({
+                                target: { name: "icon", value: option.key },
+                              });
+                              setIconModalOpen(false);
+                            }}
+                            className={`p-3 border rounded-lg flex flex-col items-center hover:border-[#1cadd9] transition ${
+                              form.icon === option.key
+                                ? "border-[#1cadd9] bg-[#e6f7fb]"
+                                : "border-gray-200"
+                            }`}
+                          >
+                            <Icon className="w-8 h-8 mb-1" />
+                            <span className="text-xs">{option.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </Modal>
+              )}
             </div>
           </div>
           {/* Row 2: Dung lượng và Số người dùng */}
@@ -339,26 +360,38 @@ export default function PlanModal({
             </div>
           </div>
 
-          {/* Tính năng - Full width */}
+          {/* Mô tả - Full width */}
           <div className="grid mt-5">
             <label className="text-primary/60 text-sm lg:text-xl mb-2">
-              Tính năng
+              Mô tả
             </label>
             <div className="space-y-2">
-              {form.features.map((feature, index) => (
-                <div key={index} className="flex gap-2">
+              {(form.description && form.description.length > 0
+                ? form.description
+                : [""]
+              ).map((desc, idx) => (
+                <div key={idx} className="flex gap-2">
                   <input
                     type="text"
-                    value={feature}
-                    onChange={(e) => handleFeatureChange(index, e.target.value)}
+                    value={desc}
+                    onChange={(e) => {
+                      const newDesc = [...(form.description || [])];
+                      newDesc[idx] = e.target.value;
+                      setForm({ ...form, description: newDesc });
+                    }}
                     className="flex-1 placeholder:text-[#8897AD] p-3 border-1 focus:outline-none border-[#D4D7E3] bg-[#F7FBFF] rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
-                    placeholder={`Tính năng ${index + 1}`}
+                    placeholder={`Mô tả ${idx + 1}`}
                     disabled={loading}
                   />
-                  {form.features.length > 1 && (
+                  {form.description?.length > 1 && (
                     <button
                       type="button"
-                      onClick={() => removeFeature(index)}
+                      onClick={() => {
+                        const newDesc = form.description.filter(
+                          (_, i) => i !== idx
+                        );
+                        setForm({ ...form, description: newDesc });
+                      }}
                       className="px-3 py-3 text-red-500 hover:bg-red-50 rounded-xl border border-red-200 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                       disabled={loading}
                     >
@@ -370,14 +403,19 @@ export default function PlanModal({
             </div>
             <button
               type="button"
-              onClick={addFeature}
+              onClick={() =>
+                setForm({
+                  ...form,
+                  description: [...(form.description || []), ""],
+                })
+              }
               className="text-primary hover:text-primary/80 text-sm font-medium mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={loading}
             >
-              + Thêm tính năng
+              + Thêm mô tả
             </button>
-            {errors.features && (
-              <p className="text-sm text-red-400 mt-1">{errors.features}</p>
+            {errors.description && (
+              <p className="text-sm text-red-400 mt-1">{errors.description}</p>
             )}
           </div>
 

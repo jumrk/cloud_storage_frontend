@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import axiosClient from "@/lib/axiosClient";
+import EmptyState from "@/components/ui/EmptyState";
 
 export default function DiscountCodeTab() {
   const [codes, setCodes] = useState([]);
@@ -117,8 +118,8 @@ export default function DiscountCodeTab() {
             </div>
           ))
         ) : codes.length === 0 ? (
-          <div className="col-span-full text-center text-gray-400 py-10">
-            Chưa có mã giảm giá nào.
+          <div className="col-span-full flex flex-col items-center justify-center w-full py-12">
+            <EmptyState message="Chưa có mã giảm giá nào." height={180} />
           </div>
         ) : (
           codes.map((c) => (

@@ -1,6 +1,6 @@
 export function getFileIcon({ type, name }) {
   if (type === "folder") return "/images/icon/folder.png";
-  if (!name) return "/images/icon/file.png";
+  if (!name) return "/images/icon/word.png";
   const ext = name.split(".").pop().toLowerCase();
 
   const extMap = {
@@ -25,16 +25,16 @@ export function getFileIcon({ type, name }) {
     fig: "fig.png",
     ico: "png.png",
     psd: "psd.png",
-    ai: "ai.png", // sửa thành chữ thường
+    ai: "ai.png",
     eml: "eml.png",
     cal: "cal.png",
     folder: "file.png",
     sketch: "sketch.png",
-    inndd: "inndd.png", // sửa thành đúng key
+    inndd: "inndd.png",
     "3d": "3d.png",
     ae: "ae.png",
     locked: "locked.png",
   };
 
-  return `/images/icon/${extMap[ext] || "file.png"}`;
+  return `/images/icon/${extMap[ext] || "word.png"}`;
 }

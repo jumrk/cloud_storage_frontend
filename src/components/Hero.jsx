@@ -1,9 +1,13 @@
 "use client";
 import React from "react";
-import Button_custom from "./ui/Button_custom";
 import ScrollReveal from "./ui/ScrollReveal";
 import { useRouter } from "next/navigation";
 import { FaLock, FaPlay } from "react-icons/fa";
+import Lottie from "lottie-react";
+import metaverseAnimation from "@/../public/animation/metaverse.json";
+import userAnimation from "@/../public/animation/user.json";
+import folderAnimation from "@/../public/animation/folder.json";
+import storageAnimation from "@/../public/animation/storage.json";
 
 function Hero() {
   const router = useRouter();
@@ -23,7 +27,7 @@ function Hero() {
     }
   };
   return (
-    <div className="w-full min-h-[60vh] flex flex-col md:flex-row items-center justify-between md:px-14 py-8 gap-8">
+    <div className="w-full min-h-[60vh] flex flex-col md:flex-row items-center justify-between md:px-14 gap-8">
       {/* Left: Text content */}
       <div className="flex-1 flex flex-col gap-6 max-w-2xl">
         <ScrollReveal direction="down">
@@ -60,24 +64,36 @@ function Hero() {
               className="flex items-center gap-2 px-4 py-3 border border-[#1cadd9] text-[#1cadd9] rounded-md font-medium hover:bg-[#1cadd9]/10 transition"
               onClick={handleScrollToPlan}
             >
-              <FaPlay className="text-xs" /> Xem gói dịch vụ
+              <FaPlay className="text-xs" /> Xem bảng giá
             </button>
           </div>
         </ScrollReveal>
         <ScrollReveal direction="up">
           <div className="flex gap-12 mt-10">
             <div className="flex flex-col items-center">
-              <span className="text-2xl mb-1">✖️</span>
+              <Lottie
+                animationData={userAnimation}
+                loop={true}
+                className="w-12 h-12 mb-1"
+              />
               <span className="text-xl font-bold">20K+</span>
               <span className="text-gray-500 text-sm ">Người dùng</span>
             </div>
             <div className="flex flex-col items-center">
-              <span className="text-2xl mb-1">🗂️</span>
+              <Lottie
+                animationData={folderAnimation}
+                loop={true}
+                className="w-12 h-12 mb-1"
+              />
               <span className="text-xl font-bold">1M+</span>
               <span className="text-gray-500 text-sm">Tệp tải lên</span>
             </div>
             <div className="flex flex-col items-center">
-              <span className="text-2xl mb-1">⚪</span>
+              <Lottie
+                animationData={storageAnimation}
+                loop={true}
+                className="w-12 h-12 mb-1"
+              />
               <span className="text-xl font-bold">1 PB</span>
               <span className="text-gray-500 text-sm">Dung lượng lưu trữ</span>
             </div>
@@ -87,16 +103,18 @@ function Hero() {
       {/* Right: Illustration & description */}
       <ScrollReveal direction="right">
         <div className="flex-1 flex flex-col items-center gap-8 max-w-xl">
-          <img
-            src="/images/Hero.jpeg"
-            alt="hero-illustration"
-            className="w-full max-w-md drop-shadow-2xl"
+          <Lottie
+            animationData={metaverseAnimation}
+            loop={true}
+            className="w-full max-w-xl drop-shadow-2xl"
           />
-          <div className="bg-white border-l-2 border-gray-300 pl-6 py-4 shadow-sm text-gray-700 text-base">
-            Nền tảng của chúng tôi cung cấp một phương pháp lưu trữ dữ liệu phi
-            tập trung, an toàn, đảm bảo dữ liệu nhạy cảm của bạn được bảo vệ
-            khỏi truy cập và giả mạo trái phép. Với công nghệ tiên tiến, bạn có
-            thể tin tưởng rằng dữ liệu của mình luôn an toàn và bảo mật.
+          <div className="bg-white border-l-2 py-4 border-gray-300 pl-6  text-gray-700 text-base">
+            D2MBox là nền tảng lưu trữ dữ liệu mạnh mẽ, upload/download với tốc
+            độ cao, không giới hạn dung lượng. Hệ thống phân quyền linh hoạt
+            giúp quản lý nhóm và doanh nghiệp hiệu quả, đồng thời đảm bảo an
+            toàn tuyệt đối cho dữ liệu với các chế độ chia sẻ riêng tư hoặc công
+            khai. Được xây dựng trên nền tảng Google, D2MBox mang đến giao diện
+            trực quan cùng các công cụ quản lý tệp tin tiện lợi và dễ sử dụng.
           </div>
         </div>
       </ScrollReveal>

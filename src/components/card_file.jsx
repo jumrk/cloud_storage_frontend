@@ -3,6 +3,7 @@ import { getFileIcon } from "@/utils/getFileIcon";
 import { FiEdit2, FiCheck, FiX, FiShare2, FiLock } from "react-icons/fi";
 import { splitFileName } from "@/utils/driveUtils";
 import { useState } from "react";
+import EmptyState from "@/components/ui/EmptyState";
 // import DragPreview from "@/components/client/home/DragPreview";
 
 function renderDragPreviewHTML(draggedItems) {
@@ -71,20 +72,6 @@ function Card_file({
   onDragEnd,
   onPreviewFile,
 }) {
-  if (!data) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 w-full">
-        <img
-          src="/images/empty.png"
-          alt="empty"
-          style={{ width: 120, height: 120, marginBottom: 16 }}
-        />
-        <div className="text-gray-500 text-lg font-medium mt-2">
-          Không có dữ liệu
-        </div>
-      </div>
-    );
-  }
   const isFolder = data.type === "folder";
   const icon = getFileIcon({ type: data.type, name: data.name });
   const checked = !!selectedItems.find((i) => i.id === data.id);

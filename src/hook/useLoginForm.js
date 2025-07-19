@@ -40,14 +40,14 @@ function useLoginForm() {
         if (token) {
           localStorage.setItem("token", token);
         }
-        const role = res.data.user.role;
-        setLoading(false);
+        const { role, slast } = res.data.user;
         if (role === "admin") {
           router.push("/dashboard");
         } else {
-          router.push("/home");
+          router.push(`/${slast}/home`);
         }
         toast.success(res.data.message);
+        setLoading(false);
       } catch (error) {
         console.log(error);
         toast.error(error?.response?.data?.error);

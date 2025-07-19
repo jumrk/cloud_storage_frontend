@@ -14,6 +14,8 @@ import toast from "react-hot-toast";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import axiosClient from "@/lib/axiosClient";
+import EmptyState from "@/components/ui/EmptyState";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 function User_Management_Page() {
   const [showPassword, setShowPassword] = useState({});
@@ -21,9 +23,18 @@ function User_Management_Page() {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ email: "", fullName: "", password: "" });
+  const [form, setForm] = useState({
+    email: "",
+    fullName: "",
+    password: "",
+    slast: "",
+  });
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState("");
+  const [emailExists, setEmailExists] = useState(false);
+  const [slastExists, setSlastExists] = useState(false);
+  const [checkingEmail, setCheckingEmail] = useState(false);
+  const [checkingSlast, setCheckingSlast] = useState(false);
   const [memberStats, setMemberStats] = useState({});
   const [loadingStats, setLoadingStats] = useState(false);
   const [editModal, setEditModal] = useState({ open: false, user: null });
@@ -38,6 +49,10 @@ function User_Management_Page() {
   // Remove filterRole state and dropdown
   const [sortFolderCount, setSortFolderCount] = useState(null); // null, 'asc', 'desc'
   // Remove selectedIds state and all multi-select logic
+  const [confirmDialog, setConfirmDialog] = useState({
+    open: false,
+    user: null,
+  });
 
   // Fetch members on mount
   React.useEffect(() => {
@@ -84,8 +99,12 @@ function User_Management_Page() {
   };
 
   const handleOpenModal = () => {
-    setForm({ email: "", fullName: "", password: "" });
+    setForm({ email: "", fullName: "", password: "", slast: "" });
     setFormError("");
+    setEmailExists(false);
+    setSlastExists(false);
+    setCheckingEmail(false);
+    setCheckingSlast(false);
     setShowModal(true);
   };
 
@@ -96,12 +115,49 @@ function User_Management_Page() {
 
   const handleFormChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+    setFormError("");
+    if (e.target.name === "email") {
+      setEmailExists(false);
+      setCheckingEmail(true);
+      if (e.target.value && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e.target.value)) {
+        axiosClient
+          .get("/api/user/check-email", { params: { email: e.target.value } })
+          .then((res) => setEmailExists(res.data.exists))
+          .catch(() => setEmailExists(false))
+          .finally(() => setCheckingEmail(false));
+      } else {
+        setCheckingEmail(false);
+      }
+    }
+    if (e.target.name === "slast") {
+      setSlastExists(false);
+      setCheckingSlast(true);
+      if (e.target.value && /^[a-zA-Z0-9_-]+$/.test(e.target.value)) {
+        axiosClient
+          .get("/api/user/check-slast", { params: { slast: e.target.value } })
+          .then((res) => setSlastExists(res.data.exists))
+          .catch(() => setSlastExists(false))
+          .finally(() => setCheckingSlast(false));
+      } else {
+        setCheckingSlast(false);
+      }
+    }
   };
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     setFormLoading(true);
     setFormError("");
+    if (emailExists) {
+      setFormError("Email đã tồn tại trên hệ thống");
+      setFormLoading(false);
+      return;
+    }
+    if (slastExists) {
+      setFormError("Định danh này đã được sử dụng, hãy chọn định danh khác.");
+      setFormLoading(false);
+      return;
+    }
     try {
       const res = await axiosClient.post("/api/user/members", form);
       const data = res.data;
@@ -114,8 +170,12 @@ function User_Management_Page() {
         toast.error(data.error || "Tạo thành viên thất bại");
       }
     } catch (e) {
-      setFormError("Lỗi kết nối");
-      toast.error("Lỗi kết nối");
+      let errorMsg = "Lỗi kết nối";
+      if (e.response && e.response.data && e.response.data.error) {
+        errorMsg = e.response.data.error;
+      }
+      setFormError(errorMsg);
+      toast.error(errorMsg);
     }
     setFormLoading(false);
   };
@@ -157,8 +217,12 @@ function User_Management_Page() {
     setEditLoading(false);
   };
   const handleDeleteUser = async (user) => {
-    if (!window.confirm(`Bạn có chắc muốn xóa thành viên ${user.fullName}?`))
-      return;
+    setConfirmDialog({ open: true, user });
+  };
+
+  const handleConfirmDelete = async () => {
+    const user = confirmDialog.user;
+    if (!user) return;
     try {
       const res = await axiosClient.delete(`/api/user/members/${user._id}`);
       const data = res.data;
@@ -171,6 +235,7 @@ function User_Management_Page() {
     } catch (e) {
       toast.error("Lỗi kết nối");
     }
+    setConfirmDialog({ open: false, user: null });
   };
 
   // Handle select all
@@ -234,39 +299,92 @@ function User_Management_Page() {
       {/* Modal tạo member */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl relative">
-            <h2 className="text-lg font-bold mb-4">Thêm thành viên mới</h2>
+          <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl relative border border-gray-200">
+            <h2 className="text-xl font-bold mb-4 text-center">
+              Thêm thành viên mới
+            </h2>
             <form onSubmit={handleFormSubmit} className="flex flex-col gap-3">
               <input
                 type="email"
                 name="email"
                 placeholder="Email"
-                className="border rounded px-3 py-2"
+                className="border rounded-lg px-4 py-3"
                 value={form.email}
                 onChange={handleFormChange}
                 required
+                autoComplete="off"
+                disabled={formLoading}
               />
+              {checkingEmail && (
+                <div className="text-xs text-blue-500">
+                  Đang kiểm tra email...
+                </div>
+              )}
+              {emailExists && !checkingEmail && (
+                <div className="text-xs text-red-500">
+                  Email đã tồn tại trên hệ thống
+                </div>
+              )}
               <input
                 type="text"
                 name="fullName"
                 placeholder="Họ và tên"
-                className="border rounded px-3 py-2"
+                className="border rounded-lg px-4 py-3"
                 value={form.fullName}
                 onChange={handleFormChange}
                 required
+                autoComplete="off"
+                disabled={formLoading}
               />
               <input
                 type="password"
                 name="password"
                 placeholder="Mật khẩu"
-                className="border rounded px-3 py-2"
+                className="border rounded-lg px-4 py-3"
                 value={form.password}
                 onChange={handleFormChange}
                 required
+                autoComplete="off"
+                disabled={formLoading}
               />
+              <div>
+                <input
+                  type="text"
+                  name="slast"
+                  placeholder="Định danh cá nhân (slast)"
+                  className="border rounded-lg px-4 py-3 w-full"
+                  value={form.slast}
+                  onChange={handleFormChange}
+                  required
+                  autoComplete="off"
+                  disabled={formLoading}
+                />
+                <div className="text-xs text-gray-500 mt-1">
+                  Định danh này sẽ xuất hiện trên đường dẫn truy cập cá nhân của
+                  thành viên (ví dụ:{" "}
+                  <b>
+                    cloudstorage.com/leader/<i>slast</i>/home
+                  </b>
+                  ). Mỗi thành viên phải có một định danh duy nhất, không trùng
+                  với người khác.
+                </div>
+                {checkingSlast && (
+                  <div className="text-xs text-blue-500">
+                    Đang kiểm tra định danh...
+                  </div>
+                )}
+                {slastExists && !checkingSlast && (
+                  <div className="text-xs text-red-500">
+                    Định danh này đã được sử dụng, hãy chọn định danh khác.
+                  </div>
+                )}
+              </div>
+              {/* XÓA: Không hiển thị lỗi dưới form nữa */}
+              {/*
               {formError && (
                 <div className="text-red-500 text-sm">{formError}</div>
               )}
+              */}
               <div className="flex gap-2 justify-end mt-2">
                 <button
                   type="button"
@@ -278,8 +396,14 @@ function User_Management_Page() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded bg-primary text-white disabled:bg-gray-300"
-                  disabled={formLoading}
+                  className="px-4 py-2 rounded bg-primary text-white disabled:bg-gray-300 font-semibold"
+                  disabled={
+                    formLoading ||
+                    emailExists ||
+                    slastExists ||
+                    checkingEmail ||
+                    checkingSlast
+                  }
                 >
                   {formLoading ? "Đang tạo..." : "Tạo"}
                 </button>
@@ -406,7 +530,7 @@ function User_Management_Page() {
             ) : sortedMembers.length === 0 ? (
               <tr>
                 <td colSpan={6} className="text-center py-8 text-gray-400">
-                  Không có thành viên nào phù hợp
+                  <EmptyState message="Không có thành viên nào phù hợp" />
                 </td>
               </tr>
             ) : (
@@ -475,6 +599,18 @@ function User_Management_Page() {
           </tbody>
         </table>
       </div>
+      {/* ConfirmDialog khi xóa user */}
+      <ConfirmDialog
+        open={confirmDialog.open}
+        onClose={() => setConfirmDialog({ open: false, user: null })}
+        onConfirm={handleConfirmDelete}
+        title="Xác nhận xóa thành viên"
+        message={`Bạn có chắc muốn xóa thành viên ${
+          confirmDialog.user?.fullName || ""
+        }?`}
+        confirmText="Xóa"
+        cancelText="Hủy"
+      />
     </div>
   );
 }

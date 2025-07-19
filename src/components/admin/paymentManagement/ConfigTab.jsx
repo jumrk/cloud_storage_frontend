@@ -5,6 +5,7 @@ import Loader from "@/components/ui/Loader";
 import { FiPlus, FiEdit2, FiTrash2, FiCreditCard } from "react-icons/fi";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
+import EmptyState from "@/components/ui/EmptyState";
 
 function formatDate(dateStr) {
   if (!dateStr) return "";
@@ -57,20 +58,11 @@ export default function ConfigTab({
           ))}
         </div>
       ) : paymentMethodsData.length === 0 ? (
-        <div className="text-center py-12">
-          <FiCreditCard className="mx-auto text-4xl text-gray-300 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Chưa có phương thức thanh toán
-          </h3>
-          <p className="text-gray-500 mb-4">
-            Bắt đầu bằng cách thêm phương thức thanh toán đầu tiên
-          </p>
-          <button
-            onClick={onAdd}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-white font-semibold text-sm mx-auto"
-          >
-            <FiPlus className="text-lg" /> Thêm phương thức đầu tiên
-          </button>
+        <div className="flex flex-col items-center justify-center w-full py-12">
+          <EmptyState
+            message="Chưa có phương thức thanh toán nào."
+            height={180}
+          />
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
