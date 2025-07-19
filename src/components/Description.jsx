@@ -6,7 +6,7 @@ import Share from "@/assets/animation/Share.json";
 import wirel from "@/assets/animation/wirel.json";
 import Expert from "@/assets/animation/Expert.json";
 import UI from "@/assets/animation/UI.json";
-import Upload from "@/assets/animation/Upload.json";
+import Upload from "@/assets/animation/upload.json";
 
 export default function Description() {
   const features = [
