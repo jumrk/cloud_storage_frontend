@@ -14,7 +14,7 @@ import {
 import Desription from "@/components/Description";
 import PlanList from "@/components/PlanList";
 export const metadata = {
-  title: "D2M BOX",
+  title: "D2MBox",
 };
 export default function Home() {
   const features = [

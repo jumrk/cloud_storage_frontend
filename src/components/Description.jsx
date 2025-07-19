@@ -1,13 +1,12 @@
 "use client";
 import React, { useRef, useState, useEffect } from "react";
 import ScrollReveal from "./ui/ScrollReveal";
-import Lottie from "lottie-react";
 import ScrollParallaxLottie from "./ui/ScrollParallaxLottie";
-import Share from "@/../public/animation/Share.json";
-import wirel from "@/../public/animation/wirel.json";
-import Expert from "@/../public/animation/Expert.json";
-import UI from "@/../public/animation/UI.json";
-import Upload from "@/../public/animation/Upload.json";
+import Share from "@/assets/animation/Share.json";
+import wirel from "@/assets/animation/wirel.json";
+import Expert from "@/assets/animation/Expert.json";
+import UI from "@/assets/animation/UI.json";
+import Upload from "@/assets/animation/Upload.json";
 
 export default function Description() {
   const features = [

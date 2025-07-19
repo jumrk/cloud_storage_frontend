@@ -4,10 +4,10 @@ import ScrollReveal from "./ui/ScrollReveal";
 import { useRouter } from "next/navigation";
 import { FaLock, FaPlay } from "react-icons/fa";
 import Lottie from "lottie-react";
-import metaverseAnimation from "@/../public/animation/metaverse.json";
-import userAnimation from "@/../public/animation/user.json";
-import folderAnimation from "@/../public/animation/folder.json";
-import storageAnimation from "@/../public/animation/storage.json";
+import metaverseAnimation from "@/assets/animation/metaverse.json";
+import userAnimation from "@/assets/animation/user.json";
+import folderAnimation from "@/assets/animation/folder.json";
+import storageAnimation from "@/assets/animation/storage.json";
 
 function Hero() {
   const router = useRouter();
