@@ -133,6 +133,8 @@ const MiniStatusBatch = ({
           "X-File-Size": file.size,
           "X-Relative-Path": encodeURIComponent(fileState.relativePath || ""),
           "X-Batch-Id": encodeURIComponent(batchId || ""),
+          "X-Chunk-Start": chunks[0].start,
+          "X-Chunk-End": chunks[0].end - 1,
         };
         if (
           isFolder &&
@@ -143,7 +145,16 @@ const MiniStatusBatch = ({
           firstHeaders["X-Empty-Folders"] = encodeURIComponent(
             JSON.stringify(emptyFolders)
           );
+          // Thêm log:
+          console.log("[FE] Gửi emptyFolders:", emptyFolders);
         }
+        // Thêm log gửi file chunk đầu tiên
+        console.log("[FE] Gửi file:", {
+          fileName: file.name,
+          relativePath: fileState.relativePath,
+          parentId,
+          headers: firstHeaders,
+        });
         const response = await axiosClient.post("/api/upload", firstChunk, {
           headers: firstHeaders,
         });
@@ -184,6 +195,32 @@ const MiniStatusBatch = ({
       try {
         const chunk = chunks[i];
         const chunkData = await readFileChunk(file, chunk.start, chunk.end);
+
+        // Thêm log:
+        console.log("[FE] Gửi chunk:", {
+          fileName: file.name,
+          chunkIndex: i,
+          relativePath: fileState.relativePath,
+          parentId,
+          headers: {
+            "Content-Type": "application/octet-stream",
+            "X-Upload-Id": uploadId,
+            "X-Chunk-Index": i,
+            "X-Total-Chunks": chunks.length,
+            "X-File-Name": encodeURIComponent(file.name),
+            "X-Mime-Type": encodeURIComponent(
+              file.type || "application/octet-stream"
+            ),
+            "X-Parent-Id": encodeURIComponent(parentId || ""),
+            "X-Is-First-Chunk": "0",
+            "X-Is-Last-Chunk": i === chunks.length - 1 ? "1" : "0",
+            "X-File-Size": file.size,
+            "X-Relative-Path": encodeURIComponent(fileState.relativePath || ""),
+            "X-Batch-Id": encodeURIComponent(batchId || ""),
+            "X-Chunk-Start": chunk.start,
+            "X-Chunk-End": chunk.end - 1,
+          },
+        });
         const headers = {
           "Content-Type": "application/octet-stream",
           "X-Upload-Id": uploadId,
@@ -199,6 +236,8 @@ const MiniStatusBatch = ({
           "X-File-Size": file.size,
           "X-Relative-Path": encodeURIComponent(fileState.relativePath || ""),
           "X-Batch-Id": encodeURIComponent(batchId || ""),
+          "X-Chunk-Start": chunk.start,
+          "X-Chunk-End": chunk.end - 1,
         };
         const response = await axiosClient.post("/api/upload", chunkData, {
           headers,
