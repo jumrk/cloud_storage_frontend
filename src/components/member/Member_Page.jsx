@@ -174,13 +174,12 @@ export default function MemberFileManager() {
         newName: renameValue.trim(),
       });
       if (res.data && res.data.success) {
-        toast.success("Đổi tên thành công!");
         fetchFolders();
-      } else {
-        toast.error(res.data.error || "Đổi tên thất bại!");
+      } else if (res.data && res.data.error) {
+        toast.error(res.data.error);
       }
     } catch {
-      toast.error("Đổi tên thất bại!");
+      // Không thông báo cứng, chỉ log nếu cần
     }
     setShowRenameModal(false);
     setRenameTarget(null);
@@ -198,21 +197,18 @@ export default function MemberFileManager() {
         targetFolderId,
       });
       if (res.data && res.data.success) {
-        toast.success("Di chuyển thành công!");
         fetchFolders();
         setShowMoveModal(false);
         setPendingMoveItems([]);
         setMoveTargetFolder(null);
         tableActions.setSelectedItems([]);
-      } else {
-        toast.error(res.data.error || "Di chuyển thất bại!");
+      } else if (res.data && res.data.error) {
+        toast.error(res.data.error);
         setShowMoveModal(false);
         setPendingMoveItems([]);
         setMoveTargetFolder(null);
       }
     } catch (err) {
-      console.error("Move error:", err);
-      toast.error("Di chuyển thất bại!");
       setShowMoveModal(false);
       setPendingMoveItems([]);
       setMoveTargetFolder(null);
@@ -238,14 +234,13 @@ export default function MemberFileManager() {
       });
       const data = res.data;
       if (data.success) {
-        toast.success("Đã xóa thành công!");
         fetchFolders();
         setSelectedItems && setSelectedItems([]); // reset sau khi xóa
-      } else {
-        toast.error(data.error || "Xóa thất bại!");
+      } else if (data.error) {
+        toast.error(data.error);
       }
     } catch (err) {
-      toast.error("Lỗi khi xóa!");
+      // Không thông báo cứng, chỉ log nếu cần
     }
     setPendingDeleteItems([]);
   };
@@ -403,7 +398,7 @@ export default function MemberFileManager() {
                 }
               }}
               onPreviewFile={(item) => {
-                toast("Chức năng xem file sẽ tích hợp sau!");
+                // Không thông báo cứng
               }}
               handleChecked={() => {}}
               loadingMore={false}
@@ -432,7 +427,7 @@ export default function MemberFileManager() {
                       : undefined
                   }
                   onPreviewFile={() => {
-                    toast("Chức năng xem file sẽ tích hợp sau!");
+                    // Không thông báo cứng
                   }}
                 />
               ))}
@@ -477,16 +472,13 @@ export default function MemberFileManager() {
                           }
                         );
                         if (res.data && res.data.success) {
-                          toast.success("Tạo thư mục thành công!");
                           setShowCreateFolder(false);
                           setNewFolderName("");
                           fetchFolders();
-                        } else {
-                          toast.error("Tạo thư mục thất bại!");
+                        } else if (res.data && res.data.error) {
+                          toast.error(res.data.error);
                         }
-                      } catch {
-                        toast.error("Tạo thư mục thất bại!");
-                      }
+                      } catch {}
                     }}
                     className="px-4 py-2 rounded bg-green-600 text-white"
                   >
@@ -527,10 +519,10 @@ export default function MemberFileManager() {
               setShowMoveModal(true);
               setMoveTargetFolder(null);
             }}
-            onDownload={() => toast("Download action")}
+            onDownload={() => {}}
             onDelete={handleDelete}
-            onShare={() => toast("Share action")}
-            onGrantPermission={() => toast("Grant permission action")}
+            onShare={() => {}}
+            onGrantPermission={() => {}}
             canGrantPermission={false}
           />
           {/* Modal đổi tên */}

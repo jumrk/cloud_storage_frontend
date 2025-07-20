@@ -30,10 +30,6 @@ function useLoginForm() {
       try {
         setLoading(true);
         const res = await axiosClient.post("/api/auth/login", formData);
-        setFormData({
-          email: "",
-          password: "",
-        });
         setErrors({});
 
         const token = res.data.token;
@@ -42,15 +38,18 @@ function useLoginForm() {
         }
         const { role, slast } = res.data.user;
         if (role === "admin") {
-          router.push("/dashboard");
+          router.push("/admin");
         } else {
           router.push(`/${slast}/home`);
         }
         toast.success(res.data.message);
-        setLoading(false);
+        // XÓA reset form và loading ở đây để tránh render lại login
+        // setFormData({ email: "", password: "" });
+        // setLoading(false);
       } catch (error) {
         console.log(error);
         toast.error(error?.response?.data?.error);
+        setLoading(false);
       } finally {
         setLoading(false);
       }

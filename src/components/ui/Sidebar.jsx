@@ -11,15 +11,20 @@ import {
   CiFileOn,
   CiSettings,
   CiLogout,
+  CiChat1,
 } from "react-icons/ci";
 import toast from "react-hot-toast";
 import { decodeTokenGetUser } from "@/lib/jwt";
+import { FaBars } from "react-icons/fa";
 
 export default function Sidebar({
   isMobile = false,
   open = false,
   onClose,
   role,
+  unreadCount = 0,
+  unreadNotificationCount = 0,
+  menuButtonPosition = "fixed top-4 left-4 z-50", // thêm prop này
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -56,9 +61,11 @@ export default function Sidebar({
     router.push("/Login");
   };
 
-  // Nếu chưa có slast thì không render menu (hoặc render loading)
-  if (!slast) {
-    return null;
+  function unlockAudio() {
+    if (typeof window !== "undefined") {
+      const audio = new Audio("/sound/sounds.wav");
+      audio.play().catch(() => {});
+    }
   }
 
   // Sidebar menu items
@@ -82,7 +89,7 @@ export default function Sidebar({
       label: "Thông báo",
       icon: <CiBellOn className="text-2xl" />,
       href: `/${slast}/notification`,
-      badge: 8,
+      badge: unreadNotificationCount,
     },
     {
       label: "Thông tin tài khoản",
@@ -90,9 +97,9 @@ export default function Sidebar({
       href: `/${slast}/infor_user`,
     },
     {
-      label: "Cài đặt",
-      icon: <CiSettings className="text-2xl" />,
-      href: `/${slast}/settings`,
+      label: "Nhắn tin",
+      icon: <CiChat1 className="text-2xl" />,
+      href: `/${slast}/chat`,
     },
   ];
 
@@ -104,6 +111,16 @@ export default function Sidebar({
           className="fixed inset-0 bg-black/60 z-40 transition-all"
           onClick={onClose}
         />
+      )}
+      {/* Nút menu mobile, chỉ hiện khi sidebar đóng */}
+      {isMobile && !isSidebarOpen && (
+        <button
+          className={`${menuButtonPosition} p-2 bg-white shadow rounded-full border border-gray-200 hover:bg-gray-100 md:hidden`}
+          onClick={() => setIsSidebarOpen(true)}
+          aria-label="Mở menu"
+        >
+          <FaBars className="text-xl text-gray-700" />
+        </button>
       )}
       <nav
         className={`bg-white h-screen flex flex-col justify-between fixed top-0 left-0 z-50 transition-transform duration-300
@@ -134,31 +151,35 @@ export default function Sidebar({
         {/* Menu */}
         <ul className="flex-1 px-4 py-6 space-y-2">
           {menu.map((item, idx) => {
-            // Only enable file management for member
-            const isFileManagement =
-              item.href === "/file_management" ||
-              item.href === "/member_file_management";
-            const disabled = role === "member" && !isFileManagement;
             return (
               <li key={item.label} className="mb-1">
                 <Link
                   href={item.href}
+                  onClick={item.label === "Nhắn tin" ? unlockAudio : undefined}
                   className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all font-medium text-gray-700 hover:bg-gray-100 hover:text-primary relative
                     ${pathname === item.href ? "bg-gray-100 text-primary" : ""}
-                    ${
-                      disabled
-                        ? "opacity-50 pointer-events-none cursor-not-allowed"
-                        : ""
-                    }
                   `}
                 >
                   {item.icon}
                   <span>{item.label}</span>
-                  {item.badge && (
-                    <span className="ml-auto bg-[#1cadd9] text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                      {item.badge}
+                  {item.label === "Nhắn tin" && unreadCount > 0 && (
+                    <span className="ml-2 bg-[#1cadd9] text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-[22px] text-center">
+                      {unreadCount}
                     </span>
                   )}
+                  {item.label === "Thông báo" &&
+                    unreadNotificationCount > 0 && (
+                      <span className="ml-2 bg-[#1cadd9] text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-[22px] text-center">
+                        {unreadNotificationCount}
+                      </span>
+                    )}
+                  {item.badge &&
+                    item.label !== "Nhắn tin" &&
+                    item.label !== "Thông báo" && (
+                      <span className="ml-auto bg-[#1cadd9] text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                        {item.badge}
+                      </span>
+                    )}
                 </Link>
               </li>
             );

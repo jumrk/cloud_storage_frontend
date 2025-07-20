@@ -112,10 +112,7 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="space-y-8">
-      <h1 className="text-2xl md:text-3xl font-bold text-[#00c3ff] mb-6">
-        Dashboard
-      </h1>
+    <div className="space-y-8 m-10">
       {/* Stat cards - chỉ hiện trên desktop */}
       <div className="hidden md:grid grid-cols-2 xl:grid-cols-4 gap-6 mb-2">
         {statCards.map((card, idx) => (

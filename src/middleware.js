@@ -5,23 +5,42 @@ export function middleware(req) {
   // Lấy token từ cookie
   const token = req.cookies.get("token")?.value;
   let role = null;
+  let slast = null;
   if (token) {
     const userData = decodeTokenGetUser(token);
     role = userData?.role;
+    slast = userData?.slast;
   }
   const url = req.nextUrl.clone();
-  // Nếu là member và truy cập sai route thì redirect
+  const path = url.pathname;
+  // Cho phép truy cập API, Login, static, favicon, images
   if (
-    role === "member" &&
-    !url.pathname.startsWith("/member_file_management") &&
-    !url.pathname.startsWith("/api") &&
-    !url.pathname.startsWith("/Login") &&
-    !url.pathname.startsWith("/_next") &&
-    !url.pathname.startsWith("/static") &&
-    !url.pathname.startsWith("/favicon.ico") &&
-    !url.pathname.startsWith("/images")
+    path.startsWith("/api") ||
+    path.startsWith("/Login") ||
+    path.startsWith("/_next") ||
+    path.startsWith("/static") ||
+    path.startsWith("/favicon.ico") ||
+    path.startsWith("/images")
   ) {
+    return NextResponse.next();
+  }
+  // Admin chỉ được vào /admin
+  if (role === "admin" && !path.startsWith("/admin")) {
+    url.pathname = "/admin";
+    return NextResponse.redirect(url);
+  }
+  // Member chỉ được vào /member_file_management
+  if (role === "member" && !path.startsWith("/member_file_management")) {
     url.pathname = "/member_file_management";
+    return NextResponse.redirect(url);
+  }
+  // Leader chỉ được vào /[slast] (hoặc /leader)
+  if (
+    role === "leader" &&
+    !path.startsWith(`/${slast}`) &&
+    !path.startsWith("/")
+  ) {
+    url.pathname = `/${slast}/home`;
     return NextResponse.redirect(url);
   }
   return NextResponse.next();

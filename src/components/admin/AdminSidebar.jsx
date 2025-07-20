@@ -14,37 +14,55 @@ import {
   FiMenu,
   FiBell,
   FiCreditCard,
+  FiMessageCircle,
 } from "react-icons/fi";
+import { FaBars } from "react-icons/fa";
 import { decodeTokenGetUser } from "@/lib/jwt";
 import { useRouter } from "next/navigation";
 
 const boards = [
-  { href: "/dashboard", label: "Dashboard", icon: <FiHome size={20} /> },
-  { href: "/users", label: "Quản lý user", icon: <FiUsers size={20} /> },
+  { href: "/admin", label: "Dashboard", icon: <FiHome size={20} /> },
+  { href: "/admin/users", label: "Quản lý user", icon: <FiUsers size={20} /> },
   {
-    href: "/google-accounts",
+    href: "/admin/google-accounts",
     label: "Tài khoản Google",
     icon: <FiLayers size={20} />,
   },
   {
-    href: "/plans",
+    href: "/admin/plans",
     label: "Quản lý gói dịch vụ",
     icon: <FiBarChart2 size={20} />,
   },
   {
-    href: "/payments",
+    href: "/admin/payments",
     label: "Quản lý thanh toán",
     icon: <FiCreditCard size={20} />,
   },
+  {
+    href: "/admin/chat",
+    label: "Nhắn tin",
+    icon: <FiMessageCircle size={20} />,
+  },
 ];
 const others = [
-  { href: "/settings", label: "Cài đặt", icon: <FiSettings size={20} /> },
-  { href: "/support", label: "Hỗ trợ", icon: <FiHelpCircle size={20} /> },
-  { href: "/notifications", label: "Thông báo", icon: <FiBell size={20} /> },
+  { href: "/admin/support", label: "Hỗ trợ", icon: <FiHelpCircle size={20} /> },
+  {
+    href: "/admin/notifications",
+    label: "Thông báo",
+    icon: <FiBell size={20} />,
+  },
 ];
+
+function unlockAudio() {
+  if (typeof window !== "undefined") {
+    const audio = new Audio("/sound/sounds.wav");
+    audio.play().catch(() => {});
+  }
+}
 
 export default function AdminSidebar(props) {
   const pathname = usePathname();
+  const unreadCount = props.unreadCount || 0;
   const [isMobile, setIsMobile] = useState(false);
   const [user, setUser] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -89,33 +107,45 @@ export default function AdminSidebar(props) {
     router.push("/Login");
   };
 
+  // Responsive: sidebar open/close state (mobile)
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Nếu props.open/onOpen/onClose được truyền từ layout thì dùng, không thì tự quản lý
+  const open = typeof props.open === "boolean" ? props.open : sidebarOpen;
+  const onOpen = props.onOpen || (() => setSidebarOpen(true));
+  const onClose = props.onClose || (() => setSidebarOpen(false));
+
   return (
     <>
-      {/* Floating open button for mobile */}
-      {isMobile && !props.open && (
+      {/* Nút menu mobile, chỉ hiện khi sidebar đóng */}
+      {isMobile && !open && (
         <button
-          onClick={props.onOpen}
-          className="fixed top-4  left-4 z-50 p-3 bg-gray-100 text-gray-800 rounded-full shadow-lg md:hidden border border-gray-300"
+          onClick={onOpen}
+          className=" absolute top-4 left-4 z-50 p-3 bg-gray-100 text-gray-800 rounded-full shadow-lg md:hidden border border-gray-300"
           aria-label="Mở menu admin"
         >
-          <FiMenu size={24} />
+          <FaBars size={24} />
         </button>
       )}
+      {/* Overlay mobile khi sidebar mở */}
+      {isMobile && open && (
+        <div
+          className="fixed inset-0 bg-black/40 z-40 md:hidden"
+          onClick={onClose}
+        />
+      )}
+      {/* Sidebar */}
       <aside
-        className={`bg-gray-100 border-r border-gray-200 shadow ${
-          isMobile ? "h-screen" : "h-[calc(100vh-4rem)]"
-        } w-64 flex-shrink-0 z-20 transition-transform duration-300
-        fixed md:static ${
-          isMobile ? "top-0" : "top-16"
-        } md:top-0 left-0 md:h-screen md:pt-0 pt-0
-        ${
-          props.open ? "translate-x-0" : "-translate-x-full"
-        } md:translate-x-0 rounded-tr-3xl rounded-br-3xl md:rounded-tr-none md:rounded-br-none flex flex-col`}
-        style={{ top: isMobile ? 0 : "4rem" }}
+        className={`bg-gray-100 border-r border-gray-200 shadow
+          w-64 flex-shrink-0 z-50 transition-transform duration-300
+          fixed md:static top-0 left-0 h-screen
+          ${isMobile ? (open ? "translate-x-0" : "-translate-x-full") : ""}
+          md:translate-x-0
+          rounded-tr-3xl rounded-br-3xl md:rounded-tr-none md:rounded-br-none flex flex-col overflow-y-auto`}
+        style={{ top: 0 }}
       >
-        <div className="flex flex-col flex-1 px-4 py-8 gap-8">
+        <div className="flex flex-col flex-1 px-4  gap-8">
           {/* Logo/Brand */}
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center mt-3 gap-2">
             <img src="/images/Logo_2.png" alt="" />
           </div>
           {/* Boards */}
@@ -128,6 +158,7 @@ export default function AdminSidebar(props) {
                 <Link
                   key={item.href}
                   href={item.href}
+                  onClick={item.label === "Nhắn tin" ? unlockAudio : undefined}
                   className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all text-base font-medium
                   ${
                     pathname === item.href
@@ -139,6 +170,11 @@ export default function AdminSidebar(props) {
                     {item.icon}
                   </span>
                   <span className="truncate">{item.label}</span>
+                  {item.label === "Nhắn tin" && unreadCount > 0 && (
+                    <span className="ml-2 bg-[#1cadd9] text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-[22px] text-center">
+                      {unreadCount}
+                    </span>
+                  )}
                 </Link>
               ))}
             </nav>
@@ -201,15 +237,6 @@ export default function AdminSidebar(props) {
               style={{ boxShadow: "0 8px 32px rgba(80,80,120,0.10)" }}
             >
               <button
-                className="w-full text-left px-4 py-3 hover:bg-gray-50 transition cursor-pointer"
-                onClick={() => {
-                  setMenuOpen(false);
-                  router.push("/your_folder");
-                }}
-              >
-                Quản lý file của bạn
-              </button>
-              <button
                 className="w-full text-left px-4 py-3 hover:bg-gray-50 transition text-red-500 cursor-pointer"
                 onClick={handleLogout}
               >
@@ -218,25 +245,6 @@ export default function AdminSidebar(props) {
             </div>
           </div>
         </div>
-        {/* Nút đóng sidebar trên mobile */}
-        <button
-          className="absolute top-4 right-4 md:hidden p-2 rounded-full bg-gray-200 hover:bg-gray-300 border border-gray-300 transition"
-          onClick={props.onClose}
-        >
-          <svg
-            width="24"
-            height="24"
-            fill="none"
-            stroke="#555"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="feather feather-x"
-          >
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        </button>
       </aside>
     </>
   );

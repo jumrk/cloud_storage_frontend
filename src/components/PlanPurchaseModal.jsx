@@ -127,8 +127,10 @@ export default function PlanPurchaseModal({
     return Object.keys(newErrors).length === 0;
   };
 
-  // Build nội dung chuyển khoản rút gọn: chỉ email và tên gói
-  const content = `email:${form.email}, goi:${selectedPlan?.name}, chu_ky:${cycle}`;
+  // Build nội dung chuyển khoản: email - goi - Thang/Nam
+  const content = `${form.email} - ${selectedPlan?.name} - ${
+    cycle === "year" ? "Nam" : "Thang"
+  }`;
   // Số tiền: lấy theo gói và chu kỳ
   const amount = getPrice();
   // Map tên ngân hàng sang mã BIN nếu thiếu bankCode
@@ -643,7 +645,7 @@ export default function PlanPurchaseModal({
                     Đang đăng ký...
                   </>
                 ) : (
-                  "Xác nhận đăng ký"
+                  "Xác nhận thanh toán"
                 )}
               </button>
             </div>

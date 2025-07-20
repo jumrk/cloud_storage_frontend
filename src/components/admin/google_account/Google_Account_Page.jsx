@@ -21,6 +21,13 @@ export default function AdminGoogleAccounts() {
   const [transferTarget, setTransferTarget] = useState(null);
   const [transferLoading, setTransferLoading] = useState(false);
   const [transferError, setTransferError] = useState("");
+  const [showProgressModal, setShowProgressModal] = useState(false);
+  const [progress, setProgress] = useState({
+    current: 0,
+    total: 0,
+    done: false,
+    error: "",
+  });
 
   // Fetch tổng dung lượng
   useEffect(() => {
@@ -55,27 +62,44 @@ export default function AdminGoogleAccounts() {
     setDeletingAccount(acc);
     setTransferTarget(null);
     setTransferLoading(true);
-    // Gọi API thử xóa, nếu có file sẽ trả về lỗi và danh sách file
+    setShowProgressModal(true);
+    setProgress({ current: 0, total: 0, done: false, error: "" });
     try {
+      // Gọi API lấy danh sách file trước để biết tổng số
+      const resList = await axiosClient.get("/api/admin/drive/list-files", {
+        params: { accountId: acc._id },
+      });
+      const files = resList.data.files || [];
+      setProgress({ current: 0, total: files.length, done: false, error: "" });
+      // Gọi API xóa và chuyển file, giả lập tiến trình
       const res = await axiosClient.post(
         "/api/admin/drive/delete-with-transfer",
-        {
-          accountId: acc._id,
-        }
+        { accountId: acc._id }
       );
       if (res.data && res.data.success) {
-        setAccounts((prev) => prev.filter((a) => a._id !== acc._id));
-        setDeletingAccount(null);
-        setTransferLoading(false);
+        setProgress({
+          current: files.length,
+          total: files.length,
+          done: true,
+          error: "",
+        });
+        setTimeout(() => {
+          setShowProgressModal(false);
+          setAccounts((prev) => prev.filter((a) => a._id !== acc._id));
+          setDeletingAccount(null);
+          setTransferLoading(false);
+        }, 1200);
         return;
       }
-      if (res.data.files && res.data.files.length > 0) {
-        setShowTransferModal(true);
-      } else {
-        setTransferError(res.data.error || "Không thể xóa tài khoản");
+      if (res.data.error) {
+        setProgress((p) => ({ ...p, error: res.data.error, done: true }));
       }
     } catch (err) {
-      setTransferError("Không thể xóa tài khoản");
+      setProgress((p) => ({
+        ...p,
+        error: "Không thể xóa tài khoản",
+        done: true,
+      }));
     }
     setTransferLoading(false);
   };
@@ -234,6 +258,50 @@ export default function AdminGoogleAccounts() {
                 {transferLoading ? "Đang chuyển..." : "Chuyển và xóa"}
               </button>
             </div>
+          </div>
+        </Modal>
+      )}
+      {/* Modal progress khi xóa tài khoản */}
+      {showProgressModal && (
+        <Modal onClose={() => setShowProgressModal(false)}>
+          <div className="p-6 max-w-md w-full flex flex-col items-center">
+            <h2 className="text-lg font-bold mb-4">
+              Đang chuyển file và xóa tài khoản...
+            </h2>
+            <div className="w-full bg-gray-200 rounded-full h-4 mb-4">
+              <div
+                className="bg-primary h-4 rounded-full transition-all"
+                style={{
+                  width: progress.total
+                    ? `${(progress.current / progress.total) * 100}%`
+                    : "0%",
+                }}
+              />
+            </div>
+            <div className="mb-2 text-gray-700">
+              {progress.done ? (
+                progress.error ? (
+                  <span className="text-red-500">{progress.error}</span>
+                ) : (
+                  "Đã hoàn thành!"
+                )
+              ) : (
+                `Đang xử lý... (${progress.current}/${progress.total})`
+              )}
+            </div>
+            {!progress.done && (
+              <div className="text-sm text-gray-400">
+                Vui lòng không tắt trình duyệt...
+              </div>
+            )}
+            {progress.done && (
+              <button
+                className="mt-4 px-4 py-2 rounded bg-primary text-white font-semibold"
+                onClick={() => setShowProgressModal(false)}
+              >
+                Đóng
+              </button>
+            )}
           </div>
         </Modal>
       )}
