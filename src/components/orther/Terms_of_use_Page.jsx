@@ -4,6 +4,7 @@ import { useRef } from "react";
 const sections = [
   { id: "intro", label: "1. Giới thiệu" },
   { id: "register", label: "2. Đăng ký & sử dụng dịch vụ" },
+  { id: "googleauth", label: "2.1. Đăng nhập và truy cập dữ liệu Google" },
   { id: "data", label: "3. Trách nhiệm về dữ liệu" },
   { id: "user_rights", label: "4. Quyền & nghĩa vụ của người dùng" },
   { id: "provider_rights", label: "5. Quyền & trách nhiệm của D2MBox" },
@@ -75,6 +76,35 @@ export default function TermsOfUse() {
                 <b>Ví dụ:</b> Không sử dụng dịch vụ để lưu trữ/phát tán phần mềm
                 độc hại, nội dung vi phạm bản quyền, tài liệu cấm.
               </p>
+            </section>
+            <section
+              ref={(el) => (refs.current["googleauth"] = el)}
+              id="googleauth"
+            >
+              <h2 className="text-xl font-semibold mb-2">
+                2.1. Đăng nhập và truy cập dữ liệu Google
+              </h2>
+              <ul className="list-disc pl-6">
+                <li>
+                  Khi sử dụng tính năng đăng nhập bằng Google hoặc kết nối
+                  Google Drive, bạn đồng ý cho phép D2MBox truy cập các thông
+                  tin và tệp tin theo phạm vi quyền hạn bạn đã xác nhận với
+                  Google.
+                </li>
+                <li>
+                  Bạn có quyền kiểm soát, thu hồi quyền truy cập này bất cứ lúc
+                  nào thông qua trang quản lý tài khoản Google của bạn.
+                </li>
+                <li>
+                  D2MBox cam kết chỉ sử dụng dữ liệu Google của bạn để cung cấp
+                  các tính năng đã công bố, không sử dụng cho mục đích quảng cáo
+                  hoặc chia sẻ cho bên thứ ba.
+                </li>
+                <li>
+                  Việc sử dụng dữ liệu Google tuân thủ chính sách của Google và
+                  các quy định pháp luật hiện hành.
+                </li>
+              </ul>
             </section>
             <section ref={(el) => (refs.current["data"] = el)} id="data">
               <h2 className="text-xl font-semibold mb-2">

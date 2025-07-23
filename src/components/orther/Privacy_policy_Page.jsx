@@ -7,6 +7,7 @@ const sections = [
   { id: "personal", label: "2.1. Thông tin cá nhân" },
   { id: "nonpersonal", label: "2.2. Thông tin phi cá nhân" },
   { id: "cookies", label: "2.3. Cookies & Công nghệ tương tự" },
+  { id: "googleapi", label: "2.4. Dữ liệu từ Google API" },
   { id: "use", label: "3. Cách chúng tôi sử dụng thông tin" },
   { id: "share", label: "4. Chia sẻ & tiết lộ thông tin" },
   { id: "rights", label: "5. Quyền và lựa chọn của khách hàng" },
@@ -181,6 +182,68 @@ export default function PrivacyPolicy() {
                 Bạn có thể tùy chỉnh trình duyệt để từ chối hoặc xóa cookies,
                 tuy nhiên một số tính năng có thể không hoạt động tối ưu nếu
                 cookies bị tắt.
+              </p>
+            </section>
+            <section
+              ref={(el) => (refs.current["googleapi"] = el)}
+              id="googleapi"
+            >
+              <h3 className="text-lg font-semibold mb-1">
+                2.4. Dữ liệu từ Google API
+              </h3>
+              <p>
+                Chúng tôi sử dụng các dịch vụ của Google, bao gồm Google Drive
+                API, để cung cấp các tính năng như lưu trữ, truy xuất và quản lý
+                tệp tin của bạn trên Google Drive. Khi bạn đăng nhập hoặc kết
+                nối tài khoản Google với D2MBox, chúng tôi có thể thu thập và xử
+                lý các thông tin sau (tùy theo quyền bạn cấp):
+              </p>
+              <ul className="list-disc pl-6 mt-2">
+                <li>
+                  Thông tin hồ sơ Google cơ bản (tên, email, ảnh đại diện).
+                </li>
+                <li>Danh sách tệp và thư mục trên Google Drive của bạn.</li>
+                <li>
+                  Nội dung tệp (chỉ khi bạn thực hiện thao tác tải lên, tải
+                  xuống hoặc xem trước).
+                </li>
+                <li>Thông tin về quyền truy cập, chia sẻ tệp.</li>
+              </ul>
+              <p className="mt-2">
+                <b>Chúng tôi cam kết:</b>
+                <ul className="list-disc pl-6 mt-2">
+                  <li>
+                    Chỉ truy cập, sử dụng dữ liệu Google Drive khi có sự cho
+                    phép rõ ràng từ bạn.
+                  </li>
+                  <li>
+                    Không chia sẻ, bán hoặc sử dụng dữ liệu Google Drive của bạn
+                    cho mục đích ngoài phạm vi dịch vụ.
+                  </li>
+                  <li>
+                    Dữ liệu truy xuất từ Google API được mã hóa khi truyền tải
+                    và lưu trữ.
+                  </li>
+                  <li>
+                    Bạn có thể ngắt kết nối tài khoản Google bất cứ lúc nào, và
+                    chúng tôi sẽ xóa các token truy cập liên quan khỏi hệ thống.
+                  </li>
+                  <li>
+                    Chúng tôi tuân thủ Chính sách Dữ liệu Người dùng của Google
+                    API (Google API Services User Data Policy), bao gồm các yêu
+                    cầu về giới hạn sử dụng và bảo mật dữ liệu.
+                  </li>
+                </ul>
+              </p>
+              <p className="mt-2">
+                <a
+                  href="https://developers.google.com/terms/api-services-user-data-policy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#189ff2] underline"
+                >
+                  Google API Services User Data Policy
+                </a>
               </p>
             </section>
             <section ref={(el) => (refs.current["use"] = el)} id="use">
