@@ -12,8 +12,8 @@ import axiosClient from "@/lib/axiosClient";
 import toast from "react-hot-toast";
 
 // Hàm chia file thành chunk
-const createFileChunks = (file, chunkSize = 64 * 1024 * 1024) => {
-  // 64MB default
+const createFileChunks = (file, chunkSize = 100 * 1024 * 1024) => {
+  // 100MB default
   const chunks = [];
   let start = 0;
   while (start < file.size) {
