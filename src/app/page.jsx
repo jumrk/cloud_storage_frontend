@@ -81,7 +81,7 @@ export default function Home() {
                   CÂU HỎI THƯỜNG GẶP
                 </h2>
               </ScrollReveal>
-              <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <ScrollReveal direction="up">
                   <div className="bg-white rounded-lg shadow p-5">
                     <h3 className="font-semibold text-lg text-[#1cadd9] mb-2">
@@ -144,24 +144,34 @@ export default function Home() {
             </div>
 
             {/* CTA cuối trang */}
-            <div className="w-full mt-16 flex justify-center">
-              <ScrollReveal direction="up">
-                <div className="bg-[#1cadd9] rounded-2xl shadow-lg px-8 py-10 flex flex-col items-center w-full max-w-3xl text-center">
-                  <h2 className="text-white font-bold text-2xl md:text-3xl mb-3">
-                    Sẵn sàng trải nghiệm dịch vụ lưu trữ an toàn & tốc độ?
+            <div className="w-full mt-16">
+              <section className="w-full bg-[#e5e7eb] rounded-xl flex flex-col md:flex-row items-center md:items-stretch gap-8 md:gap-12 p-6 md:p-12 mb-10 max-w-5xl mx-auto">
+                <div className="flex-1 flex flex-col  md:items-start text-center md:text-left">
+                  <h2 className="text-2xl md:text-5xl font-semibold text-gray-900 mb-4 leading-tight">
+                    Phát triển công việc nhóm của bạn với{" "}
+                    <span className="text-[#189ff2]">D2MBox</span>
                   </h2>
-                  <p className="text-white/90 mb-6 text-base md:text-lg">
-                    Đăng ký tài khoản ngay để nhận ưu đãi và khám phá mọi tính
-                    năng tuyệt vời của chúng tôi!
+                </div>
+                <div className="flex-1 flex flex-col justify-center items-center md:items-start text-center md:text-left">
+                  <p className="text-gray-700 text-sm md:text-base mb-6 max-w-xl">
+                    Mang đội nhóm hoặc công ty của bạn lên nền tảng D2MBox – nơi
+                    kết hợp giữa lưu trữ dữ liệu an toàn và quản lý công việc
+                    hiệu quả. Dù bạn là startup nhỏ hay doanh nghiệp vừa, D2MBox
+                    cung cấp dung lượng lưu trữ linh hoạt cùng với các công cụ
+                    cộng tác mạnh mẽ: Tạo task, phân công nhiệm vụ, trao đổi
+                    công việc trực tiếp trên web. Leader có thể dễ dàng tạo và
+                    phân quyền tài khoản cho thành viên hoặc cộng tác viên, giúp
+                    công việc vận hành mượt mà, minh bạch và có tổ chức.
                   </p>
                   <a
-                    href="/Login"
-                    className="bg-white text-[#1cadd9] font-bold px-8 py-3 rounded-lg text-lg shadow hover:bg-gray-100 transition"
+                    href="#plan-section"
+                    className="bg-[#189ff2] text-white font-semibold px-6 py-2 rounded-md shadow hover:bg-[#0d8ad1] transition flex items-center gap-2 mt-2 md:mt-0"
                   >
-                    Trải nghiệm ngay
+                    Tìm hiểu thêm
+                    <span className="ml-1">→</span>
                   </a>
                 </div>
-              </ScrollReveal>
+              </section>
             </div>
           </div>
         </div>

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import axiosClient from "@/lib/axiosClient";
-import { calcPlanChange } from "@/utils/planUtils";
+import { calcPlanChange, getCustomPlanPrice } from "@/utils/planUtils";
 
 const bankIdMap = {
   MBbank: "mbbank",
@@ -34,6 +34,14 @@ export default function PlanChangeSummaryModal({
   const [submitError, setSubmitError] = useState("");
   const [now, setNow] = useState(new Date());
 
+  // Thêm state cho custom plan
+  const [custom, setCustom] = useState({ storage: 20, users: 20 });
+  const [customError, setCustomError] = useState("");
+
+  // Thêm state cho ngày hết hạn và ngày còn lại dạng string để tránh hydration error
+  const [formattedPlanEndDate, setFormattedPlanEndDate] = useState("");
+  const [clientDaysLeft, setClientDaysLeft] = useState(null);
+
   useEffect(() => {
     if (open) {
       setPaymentLoading(true);
@@ -53,50 +61,122 @@ export default function PlanChangeSummaryModal({
     if (open) setNow(new Date());
   }, [open]);
 
-  // Tính toán số tiền phải trả và số ngày cộng thêm nếu đổi loại gói
-  let amount = 0;
-  let note = "";
-  let extraDays = 0;
+  // Nếu là custom plan, reset input khi mở modal
+  useEffect(() => {
+    if (open && targetPlan?.isCustom) {
+      setCustom({ storage: 20, users: 20 });
+      setCustomError("");
+    }
+  }, [open, targetPlan]);
+
+  // Validate custom input
+  const validateCustom = () => {
+    if (!Number.isInteger(Number(custom.storage)) || custom.storage < 20) {
+      setCustomError("Dung lượng tối thiểu 20TB, số nguyên");
+      return false;
+    }
+    if (!Number.isInteger(Number(custom.users)) || custom.users < 20) {
+      setCustomError("Số người dùng tối thiểu 20, số nguyên");
+      return false;
+    }
+    setCustomError("");
+    return true;
+  };
+
+  // Xác định chu kỳ đang chọn (tháng/năm) chỉ dựa vào billingType
+  const selectedCycle = billingType;
+  const oldType = user?.planType || "month";
+
+  // Tính ngày còn lại và tổng số ngày
+  let end = user?.planEndDate ? new Date(user.planEndDate) : null;
+  let start = user?.planStartDate ? new Date(user.planStartDate) : null;
   let daysLeft = 0;
   let totalDays = 30;
-  // Lấy loại gói hiện tại từ user.planType ("month" | "year"), mặc định là "month"
-  let oldType = user?.planType || "month";
-  let newType = billingType;
-  if (currentPlan && user && user.planEndDate && user.planStartDate) {
-    const end = new Date(user.planEndDate);
-    const start = new Date(user.planStartDate);
+  if (end && start) {
     daysLeft = Math.max(0, Math.ceil((end - now) / (1000 * 60 * 60 * 24)));
     totalDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
     if (isNaN(totalDays) || totalDays <= 0)
       totalDays = oldType === "year" ? 365 : 30;
     if (isNaN(daysLeft) || daysLeft < 0) daysLeft = 0;
   }
-  // Sử dụng hàm calcPlanChange dùng chung FE/BE
+
+  // Tính giá động cho custom plan hiện tại (user)
+  const userCustomPlanPrice = useMemo(() => {
+    if (
+      user?.plan?.name?.toLowerCase().includes("tùy chọn") ||
+      user?.plan?.isCustom ||
+      user?.maxStorage
+    ) {
+      // maxStorage là byte, convert về TB
+      return getCustomPlanPrice(
+        (user.maxStorage || 0) / 1024 ** 4,
+        user.maxUser || 0
+      );
+    }
+    return {
+      month: Number(user?.plan?.priceMonth || 0),
+      year: Number(user?.plan?.priceYear || 0),
+    };
+  }, [user]);
+  // Khi là custom plan, truyền giá động vào calcPlanChange để tính toán đúng số tiền, ngày cộng thêm, v.v.
+  const currentCustomPlanPrice = useMemo(() => {
+    if (currentPlan?.isCustom) {
+      return getCustomPlanPrice(currentPlan.storage, currentPlan.users);
+    }
+    return {
+      month: Number(currentPlan?.priceMonth || 0),
+      year: Number(currentPlan?.priceYear || 0),
+    };
+  }, [currentPlan]);
+  const targetCustomPlanPrice = useMemo(() => {
+    if (targetPlan?.isCustom) {
+      return getCustomPlanPrice(custom.storage, custom.users);
+    }
+    return {
+      month: Number(targetPlan?.priceMonth || 0),
+      year: Number(targetPlan?.priceYear || 0),
+    };
+  }, [targetPlan, custom.storage, custom.users]);
+
   const {
     amount: calcAmount,
     extraDays: calcExtraDays,
     allowChange,
   } = calcPlanChange({
     oldType,
-    newType,
-    oldPriceMonth: Number(currentPlan?.priceMonth || 0),
-    oldPriceYear: Number(currentPlan?.priceYear || 0),
-    newPriceMonth: Number(targetPlan?.priceMonth || 0),
-    newPriceYear: Number(targetPlan?.priceYear || 0),
+    newType: selectedCycle,
+    oldPriceMonth:
+      user?.plan?.name?.toLowerCase().includes("tùy chọn") ||
+      user?.plan?.isCustom
+        ? userCustomPlanPrice.month
+        : Number(currentPlan?.priceMonth || 0),
+    oldPriceYear:
+      user?.plan?.name?.toLowerCase().includes("tùy chọn") ||
+      user?.plan?.isCustom
+        ? userCustomPlanPrice.year
+        : Number(currentPlan?.priceYear || 0),
+    newPriceMonth: targetPlan?.isCustom
+      ? targetCustomPlanPrice.month
+      : Number(targetPlan?.priceMonth || 0),
+    newPriceYear: targetPlan?.isCustom
+      ? targetCustomPlanPrice.year
+      : Number(targetPlan?.priceYear || 0),
     daysLeft,
     orderType: actionType,
   });
-  amount = calcAmount;
-  extraDays = calcExtraDays;
+  let amount = calcAmount;
+  let extraDays = calcExtraDays;
+
   // Ghi chú hiển thị cho user
+  let note = "";
   if (!allowChange) {
     note =
       "Bạn không thể hạ cấp gói khi gói hiện tại còn thời hạn. Vui lòng đợi hết hạn để đổi sang gói thấp hơn.";
-  } else if (oldType === newType) {
+  } else if (oldType === selectedCycle) {
     note = `Nâng cấp gói cùng loại. Số tiền thanh toán = (giá trị gói mới cho số ngày còn lại) trừ đi giá trị còn lại của gói cũ.`;
-  } else if (oldType === "month" && newType === "year") {
+  } else if (oldType === "month" && selectedCycle === "year") {
     note = `Nâng cấp từ tháng lên năm. Số tiền thanh toán = giá gói năm trừ đi giá trị còn lại của gói tháng.`;
-  } else if (oldType === "year" && newType === "month") {
+  } else if (oldType === "year" && selectedCycle === "month") {
     note = `Chuyển từ năm sang tháng. Số ngày còn lại của gói năm sẽ được quy đổi thành ${extraDays} ngày sử dụng gói tháng mới.`;
   } else {
     note = "Đổi gói dịch vụ.";
@@ -141,6 +221,7 @@ export default function PlanChangeSummaryModal({
 
   // Khi xác nhận, chỉ gửi order không cần phone
   const handleConfirm = async () => {
+    if (targetPlan?.isCustom && !validateCustom()) return;
     if (!allowChange) {
       setSubmitError("Không thể đổi gói khi gói hiện tại còn thời hạn.");
       return;
@@ -156,7 +237,7 @@ export default function PlanChangeSummaryModal({
         });
       }
       // 2. Tạo order mới
-      const orderRes = await axiosClient.post("/api/orders", {
+      const orderBody = {
         fullName: user.fullName,
         email: user.email,
         phone: user.phone,
@@ -166,7 +247,7 @@ export default function PlanChangeSummaryModal({
           _id: targetPlan._id,
           name: targetPlan.name,
           price: finalAmount,
-          duration: billingType,
+          duration: selectedCycle,
         },
         amount: finalAmount,
         paymentMethod: paymentMethod && {
@@ -178,13 +259,20 @@ export default function PlanChangeSummaryModal({
         transferContent: paymentContent,
         discountCode:
           discountInfo && discountInfo.valid ? discountCode.trim() : null,
-      });
+      };
+      if (targetPlan?.isCustom) {
+        orderBody.customStorage = Number(custom.storage);
+        orderBody.customUsers = Number(custom.users);
+        orderBody.customPriceMonth = targetCustomPlanPrice.month;
+        orderBody.customPriceYear = targetCustomPlanPrice.year;
+      }
+      const orderRes = await axiosClient.post("/api/orders", orderBody);
       if (orderRes.data && orderRes.data.success) {
         setSubmitSuccess(true);
         onConfirm &&
           onConfirm({
             amount: finalAmount,
-            actionType,
+            type: actionType, // Đổi actionType thành type để đồng bộ
             targetPlan,
             billingType,
             extraDays,
@@ -202,6 +290,22 @@ export default function PlanChangeSummaryModal({
       setSubmitLoading(false);
     }
   };
+
+  useEffect(() => {
+    // Chỉ tính trên client để tránh hydration error
+    if (typeof window !== "undefined" && user?.planEndDate) {
+      setFormattedPlanEndDate(
+        new Date(user.planEndDate).toLocaleDateString("vi-VN")
+      );
+      if (user.planEndDate) {
+        const end = new Date(user.planEndDate);
+        const now = new Date();
+        setClientDaysLeft(
+          Math.max(0, Math.ceil((end - now) / (1000 * 60 * 60 * 24)))
+        );
+      }
+    }
+  }, [user?.planEndDate]);
 
   if (!open) return null;
 
@@ -245,6 +349,59 @@ export default function PlanChangeSummaryModal({
             <div className="mb-2 text-base text-gray-600">
               Gói mới: <b>{targetPlan?.name || "-"}</b>
             </div>
+            {/* Nếu là custom plan thì cho nhập input ở đây */}
+            {targetPlan?.isCustom && (
+              <div className="mb-2 text-base text-gray-600">
+                <div className="flex gap-2 mb-2">
+                  <div>
+                    <label className="block text-gray-700 text-sm font-medium mb-1">
+                      Dung lượng (TB):
+                    </label>
+                    <input
+                      type="number"
+                      min={20}
+                      step={1}
+                      name="storage"
+                      value={custom.storage}
+                      onChange={(e) =>
+                        setCustom({
+                          ...custom,
+                          storage: e.target.value.replace(/[^0-9]/g, ""),
+                        })
+                      }
+                      className="w-24 border rounded px-3 py-2 outline-none focus:ring-2 focus:ring-[#1cadd9] text-gray-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-gray-700 text-sm font-medium mb-1">
+                      Số người dùng:
+                    </label>
+                    <input
+                      type="number"
+                      min={20}
+                      step={1}
+                      name="users"
+                      value={custom.users}
+                      onChange={(e) =>
+                        setCustom({
+                          ...custom,
+                          users: e.target.value.replace(/[^0-9]/g, ""),
+                        })
+                      }
+                      className="w-24 border rounded px-3 py-2 outline-none focus:ring-2 focus:ring-[#1cadd9] text-gray-900"
+                    />
+                  </div>
+                </div>
+                {customError && (
+                  <div className="text-red-500 text-sm mb-2">{customError}</div>
+                )}
+                {/* Hiển thị giá custom plan: nếu là custom thì dùng amount đã tính toán, không dùng customPlanPriceSelected trực tiếp */}
+                <div className="mb-2 text-lg font-bold text-primary">
+                  {amount.toLocaleString("vi-VN")}₫/
+                  {selectedCycle === "year" ? "năm" : "tháng"}
+                </div>
+              </div>
+            )}
             <div className="mb-2 text-base text-gray-600 flex items-center gap-3">
               <span>Chọn loại:</span>
               <label className="inline-flex items-center gap-1 cursor-pointer">
@@ -271,15 +428,11 @@ export default function PlanChangeSummaryModal({
               </label>
             </div>
             <div className="mb-2 text-base text-gray-600">
-              Ngày hết hạn hiện tại:{" "}
-              <b>
-                {user.planEndDate
-                  ? new Date(user.planEndDate).toLocaleDateString("vi-VN")
-                  : "-"}
-              </b>
+              Ngày hết hạn hiện tại: <b>{formattedPlanEndDate || "-"}</b>
             </div>
             <div className="mb-2 text-base text-gray-600">
-              Số ngày còn lại: <b>{daysLeft}</b>
+              Số ngày còn lại:{" "}
+              <b>{clientDaysLeft !== null ? clientDaysLeft : daysLeft}</b>
             </div>
             {extraDays > 0 && (
               <div className="mb-2 text-base text-green-700 font-semibold flex items-center gap-2">
@@ -314,7 +467,7 @@ export default function PlanChangeSummaryModal({
                 </span>
               </div>
             )}
-            {actionType === "upgrade" && oldType === newType && (
+            {actionType === "upgrade" && oldType === selectedCycle && (
               <div className="mb-2 text-base text-blue-700 font-semibold flex items-center gap-2">
                 <span>
                   Số tiền thanh toán đã được tính theo tỉ lệ ngày còn lại
@@ -350,11 +503,77 @@ export default function PlanChangeSummaryModal({
                 </span>
               </div>
             )}
+            {/* Hiển thị logic tính toán theo từng case */}
+            {!allowChange && actionType === "downgrade" && daysLeft > 0 && (
+              <div className="bg-yellow-100 text-yellow-800 p-3 rounded mb-4">
+                <b>Không thể hạ cấp khi gói hiện tại còn ngày sử dụng.</b>
+                <br />
+                Vui lòng đợi hết hạn để đổi sang gói thấp hơn hoặc hết hạn mới
+                được đổi.
+              </div>
+            )}
+            {allowChange &&
+              actionType === "downgrade" &&
+              oldType === "year" &&
+              selectedCycle === "month" &&
+              (extraDays > 0 ? (
+                <div className="bg-blue-100 text-blue-800 p-3 rounded mb-4">
+                  <b>Hạ cấp từ gói năm sang gói tháng:</b>
+                  <br />
+                  Số ngày còn lại của gói năm sẽ được quy đổi thành{" "}
+                  <b>{extraDays}</b> ngày sử dụng gói tháng mới.
+                </div>
+              ) : (
+                <div className="bg-yellow-100 text-yellow-800 p-3 rounded mb-4">
+                  <b>
+                    Giá trị còn lại của gói cũ không đủ để quy đổi thành ngày sử
+                    dụng gói mới.
+                  </b>
+                  <br />
+                  Bạn sẽ bắt đầu gói mới mà không được cộng thêm ngày.
+                </div>
+              ))}
+            {allowChange &&
+              (actionType === "upgrade" || actionType === "renew") &&
+              oldType === selectedCycle && (
+                <div className="bg-green-100 text-green-800 p-3 rounded mb-4">
+                  <b>Nâng cấp/gia hạn cùng loại:</b>
+                  <br />
+                  Số tiền thanh toán = Giá gói mới - Giá trị còn lại của gói cũ.
+                  <br />
+                  <b>Giá trị còn lại:</b> {amount.toLocaleString("vi-VN")}₫
+                  <br />
+                  <b>Giá gói mới:</b>{" "}
+                  {targetCustomPlanPrice.year.toLocaleString("vi-VN")}₫
+                </div>
+              )}
+            {allowChange &&
+              actionType === "upgrade" &&
+              oldType === "month" &&
+              selectedCycle === "year" && (
+                <div className="bg-green-100 text-green-800 p-3 rounded mb-4">
+                  <b>Nâng cấp từ tháng lên năm:</b>
+                  <br />
+                  Số tiền thanh toán = Giá gói năm - Giá trị còn lại của gói
+                  tháng.
+                  <br />
+                  <b>Giá trị còn lại:</b> {amount.toLocaleString("vi-VN")}₫
+                  <br />
+                  <b>Giá gói năm:</b>{" "}
+                  {targetCustomPlanPrice.year.toLocaleString("vi-VN")}₫
+                </div>
+              )}
+            {allowChange && actionType === "register" && (
+              <div className="bg-green-100 text-green-800 p-3 rounded mb-4">
+                <b>Đăng ký mới:</b> Trả đủ giá gói mới.
+              </div>
+            )}
             {/* Hiển thị cảnh báo nếu không cho đổi gói */}
             {!allowChange && (
               <div className="bg-yellow-100 text-yellow-800 p-3 rounded mb-4">
-                Bạn không thể hạ cấp gói khi gói hiện tại còn thời hạn. Vui lòng
-                đợi hết hạn để đổi sang gói thấp hơn.
+                Bạn không thể hạ cấp hoặc đổi gói khi gói hiện tại còn thời hạn.
+                Vui lòng đợi hết hạn để đổi sang gói thấp hơn hoặc hết hạn mới
+                được đổi.
               </div>
             )}
           </div>

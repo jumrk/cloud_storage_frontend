@@ -33,6 +33,8 @@ export default function Infor_component() {
   const [modalAction, setModalAction] = useState(null); // "renew" | "upgrade" | "downgrade"
   const [targetPlan, setTargetPlan] = useState(null);
   const [hasPendingOrder, setHasPendingOrder] = useState(false);
+  const [formattedPlanEndDate, setFormattedPlanEndDate] = useState("");
+  const [formattedDateOfBirth, setFormattedDateOfBirth] = useState("");
 
   useEffect(() => {
     async function fetchUser() {
@@ -81,6 +83,19 @@ export default function Infor_component() {
       const diff = Math.ceil((end - now) / (1000 * 60 * 60 * 24));
       setDaysLeft(diff);
     }
+    // Fix hydration: format ngày hết hạn và ngày sinh trên client
+    if (typeof window !== "undefined") {
+      setFormattedPlanEndDate(
+        user?.planEndDate
+          ? new Date(user.planEndDate).toLocaleDateString("vi-VN")
+          : ""
+      );
+      setFormattedDateOfBirth(
+        user?.dateOfBirth
+          ? new Date(user.dateOfBirth).toLocaleDateString("vi-VN")
+          : ""
+      );
+    }
   }, [user]);
 
   const handleEdit = () => setEditMode(true);
@@ -121,16 +136,16 @@ export default function Infor_component() {
   // Xác định loại action khi chọn gói
   const handlePlanAction = (plan, actionType) => {
     setTargetPlan(plan);
-    setModalAction(actionType);
+    setModalAction(actionType); // modalAction sẽ là type
     setModalOpen(true);
   };
 
   // Xác nhận chuyển đổi gói
-  const handleConfirmPlanChange = ({ amount, actionType, targetPlan }) => {
+  const handleConfirmPlanChange = ({ amount, type, targetPlan }) => {
     setModalOpen(false);
     // TODO: Gửi request tạo đơn hàng mới với thông tin này
     alert(
-      `Đã xác nhận ${actionType} gói: ${
+      `Đã xác nhận ${type} gói: ${
         targetPlan.name
       }, số tiền: ${amount.toLocaleString("vi-VN")}₫`
     );
@@ -196,7 +211,7 @@ export default function Infor_component() {
           <div className="font-bold mb-1">Gói của bạn sắp hết hạn!</div>
           <div>
             Gói <b>{user.plan?.name}</b> sẽ hết hạn vào{" "}
-            <b>{formatDate(user.planEndDate)}</b> (còn <b>{daysLeft}</b> ngày).
+            <b>{formattedPlanEndDate}</b> (còn <b>{daysLeft}</b> ngày).
             <br />
             Vui lòng gia hạn để tránh gián đoạn dịch vụ.
           </div>
@@ -260,9 +275,7 @@ export default function Infor_component() {
                   className="border border-gray-200 rounded px-3 py-1 w-full text-gray-900"
                 />
               ) : (
-                <span className="text-gray-900">
-                  {formatDate(user.dateOfBirth)}
-                </span>
+                <span className="text-gray-900">{formattedDateOfBirth}</span>
               )}
             </div>
           </div>
@@ -311,7 +324,7 @@ export default function Infor_component() {
               Tổng tài khoản con:
             </div>
             <div className="flex-1 text-gray-900 font-semibold">
-              {user.plan?.users || 0}
+              {user.maxUser || user.plan?.users || 0}
               <span className="ml-2 text-gray-400 text-sm">
                 (Số tài khoản user được cấp theo gói hiện tại)
               </span>
@@ -377,6 +390,7 @@ export default function Infor_component() {
         isExpiring={daysLeft !== null && daysLeft <= 2 && daysLeft > 0}
         isExpired={isExpired}
         currentPlanStorage={user.plan?.storage}
+        user={user} // truyền prop user
         onRenew={
           hasPendingOrder
             ? undefined
@@ -390,7 +404,7 @@ export default function Infor_component() {
         user={user}
         currentPlan={currentPlan}
         targetPlan={targetPlan}
-        actionType={modalAction}
+        actionType={modalAction} // vẫn truyền actionType cho modal, nhưng callback sẽ trả về type
         onConfirm={handleConfirmPlanChange}
         // Disable modal nếu có pending order
         disabled={hasPendingOrder}

@@ -88,7 +88,7 @@ export default function AdminLayout({ children }) {
       {/* Sidebar cố định */}
       <div
         className="
-          fixed top-0 left-0 z-30 h-screen w-20 md:w-64
+          fixed top-0 left-0 z-30 h-screen 
           bg-white border-r border-gray-200
         "
       >

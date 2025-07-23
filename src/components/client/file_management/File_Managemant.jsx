@@ -29,6 +29,8 @@ import "react-loading-skeleton/dist/skeleton.css";
 import SkeletonTable from "@/components/ui/SkeletonTable";
 import axiosClient from "@/lib/axiosClient";
 import EmptyState from "@/components/ui/EmptyState";
+import FilePreviewModal from "./FilePreviewModal";
+import { toast } from "react-hot-toast";
 
 // Lấy tất cả ext từ extMap trong getFileIcon
 const extMap = {
@@ -289,6 +291,16 @@ function SidebarFilter({
   );
 }
 
+// Helper lấy link download Google Drive
+function getGoogleDriveDownloadUrl(url) {
+  if (!url) return "";
+  const match = url.match(/\/d\/([\w-]+)\//);
+  if (match && match[1]) {
+    return `https://drive.google.com/uc?export=download&id=${match[1]}`;
+  }
+  return url;
+}
+
 export default function YourFolder() {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   // Xác định có phải mobile không (dùng matchMedia)
@@ -332,6 +344,7 @@ export default function YourFolder() {
           ? f.originalName.split(".").pop().toLowerCase()
           : undefined,
         mimeType: f.mimeType,
+        url: f.url, // Thêm dòng này để truyền url từ backend
       }));
       const folders = (json.folders || []).map((f) => ({
         id: f._id ? String(f._id) : String(f.id),
@@ -657,6 +670,33 @@ export default function YourFolder() {
       )
     : filesToShow;
 
+  const [previewFile, setPreviewFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState("");
+
+  const handlePreview = async (file) => {
+    // Gọi API lấy url file từ Google Drive nếu cần
+    // Giả sử file.url đã có sẵn, nếu không thì fetch ở đây
+    setPreviewFile(file);
+    setPreviewUrl(file.url || "");
+  };
+
+  // Xử lý tải xuống file/folder
+  const handleDownload = (items) => {
+    if (!Array.isArray(items)) items = [items];
+    items.forEach((item) => {
+      if (item.type === "file" && item.url) {
+        const downloadUrl = getGoogleDriveDownloadUrl(item.url);
+        const a = document.createElement("a");
+        a.href = downloadUrl;
+        a.download = item.name || item.originalName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+    });
+    toast.success("Đã tải xuống các file đã chọn");
+  };
+
   return (
     <div className="flex w-full min-h-screen bg-[#f7f8fa] relative">
       <div className="flex-1 flex flex-col items-start px-2 md:px-8 py-6">
@@ -810,7 +850,11 @@ export default function YourFolder() {
                               ? () => handleFolderClick(item)
                               : undefined
                           }
-                          onPreviewFile={() => {}}
+                          onPreviewFile={
+                            item.type === "file"
+                              ? () => handlePreview(item)
+                              : undefined
+                          }
                         />
                       )
                     )
@@ -831,7 +875,7 @@ export default function YourFolder() {
                   onRowClick={handleFolderClick}
                   onMoveItem={handleMoveItems}
                   onMove={handleMoveItems}
-                  onPreviewFile={() => {}}
+                  onPreviewFile={handlePreview}
                   loadingMore={loadingMore}
                   onClearSelection={() => tableActions.setSelectedItems([])}
                 />
@@ -860,7 +904,11 @@ export default function YourFolder() {
                               ? () => handleFolderClick(item)
                               : undefined
                           }
-                          onPreviewFile={() => {}}
+                          onPreviewFile={
+                            item.type === "file"
+                              ? () => handlePreview(item)
+                              : undefined
+                          }
                         />
                       )
                     )
@@ -995,7 +1043,7 @@ export default function YourFolder() {
         draggedItems={tableActions.draggedItems}
         onMove={handleShowMoveModal}
         onDelete={handleDeleteItems}
-        onDownload={() => {}}
+        onDownload={handleDownload}
         onShare={() => {}}
         onGrantPermission={handleGrantPermission}
       />
@@ -1070,6 +1118,14 @@ export default function YourFolder() {
         folder={grantPermissionTarget}
         onPermissionChange={resetAndReload}
       />
+
+      {previewFile && (
+        <FilePreviewModal
+          file={previewFile}
+          fileUrl={previewUrl}
+          onClose={() => setPreviewFile(null)}
+        />
+      )}
     </div>
   );
 }

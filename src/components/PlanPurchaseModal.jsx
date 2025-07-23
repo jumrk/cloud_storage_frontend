@@ -3,6 +3,7 @@ import paymentMethodService from "@/lib/paymentMethodService";
 import axiosClient from "@/lib/axiosClient";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
+import { getCustomPlanPrice } from "@/utils/planUtils";
 
 let slastCheckTimeout = null;
 
@@ -33,6 +34,14 @@ export default function PlanPurchaseModal({
   const [slastChecking, setSlastChecking] = useState(false);
   const [slastExists, setSlastExists] = useState(false);
 
+  // State cho custom plan trong modal
+  const [custom, setCustom] = useState({
+    storage: 20,
+    users: 20,
+    cycle: "month",
+  });
+  const [customError, setCustomError] = useState("");
+
   // Reset toàn bộ state mỗi khi modal được mở lại
   useEffect(() => {
     if (open) {
@@ -59,6 +68,13 @@ export default function PlanPurchaseModal({
       });
     }
   }, [open]);
+
+  useEffect(() => {
+    if (open && selectedPlan?.isCustom) {
+      setCustom({ storage: 20, users: 20, cycle: "month" });
+      setCustomError("");
+    }
+  }, [open, selectedPlan]);
 
   if (!open) return null;
 
@@ -92,8 +108,18 @@ export default function PlanPurchaseModal({
     }
   };
 
+  // Nếu là gói tùy chọn, lấy giá động
+  const getCustomPrice = () => {
+    if (!selectedPlan?.isCustom) return 0;
+    const priceObj = getCustomPlanPrice(custom.storage, custom.users);
+    return custom.cycle === "year" ? priceObj.year : priceObj.month;
+  };
+
   const getPrice = () => {
     if (!selectedPlan) return 0;
+    if (selectedPlan.isCustom) {
+      return getCustomPrice();
+    }
     let price = 0;
     if (cycle === "year") {
       price = selectedPlan.priceYear || 0;
@@ -125,6 +151,39 @@ export default function PlanPurchaseModal({
         "Định danh này đã được sử dụng, hãy chọn định danh khác.";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const validateCustom = () => {
+    if (!Number.isInteger(Number(custom.storage)) || custom.storage < 20) {
+      setCustomError("Dung lượng tối thiểu 20TB, số nguyên");
+      return false;
+    }
+    if (!Number.isInteger(Number(custom.users)) || custom.users < 20) {
+      setCustomError("Số người dùng tối thiểu 20, số nguyên");
+      return false;
+    }
+    setCustomError("");
+    return true;
+  };
+
+  const handleCustomInput = (e) => {
+    const { name, value } = e.target;
+    let val = value.replace(/[^0-9]/g, "");
+    if (val === "") {
+      setCustom((c) => ({ ...c, [name]: "" }));
+      setCustomError("");
+      return;
+    }
+    if (Number(val) < 20) {
+      setCustomError(
+        name === "storage"
+          ? "Dung lượng tối thiểu 20TB"
+          : "Số người dùng tối thiểu 20"
+      );
+    } else {
+      setCustomError("");
+    }
+    setCustom((c) => ({ ...c, [name]: val }));
   };
 
   // Build nội dung chuyển khoản: email - goi - Thang/Nam
@@ -247,10 +306,11 @@ export default function PlanPurchaseModal({
   // Đăng ký
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (selectedPlan?.isCustom && !validateCustom()) return;
     if (!showPayment || !emailChecked || emailExists) return;
     setSubmitting(true);
     try {
-      await axiosClient.post("/api/orders", {
+      const orderBody = {
         fullName: form.fullName,
         email: form.email,
         phone: form.phone,
@@ -259,7 +319,7 @@ export default function PlanPurchaseModal({
           _id: selectedPlan._id,
           name: selectedPlan.name,
           price: getPrice(),
-          duration: cycle,
+          duration: selectedPlan.isCustom ? custom.cycle : cycle,
         },
         amount: getPrice(),
         paymentMethod: {
@@ -271,7 +331,15 @@ export default function PlanPurchaseModal({
         transferContent: content,
         type: "register",
         discountCode: form.discountCode,
-      });
+      };
+      if (selectedPlan.isCustom) {
+        orderBody.customStorage = Number(custom.storage);
+        orderBody.customUsers = Number(custom.users);
+        const priceObj = getCustomPlanPrice(custom.storage, custom.users);
+        orderBody.customPriceMonth = priceObj.month;
+        orderBody.customPriceYear = priceObj.year;
+      }
+      await axiosClient.post("/api/orders", orderBody);
       // Nếu có mã giảm giá, đánh dấu đã dùng
       if (form.discountCode.trim() && discountInfo && discountInfo.valid) {
         await axiosClient.post("/admin/discount-codes/use", {
@@ -498,32 +566,154 @@ export default function PlanPurchaseModal({
             <div className="text-xl md:text-2xl font-bold mb-4 text-center md:text-left">
               Thông tin thanh toán
             </div>
-            <div className="flex gap-2 mb-4">
-              <button
-                type="button"
-                className={`flex-1 px-4 py-2 rounded-lg border font-semibold text-base transition-all ${
-                  cycle === "month"
-                    ? "bg-primary text-white border-primary"
-                    : "bg-white text-primary border-gray-300"
-                }`}
-                onClick={() => setCycle("month")}
-                disabled={checkingEmail || loading || submitting}
-              >
-                Thanh toán tháng
-              </button>
-              <button
-                type="button"
-                className={`flex-1 px-4 py-2 rounded-lg border font-semibold text-base transition-all ${
-                  cycle === "year"
-                    ? "bg-primary text-white border-primary"
-                    : "bg-white text-primary border-gray-300"
-                }`}
-                onClick={() => setCycle("year")}
-                disabled={checkingEmail || loading || submitting}
-              >
-                Thanh toán năm
-              </button>
-            </div>
+            {selectedPlan?.isCustom && (
+              <div className="mb-4">
+                <div className="flex gap-2 mb-2">
+                  <button
+                    type="button"
+                    className={`flex-1 px-4 py-2 rounded-lg border font-semibold text-base transition-all ${
+                      custom.cycle === "month"
+                        ? "bg-primary text-white border-primary"
+                        : "bg-white text-primary border-gray-300"
+                    }`}
+                    onClick={() => setCustom((c) => ({ ...c, cycle: "month" }))}
+                    disabled={checkingEmail || loading || submitting}
+                  >
+                    Thanh toán tháng
+                  </button>
+                  <button
+                    type="button"
+                    className={`flex-1 px-4 py-2 rounded-lg border font-semibold text-base transition-all ${
+                      custom.cycle === "year"
+                        ? "bg-primary text-white border-primary"
+                        : "bg-white text-primary border-gray-300"
+                    }`}
+                    onClick={() => setCustom((c) => ({ ...c, cycle: "year" }))}
+                    disabled={checkingEmail || loading || submitting}
+                  >
+                    Thanh toán năm
+                  </button>
+                </div>
+                <div className="mb-2">
+                  <label className="block text-gray-700 text-sm font-medium mb-1 flex items-center gap-1">
+                    Dung lượng (TB):
+                    <span className="relative group cursor-pointer">
+                      <svg
+                        width="16"
+                        height="16"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        className="inline-block text-gray-400 hover:text-primary"
+                      >
+                        <circle cx="12" cy="12" r="10" strokeWidth="2" />
+                        <text
+                          x="12"
+                          y="16"
+                          textAnchor="middle"
+                          fontSize="12"
+                          fill="currentColor"
+                          fontWeight="bold"
+                        >
+                          ?
+                        </text>
+                      </svg>
+                      <span className="absolute left-6 top-1/2 -translate-y-1/2 z-20 hidden group-hover:block bg-gray-900 text-white text-xs rounded px-3 py-2 shadow-lg w-[220px]">
+                        Giá dung lượng: <b>240.000₫</b> cho 10TB đầu
+                        <br />
+                        <b>20.000₫</b> cho mỗi TB thêm
+                        <br />
+                        Dung lượng tối thiểu: 20TB
+                      </span>
+                    </span>
+                  </label>
+                  <input
+                    type="number"
+                    min={20}
+                    step={1}
+                    name="storage"
+                    value={custom.storage}
+                    onChange={handleCustomInput}
+                    className="w-full border rounded px-3 py-2 outline-none focus:ring-2 focus:ring-[#1cadd9] text-gray-900"
+                    disabled={checkingEmail || loading || submitting}
+                  />
+                </div>
+                <div className="mb-2">
+                  <label className="block text-gray-700 text-sm font-medium mb-1 flex items-center gap-1">
+                    Số người dùng:
+                    <span className="relative group cursor-pointer">
+                      <svg
+                        width="16"
+                        height="16"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        className="inline-block text-gray-400 hover:text-primary"
+                      >
+                        <circle cx="12" cy="12" r="10" strokeWidth="2" />
+                        <text
+                          x="12"
+                          y="16"
+                          textAnchor="middle"
+                          fontSize="12"
+                          fill="currentColor"
+                          fontWeight="bold"
+                        >
+                          ?
+                        </text>
+                      </svg>
+                      <span className="absolute left-6 top-1/2 -translate-y-1/2 z-20 hidden group-hover:block bg-gray-900 text-white text-xs rounded px-3 py-2 shadow-lg w-[220px]">
+                        Giá user: <b>10.000₫</b> / user / tháng
+                        <br />
+                        Số user tối thiểu: 20
+                      </span>
+                    </span>
+                  </label>
+                  <input
+                    type="number"
+                    min={20}
+                    step={1}
+                    name="users"
+                    value={custom.users}
+                    onChange={handleCustomInput}
+                    className="w-full border rounded px-3 py-2 outline-none focus:ring-2 focus:ring-[#1cadd9] text-gray-900"
+                    disabled={checkingEmail || loading || submitting}
+                  />
+                </div>
+                {customError && (
+                  <div className="text-red-500 text-sm mb-2">{customError}</div>
+                )}
+              </div>
+            )}
+            {/* Chỉ render nút chọn chu kỳ ở dưới nếu KHÔNG phải gói tùy chọn */}
+            {!selectedPlan?.isCustom && (
+              <div className="flex gap-2 mb-4">
+                <button
+                  type="button"
+                  className={`flex-1 px-4 py-2 rounded-lg border font-semibold text-base transition-all ${
+                    cycle === "month"
+                      ? "bg-primary text-white border-primary"
+                      : "bg-white text-primary border-gray-300"
+                  }`}
+                  onClick={() => setCycle("month")}
+                  disabled={checkingEmail || loading || submitting}
+                >
+                  Thanh toán tháng
+                </button>
+                <button
+                  type="button"
+                  className={`flex-1 px-4 py-2 rounded-lg border font-semibold text-base transition-all ${
+                    cycle === "year"
+                      ? "bg-primary text-white border-primary"
+                      : "bg-white text-primary border-gray-300"
+                  }`}
+                  onClick={() => setCycle("year")}
+                  disabled={checkingEmail || loading || submitting}
+                >
+                  Thanh toán năm
+                </button>
+              </div>
+            )}
             <div className="mb-3 text-lg text-gray-700">
               Số tiền cần thanh toán:{" "}
               <b className="text-2xl text-primary">
@@ -533,7 +723,7 @@ export default function PlanPurchaseModal({
                 !errors.email &&
                 !emailExists &&
                 emailChecked ? (
-                  amount.toLocaleString("vi-VN")
+                  getPrice().toLocaleString("vi-VN")
                 ) : (
                   <Skeleton width={80} />
                 )}
@@ -662,10 +852,11 @@ export default function PlanPurchaseModal({
               <div className="text-gray-700 text-center mb-4">
                 Đơn hàng của bạn đã được ghi nhận và đang chờ duyệt.
                 <br />
-                Chúng tôi sẽ gửi thông tin tài khoản đến email của bạn trong
-                thời gian sớm nhất.
+                Chúng tôi sẽ gửi thông tin tài khoản của bạn đến email mà bạn đã
+                cung cấp
                 <br />
-                Xin cảm ơn!
+                Nếu trong vòng 10 phút mà bạn chưa nhận được phản hồi mail từ hệ
+                thống thì bạn vui lòng liên hệ CSKH.
               </div>
               <button
                 className="mt-2 px-4 py-2 rounded bg-primary text-white shadow hover:bg-primary/90 transition-all text-base font-medium"

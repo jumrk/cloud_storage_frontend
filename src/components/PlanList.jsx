@@ -5,6 +5,9 @@ import axiosClient from "@/lib/axiosClient";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import { PLAN_ICONS } from "./admin/planIcons";
+import { getCustomPlanPrice } from "@/utils/planUtils";
+import { formatSize } from "@/utils/driveUtils";
+import { FaUser, FaHdd } from "react-icons/fa";
 
 const PLAN_COLORS = [
   "#4abad9",
@@ -20,6 +23,12 @@ export default function PlanList() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
+  const [custom, setCustom] = useState({
+    storage: 20,
+    users: 20,
+    cycle: "month",
+  });
+  const [customError, setCustomError] = useState("");
 
   useEffect(() => {
     const fetchPlans = async () => {
@@ -43,6 +52,32 @@ export default function PlanList() {
   }, []);
 
   const handleChoosePlan = (plan) => {
+    if (plan.isCustom) {
+      // Validate custom input
+      if (!Number.isInteger(Number(custom.storage)) || custom.storage < 20) {
+        setCustomError("Dung lượng tối thiểu 20TB, số nguyên");
+        return;
+      }
+      if (!Number.isInteger(Number(custom.users)) || custom.users < 20) {
+        setCustomError("Số người dùng tối thiểu 20, số nguyên");
+        return;
+      }
+      setCustomError("");
+      const customPlanPrice = getCustomPlanPrice(custom.storage);
+      setSelectedPlan({
+        ...plan,
+        isCustom: true,
+        customStorage: Number(custom.storage),
+        customUsers: Number(custom.users),
+        customPriceMonth: customPlanPrice.month,
+        customPriceYear: customPlanPrice.year,
+        priceMonth: customPlanPrice.month,
+        priceYear: customPlanPrice.year,
+        cycle: custom.cycle,
+      });
+      setModalOpen(true);
+      return;
+    }
     setSelectedPlan(plan);
     setModalOpen(true);
   };
@@ -63,8 +98,8 @@ export default function PlanList() {
   return (
     <>
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-6 px-2 sm:px-0">
-          {Array.from({ length: 4 }).map((_, idx) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3  gap-6 mb-6 px-2 sm:px-0">
+          {Array.from({ length: 3 }).map((_, idx) => (
             <div
               key={idx}
               className="bg-white border-2 border-[#1cadd9] rounded-xl shadow p-6 flex flex-col min-w-[220px] max-w-xs mx-auto md:mx-0 relative"
@@ -101,15 +136,21 @@ export default function PlanList() {
           Không có gói dịch vụ nào.
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-6 px-2 sm:px-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mb-6 px-2 sm:px-0">
           {plans.map((plan, idx) => {
             const color = PLAN_COLORS[idx % PLAN_COLORS.length];
             const Icon =
               PLAN_ICONS[plan.icon] || PLAN_ICONS[Object.keys(PLAN_ICONS)[0]];
+            // Card giống nhau cho mọi gói, chỉ khác giá trị hiển thị nếu là custom
             return (
               <div
                 key={plan._id || idx}
-                className={`relative bg-white border-2 border-gray-200 hover:shadow-lg rounded-2xl shadow p-7 flex flex-col min-w-[240px] max-w-xs mx-auto md:mx-0 transition group`}
+                className={`relative bg-white rounded-2xl shadow p-7 flex flex-col min-w-[240px] max-w-xs mx-auto md:mx-0 transition group
+                  ${
+                    plan.featured
+                      ? "border-l-2 border-r-2 border-b-2 border-[#1cadd9] border-t-0 rounded-b-2xl"
+                      : "border-2 border-gray-200"
+                  }`}
                 style={{ boxShadow: `0 4px 24px 0 ${color}22` }}
               >
                 {/* Top border effect */}
@@ -117,6 +158,14 @@ export default function PlanList() {
                   className="absolute left-0 top-0 w-full h-2 rounded-t-2xl opacity-0 group-hover:opacity-100 transition-all duration-300"
                   style={{ background: color, zIndex: 10 }}
                 />
+                {/* Ribbon Ưu chuộng nhất */}
+                {plan.featured && (
+                  <div className="absolute left-0 right-0 top-0 z-20">
+                    <div className="w-full bg-gradient-to-r from-blue-500 to-cyan-400 text-white text-xs py-2 rounded-t-2xl font-semibold shadow-lg border-b-2 border-blue-300 flex items-center justify-center">
+                      Ưu chuộng nhất
+                    </div>
+                  </div>
+                )}
                 {/* Icon + tên */}
                 <div className="flex flex-col items-center mb-4">
                   <div
@@ -132,9 +181,11 @@ export default function PlanList() {
                 {/* Giá tháng */}
                 <div className="mb-2 text-center">
                   <span className="text-2xl font-bold text-gray-900">
-                    {plan.priceMonth === 0
+                    {plan.isCustom
+                      ? "Tùy chọn"
+                      : plan.priceMonth === 0
                       ? "Miễn phí"
-                      : plan.priceMonth.toLocaleString("vi-VN") + "₫"}
+                      : plan.priceMonth?.toLocaleString("vi-VN") + "₫"}
                   </span>
                   <span className="text-base font-normal text-gray-500">
                     /tháng
@@ -144,11 +195,13 @@ export default function PlanList() {
                 <div className="mb-2 text-center flex items-center justify-center gap-2">
                   <span className="text-sm text-gray-700">Năm:</span>
                   <span className="font-semibold text-gray-900">
-                    {plan.priceYear === 0
+                    {plan.isCustom
+                      ? "Tùy chọn"
+                      : plan.priceYear === 0
                       ? "Miễn phí"
-                      : plan.priceYear.toLocaleString("vi-VN") + "₫"}
+                      : plan.priceYear?.toLocaleString("vi-VN") + "₫"}
                   </span>
-                  {plan.sale > 0 && (
+                  {plan.sale > 0 && !plan.isCustom && (
                     <span className="bg-[#1cadd9] text-white text-xs px-2 py-0.5 rounded ml-1">
                       Tiết kiệm {plan.sale}%
                     </span>
@@ -156,14 +209,16 @@ export default function PlanList() {
                 </div>
                 {/* Số user + dung lượng */}
                 <div className="flex justify-center gap-4 mb-2 text-xs text-gray-500">
-                  <span>👤 {plan.users} người dùng</span>
-                  <span>
-                    💾{" "}
-                    {plan.storage
-                      ? typeof plan.storage === "number"
-                        ? (plan.storage / (1024 * 1024 * 1024)).toFixed(1) +
-                          " GB"
-                        : plan.storage
+                  <span className="flex items-center gap-1">
+                    <FaUser className="inline-block text-base align-middle" />{" "}
+                    {plan.isCustom ? "Tùy chọn" : plan.users + " người dùng"}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <FaHdd className="inline-block text-base align-middle" />{" "}
+                    {plan.isCustom
+                      ? "Tùy chọn"
+                      : plan.storage
+                      ? formatSize(plan.storage)
                       : "-"}
                   </span>
                 </div>

@@ -11,12 +11,13 @@ import {
 import PlanModal from "@/components/admin/PlanModal";
 import planService from "@/lib/planService";
 import toast from "react-hot-toast";
-import Loader from "@/components/ui/Loader";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import { PLAN_ICONS } from "@/components/admin/planIcons";
+import { formatSize } from "@/utils/driveUtils";
 import EmptyState from "@/components/ui/EmptyState";
+import { FaUser, FaHdd } from "react-icons/fa";
 
 const PLAN_COLORS = [
   "#4abad9",
@@ -352,7 +353,12 @@ export default function AdminPlansPage() {
             return (
               <div
                 key={plan._id}
-                className="relative bg-white border-2 border-gray-200 rounded-2xl shadow p-7 flex flex-col h-full transition group hover:shadow-xl"
+                className={`relative bg-white rounded-2xl shadow p-7 flex flex-col h-full transition group hover:shadow-xl
+                  ${
+                    plan.featured
+                      ? "border-l-2 border-r-2 border-b-2 border-[#1cadd9] border-t-0 rounded-b-2xl"
+                      : "border-2 border-gray-200"
+                  }`}
                 style={{ boxShadow: `0 4px 24px 0 ${color}22` }}
               >
                 {/* Top border effect */}
@@ -360,6 +366,14 @@ export default function AdminPlansPage() {
                   className="absolute left-0 top-0 w-full h-2 rounded-t-2xl opacity-0 group-hover:opacity-100 transition-all duration-300"
                   style={{ background: color, zIndex: 10 }}
                 />
+                {/* Ribbon Ưu chuộng nhất */}
+                {plan.featured && (
+                  <div className="absolute left-0 right-0 top-0 z-20">
+                    <div className="w-full bg-gradient-to-r from-blue-500 to-cyan-400 text-white text-xs py-2 rounded-t-2xl font-semibold shadow-lg border-b-2 border-blue-300 flex items-center justify-center">
+                      Ưu chuộng nhất
+                    </div>
+                  </div>
+                )}
                 {/* Badge Tiết kiệm ở góc trên bên trái */}
                 {plan.sale > 0 && (
                   <div className="absolute top-2 left-2 z-10">
@@ -400,9 +414,11 @@ export default function AdminPlansPage() {
                 {/* Giá tháng */}
                 <div className="mb-2 text-center">
                   <span className="text-2xl font-bold text-gray-900">
-                    {plan.priceMonth === 0
+                    {plan.isCustom
+                      ? "Tùy chọn"
+                      : plan.priceMonth === 0
                       ? "Miễn phí"
-                      : plan.priceMonth.toLocaleString("vi-VN") + "₫"}
+                      : plan.priceMonth?.toLocaleString("vi-VN") + "₫"}
                   </span>
                   <span className="text-base font-normal text-gray-500">
                     /tháng
@@ -412,11 +428,13 @@ export default function AdminPlansPage() {
                 <div className="mb-2 text-center flex items-center justify-center gap-2">
                   <span className="text-sm text-gray-700">Năm:</span>
                   <span className="font-semibold text-gray-900">
-                    {plan.priceYear === 0
+                    {plan.isCustom
+                      ? "Tùy chọn"
+                      : plan.priceYear === 0
                       ? "Miễn phí"
-                      : plan.priceYear.toLocaleString("vi-VN") + "₫"}
+                      : plan.priceYear?.toLocaleString("vi-VN") + "₫"}
                   </span>
-                  {plan.sale > 0 && (
+                  {plan.sale > 0 && !plan.isCustom && (
                     <span className="bg-[#1cadd9] text-white text-xs px-2 py-0.5 rounded ml-1">
                       Tiết kiệm {plan.sale}%
                     </span>
@@ -424,14 +442,16 @@ export default function AdminPlansPage() {
                 </div>
                 {/* Số user + dung lượng */}
                 <div className="flex justify-center gap-4 mb-2 text-xs text-gray-500">
-                  <span>👤 {plan.users} người dùng</span>
-                  <span>
-                    💾{" "}
-                    {plan.storage
-                      ? typeof plan.storage === "number"
-                        ? (plan.storage / (1024 * 1024 * 1024)).toFixed(1) +
-                          " GB"
-                        : plan.storage
+                  <span className="flex items-center gap-1">
+                    <FaUser className="inline-block text-base align-middle" />{" "}
+                    {plan.isCustom ? "Tùy chọn" : plan.users + " người dùng"}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <FaHdd className="inline-block text-base align-middle" />{" "}
+                    {plan.isCustom
+                      ? "Tùy chọn"
+                      : plan.storage
+                      ? formatSize(plan.storage)
                       : "-"}
                   </span>
                 </div>

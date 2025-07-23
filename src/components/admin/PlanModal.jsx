@@ -44,9 +44,11 @@ export default function PlanModal({
     sale: 0,
     description: [""],
     status: "active",
+    featured: false,
   });
   const [errors, setErrors] = useState({});
   const [iconModalOpen, setIconModalOpen] = useState(false);
+  const [isCustom, setIsCustom] = useState(false);
 
   const isEdit = !!plan;
 
@@ -64,7 +66,9 @@ export default function PlanModal({
         sale: plan.sale || 0,
         description: plan.description || [""],
         status: plan.status || "active",
+        featured: !!plan.featured,
       });
+      setIsCustom(!!plan.isCustom);
     } else {
       setForm({
         name: "",
@@ -77,14 +81,16 @@ export default function PlanModal({
         sale: 0,
         description: [""],
         status: "active",
+        featured: false,
       });
+      setIsCustom(false);
     }
     setErrors({});
   }, [plan, open]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm({ ...form, [name]: value });
+    const { name, value, type, checked } = e.target;
+    setForm({ ...form, [name]: type === "checkbox" ? checked : value });
     setErrors({ ...errors, [name]: undefined });
   };
 
@@ -133,15 +139,17 @@ export default function PlanModal({
   const validate = () => {
     const newErrors = {};
     if (!form.name.trim()) newErrors.name = "Vui lòng nhập tên gói";
-    if (
-      !form.storageValue ||
-      isNaN(form.storageValue) ||
-      form.storageValue <= 0
-    )
-      newErrors.storageValue = "Vui lòng nhập dung lượng hợp lệ";
-    if (form.users < 1) newErrors.users = "Số người dùng phải >= 1";
-    if (form.priceMonth < 0) newErrors.priceMonth = "Giá tháng không được âm";
-    if (form.priceYear < 0) newErrors.priceYear = "Giá năm không được âm";
+    if (!isCustom) {
+      if (
+        !form.storageValue ||
+        isNaN(form.storageValue) ||
+        form.storageValue <= 0
+      )
+        newErrors.storageValue = "Vui lòng nhập dung lượng hợp lệ";
+      if (form.users < 1) newErrors.users = "Số người dùng phải >= 1";
+      if (form.priceMonth < 0) newErrors.priceMonth = "Giá tháng không được âm";
+      if (form.priceYear < 0) newErrors.priceYear = "Giá năm không được âm";
+    }
     if (form.sale < 0 || form.sale > 100)
       newErrors.sale = "Phần trăm giảm giá phải từ 0-100";
     if (
@@ -156,13 +164,34 @@ export default function PlanModal({
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    // Lọc bỏ mô tả rỗng
+    const filteredDesc = (form.description || [])
+      .map((d) => d.trim())
+      .filter((d) => d);
+    if (filteredDesc.length === 0) {
+      setErrors((prev) => ({
+        ...prev,
+        description: "Vui lòng nhập ít nhất 1 mô tả cho gói dịch vụ",
+      }));
+      return;
+    }
     if (!validate()) return;
-    const storage = storageToBytes(form.storageValue, form.storageUnit);
+    const storage = isCustom
+      ? undefined
+      : storageToBytes(form.storageValue, form.storageUnit);
+    const users = isCustom ? undefined : form.users;
+    const priceMonth = isCustom ? undefined : form.priceMonth;
+    const priceYear = isCustom ? undefined : form.priceYear;
     const planData = {
       ...form,
       storage,
-      description: form.description,
+      users,
+      priceMonth,
+      priceYear,
+      isCustom,
+      description: filteredDesc,
       _id: plan?._id,
+      featured: form.featured,
     };
     onSubmit && onSubmit(planData);
   };
@@ -176,6 +205,40 @@ export default function PlanModal({
           {isEdit ? "Chỉnh sửa gói dịch vụ" : "Thêm gói dịch vụ mới"}
         </h2>
         <form className="space-y-4 sm:space-y-6" onSubmit={handleSubmit}>
+          <div className="mb-2 flex items-center gap-3">
+            <input
+              type="checkbox"
+              id="featured"
+              name="featured"
+              checked={form.featured}
+              onChange={handleChange}
+              className="w-5 h-5 accent-primary"
+              disabled={loading}
+            />
+            <label
+              htmlFor="featured"
+              className="text-primary font-semibold text-base select-none"
+            >
+              Đặt là gói nổi bật (Ưu chuộng nhất)
+            </label>
+          </div>
+          <div className="mb-2 flex items-center gap-3">
+            <input
+              type="checkbox"
+              id="isCustom"
+              checked={isCustom}
+              onChange={(e) => setIsCustom(e.target.checked)}
+              className="w-5 h-5 accent-primary"
+              disabled={loading}
+            />
+            <label
+              htmlFor="isCustom"
+              className="text-primary font-semibold text-base select-none"
+            >
+              Gói tùy chọn (Customizable): Cho phép khách hàng tự chọn dung
+              lượng, số user, giá động
+            </label>
+          </div>
           {/* Row 1: Tên gói và Icon */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <InputCustom
@@ -264,14 +327,14 @@ export default function PlanModal({
                   onChange={handleStorageValueChange}
                   className="w-32 p-3 border-1 focus:outline-none border-[#D4D7E3] bg-[#F7FBFF] rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
                   placeholder="Nhập số"
-                  disabled={loading}
+                  disabled={loading || isCustom}
                 />
                 <select
                   name="storageUnit"
                   value={form.storageUnit}
                   onChange={handleStorageUnitChange}
                   className="p-3 border-1 focus:outline-none border-[#D4D7E3] bg-[#F7FBFF] rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={loading}
+                  disabled={loading || isCustom}
                 >
                   {STORAGE_UNITS.map((u) => (
                     <option key={u.value} value={u.value}>
@@ -295,7 +358,7 @@ export default function PlanModal({
               value={form.users}
               handelChange={handleChange}
               errors={errors.users}
-              disabled={loading}
+              disabled={loading || isCustom}
             />
           </div>
           {/* Row 3: Giá tháng và Giá năm */}
@@ -309,7 +372,7 @@ export default function PlanModal({
               value={form.priceMonth}
               handelChange={handleChange}
               errors={errors.priceMonth}
-              disabled={loading}
+              disabled={loading || isCustom}
             />
 
             <InputCustom
@@ -321,7 +384,7 @@ export default function PlanModal({
               value={form.priceYear}
               handelChange={handleChange}
               errors={errors.priceYear}
-              disabled={loading}
+              disabled={loading || isCustom}
             />
           </div>
 

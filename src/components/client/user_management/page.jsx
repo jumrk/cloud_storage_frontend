@@ -491,6 +491,9 @@ function User_Management_Page() {
                 {sortFolderCount === "desc" && <span> ▼</span>}
               </th>
               <th className="px-4 py-2">Dung lượng đã dùng</th>
+              <th className="px-4 py-3 text-left font-semibold">
+                Số user tối đa
+              </th>
               <th className="px-4 py-3 text-right font-semibold"></th>
             </tr>
           </thead>
@@ -518,6 +521,9 @@ function User_Management_Page() {
                   </td>
                   <td className="px-4 py-2 text-center">
                     <Skeleton width={40} height={16} />
+                  </td>
+                  <td className="px-4 py-2 text-center">
+                    <Skeleton width={60} height={16} />
                   </td>
                   <td className="px-4 py-2 text-center">
                     <Skeleton width={60} height={16} />
@@ -576,6 +582,9 @@ function User_Management_Page() {
                     ) : (
                       "0 MB"
                     )}
+                  </td>
+                  <td className="px-4 py-2 text-center">
+                    {user.maxUser || user.plan?.users || "-"}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <button

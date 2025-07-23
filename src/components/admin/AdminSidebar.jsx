@@ -100,7 +100,7 @@ export default function AdminSidebar(props) {
 
   const handleLogout = async () => {
     try {
-      await fetch("/api/logout", { method: "POST" });
+      await fetch("/api/auth/logout", { method: "POST" });
     } catch {}
     localStorage.removeItem("token");
     localStorage.clear();

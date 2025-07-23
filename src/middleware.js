@@ -16,6 +16,7 @@ export function middleware(req) {
   // Cho phép truy cập API, Login, static, favicon, images
   if (
     path.startsWith("/api") ||
+    path === "/" ||
     path.startsWith("/Login") ||
     path.startsWith("/_next") ||
     path.startsWith("/static") ||

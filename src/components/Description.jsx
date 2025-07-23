@@ -26,11 +26,6 @@ export default function Description() {
       animation: wirel,
     },
     {
-      title: "Tách biệt & bảo mật nhóm",
-      desc: "Tách biệt hoàn toàn giữa các nhóm, đảm bảo an toàn tuyệt đối cho dữ liệu nội bộ.",
-      animation: wirel,
-    },
-    {
       title: "Toàn quyền kiểm soát team",
       desc: "Bạn nắm toàn quyền kiểm soát team mình – như một hệ thống riêng biệt trong hệ thống lớn.",
       animation: wirel,
@@ -38,6 +33,29 @@ export default function Description() {
   ];
   return (
     <div>
+      {/* Thêm vào đây  */}
+      <ScrollReveal>
+        <div className="w-full flex flex-col mt-20 items-center mb-14">
+          <ScrollReveal>
+            <h2 className="text-2xl text-center md:text-3xl font-bold text-[#0258a8] mb-10">
+              PHÂN QUYỀN NGƯỜI DÙNG THÔNG MINH
+            </h2>
+          </ScrollReveal>
+          <div className="w-full max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2  gap-10 items-center">
+            {/* Ảnh minh họa bên trái */}
+            <div className="flex justify-center">
+              <ScrollReveal>
+                <ScrollParallaxLottie animationData={Expert} />
+              </ScrollReveal>
+            </div>
+            {/* Danh sách tính năng bên phải - auto slider đẹp */}
+            <ScrollReveal direction="right">
+              <FeatureSlider features={features} />
+            </ScrollReveal>
+          </div>
+        </div>
+      </ScrollReveal>
+
       <div className="mt-8 space-y-8 md:space-y-12">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-8 items-center">
           <div className="w-full">
@@ -110,7 +128,7 @@ export default function Description() {
                   Thiết kế trực quan, thao tác đơn giản
                 </h2>
                 <p className="text-primary/80 text-sm md:text-lg mt-3 max-w-md mx-auto md:mx-0">
-                  Giao diện tối ưu trải nghiệm người dùng: đẹp mắt, gọn gàng và
+                  Giao diện tối ưu trải nghiệm người dùng: Đẹp mắt, gọn gàng và
                   dễ quản lý. Quản lý tất cả từ tệp đến người dùng chỉ trong vài
                   bước đơn giản, tiết kiệm thời gian thao tác.
                 </p>
@@ -119,69 +137,33 @@ export default function Description() {
           </ScrollReveal>
         </div>
       </div>
-
-      {/* Thêm vào đây  */}
-      <ScrollReveal>
-        <div className="w-full flex flex-col mt-20 items-center mb-14">
-          <ScrollReveal>
-            <h2 className="text-2xl text-center md:text-3xl font-bold text-[#0258a8] mb-10">
-              PHÂN QUYỀN NGƯỜI DÙNG THÔNG MINH
-            </h2>
-          </ScrollReveal>
-          <div className="w-full max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2  gap-10 items-center">
-            {/* Ảnh minh họa bên trái */}
-            <div className="flex justify-center">
-              <ScrollReveal>
-                <ScrollParallaxLottie animationData={Expert} />
-              </ScrollReveal>
-            </div>
-            {/* Danh sách tính năng bên phải - auto slider đẹp */}
-            <ScrollReveal direction="right">
-              <FeatureSlider features={features} />
-            </ScrollReveal>
-          </div>
-        </div>
-      </ScrollReveal>
     </div>
   );
 }
 
 // Thêm component FeatureSlider
 function FeatureSlider({ features }) {
-  const [current, setCurrent] = useState(0);
-  const timeoutRef = useRef();
-
-  useEffect(() => {
-    timeoutRef.current = setTimeout(() => {
-      setCurrent((prev) => (prev + 1) % features.length);
-    }, 3000);
-    return () => clearTimeout(timeoutRef.current);
-  }, [current, features.length]);
-
   return (
-    <div className="w-full flex flex-col items-center">
-      <div className="relative w-full min-h-[160px] flex items-center justify-center">
-        {features.map((item, idx) => (
+    <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
+      {features.map((item, idx) => (
+        <ScrollReveal key={idx}>
           <div
-            key={idx}
-            className={`absolute left-0 top-0 w-full transition-all duration-700 flex flex-col items-center px-2 py-8
-              ${
-                idx === current
-                  ? "opacity-100 scale-100 z-10"
-                  : "opacity-0 scale-95 z-0 pointer-events-none"
-              }
-            `}
-            style={{ minHeight: 160 }}
+            className="relative group w-full bg-white rounded-xl border border-blue-100 shadow p-4 flex flex-col items-center h-full flex-1 transition-transform duration-200
+              hover:-translate-y-1 hover:border-[#189ff2]"
           >
-            <div className="font-bold text-primary text-xl md:text-2xl mb-2 text-center">
+            {/* Số thứ tự nhỏ, chỉ hiện trên md trở lên */}
+            <div className="hidden md:flex absolute -top-4 left-1/2 -translate-x-1/2 items-center justify-center w-8 h-8 rounded-full bg-blue-50 border border-blue-200 shadow text-blue-700 text-lg font-bold select-none">
+              {idx + 1}
+            </div>
+            <div className="mt-4 md:mt-6 font-bold text-primary text-base md:text-lg mb-1 text-center">
               {item.title}
             </div>
-            <div className="text-gray-700 text-base md:text-lg max-w-xl text-center">
+            <div className="text-gray-700 text-sm md:text-base max-w-md text-center">
               {item.desc}
             </div>
           </div>
-        ))}
-      </div>
+        </ScrollReveal>
+      ))}
     </div>
   );
 }

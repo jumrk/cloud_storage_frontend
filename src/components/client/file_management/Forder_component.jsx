@@ -366,6 +366,13 @@ function Forder_component() {
     return hasPermission(currentFolder);
   };
 
+  // Hàm xử lý preview file
+  const handlePreview = (file) => {
+    if (file.type === "file" && file.url) {
+      window.open(file.url, "_blank");
+    }
+  };
+
   return (
     <div>
       {/* Overlay loading */}
@@ -430,6 +437,11 @@ function Forder_component() {
                     onDragStart={handleDragStart}
                     onDragEnd={handleDragEnd}
                     onRenameFolder={handleRenameFolder}
+                    onPreviewFile={
+                      item.type === "file"
+                        ? () => handlePreview(item)
+                        : undefined
+                    }
                   />
                 ))}
               </div>
@@ -450,6 +462,9 @@ function Forder_component() {
                   onDragStart={handleDragStart}
                   onDragEnd={handleDragEnd}
                   onRenameFolder={handleRenameFolder}
+                  onPreviewFile={handlePreview}
+                  loadingMore={loadingMore}
+                  onClearSelection={() => setSelectedItems([])}
                 />
               </div>
             )}

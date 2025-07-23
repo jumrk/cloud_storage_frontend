@@ -112,9 +112,9 @@ function Hero() {
             D2MBox là nền tảng lưu trữ dữ liệu mạnh mẽ, upload/download với tốc
             độ cao, không giới hạn dung lượng. Hệ thống phân quyền linh hoạt
             giúp quản lý nhóm và doanh nghiệp hiệu quả, đồng thời đảm bảo an
-            toàn tuyệt đối cho dữ liệu với các chế độ chia sẻ riêng tư hoặc công
-            khai. Được xây dựng trên nền tảng Google, D2MBox mang đến giao diện
-            trực quan cùng các công cụ quản lý tệp tin tiện lợi và dễ sử dụng.
+            toàn tuyệt đối cho dữ liệu với nhiều chế độ chia sẻ. Được xây dựng
+            trên nền tảng Google, D2MBox mang đến giao diện trực quan cùng các
+            công cụ quản lý tệp tin tiện lợi và dễ sử dụng.
           </div>
         </div>
       </ScrollReveal>

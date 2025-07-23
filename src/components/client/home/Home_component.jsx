@@ -263,7 +263,7 @@ function StoragePieChart({ used, total }) {
         </text>
       </svg>
       <div className="text-xs text-gray-500 mt-1">
-        {used} / {total} đã dùng
+        {formatSize(used)} / {formatSize(total)} đã dùng
       </div>
     </div>
   );
@@ -408,7 +408,7 @@ function RightSidebar() {
           <div className="flex justify-between items-center py-1">
             <span className="text-gray-500">Đã sử dụng</span>
             <span className="font-semibold text-[#1cadd9]">
-              {overview.used}
+              {formatSize(overview.usedNum)}
             </span>
           </div>
           <div className="flex justify-between items-center py-1">
@@ -441,7 +441,7 @@ function RightSidebar() {
           <div className="flex flex-col gap-0.5">
             <span className="text-gray-400">Đã sử dụng</span>
             <span className="font-bold text-base text-gray-800">
-              {overview.used}
+              {formatSize(overview.usedNum)}
             </span>
           </div>
           <div className="flex flex-col gap-0.5">
@@ -453,7 +453,7 @@ function RightSidebar() {
           <div className="flex flex-col gap-0.5">
             <span className="text-gray-400">Còn lại</span>
             <span className="font-bold text-base text-gray-800">
-              {overview.remain}
+              {formatSize(Math.max(0, overview.totalNum - overview.usedNum))}
             </span>
           </div>
           <div className="col-span-2 flex flex-col gap-0.5 mt-2">
