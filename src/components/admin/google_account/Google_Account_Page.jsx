@@ -185,7 +185,7 @@ export default function AdminGoogleAccounts() {
           Lọc
         </button>
         <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-black hover:bg-gray-800 text-white font-semibold text-sm md:ml-auto">
-          <a href={`${process.env.NEXT_PUBLIC_API_BASE}/api/auth/oauth`}>
+          <a href={`${process.env.NEXT_PUBLIC_API_BASE}api/auth/oauth`}>
             + Liên kết tài khoản
           </a>
         </button>
