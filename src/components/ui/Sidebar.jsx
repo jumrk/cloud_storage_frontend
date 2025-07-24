@@ -16,6 +16,7 @@ import {
 import toast from "react-hot-toast";
 import { decodeTokenGetUser } from "@/lib/jwt";
 import { FaBars } from "react-icons/fa";
+import axiosClient from "@/lib/axiosClient";
 
 export default function Sidebar({
   isMobile = false,
@@ -53,7 +54,7 @@ export default function Sidebar({
   const handleLogout = async (e) => {
     e.preventDefault();
     try {
-      await fetch("/api/logout", { method: "POST" });
+      await axiosClient.post("/api/logout");
     } catch {}
     localStorage.removeItem("token");
     localStorage.clear();
