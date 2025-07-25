@@ -56,19 +56,16 @@ export default function AdminGoogleAccounts() {
   };
   useEffect(fetchAccounts, [search, minUsed, maxUsed]);
 
-  // Xử lý xóa: Luôn yêu cầu chọn tài khoản đích để chuyển file trước khi xóa
+  // Xử lý xóa: Chỉ xác nhận, không chọn tài khoản đích
   const handleDelete = (acc) => {
     setDeletingAccount(acc);
-    setTransferTarget(null);
-    setTransferError("");
     setShowTransferModal(true);
   };
   const handleRelink = (acc) => {
     alert(`Liên kết lại tài khoản: ${acc.email}`);
   };
 
-  const handleConfirmTransfer = async () => {
-    if (!transferTarget) return;
+  const handleConfirmDelete = async () => {
     setTransferLoading(true);
     setTransferError("");
     try {
@@ -76,7 +73,6 @@ export default function AdminGoogleAccounts() {
         "/api/admin/drive/delete-with-transfer",
         {
           accountId: deletingAccount._id,
-          targetAccountId: transferTarget,
         }
       );
       if (res.data && res.data.success) {
@@ -85,12 +81,11 @@ export default function AdminGoogleAccounts() {
         );
         setShowTransferModal(false);
         setDeletingAccount(null);
-        setTransferTarget(null);
       } else {
-        setTransferError(res.data.error || "Chuyển file thất bại");
+        setTransferError(res.data.error || "Xóa tài khoản thất bại");
       }
     } catch (err) {
-      setTransferError("Chuyển file thất bại");
+      setTransferError("Xóa tài khoản thất bại");
     }
     setTransferLoading(false);
   };
@@ -181,28 +176,14 @@ export default function AdminGoogleAccounts() {
           ))}
         </div>
       )}
-      {/* Modal chọn tài khoản đích để chuyển file */}
+      {/* Modal xác nhận xóa tài khoản */}
       {showTransferModal && (
         <Modal onClose={() => setShowTransferModal(false)}>
           <div className="p-6 max-w-md w-full">
             <h2 className="text-lg font-bold mb-4">
-              Để xóa tài khoản, hãy chọn tài khoản đích để chuyển toàn bộ dữ
-              liệu:
+              Bạn có chắc chắn muốn xóa tài khoản này? Tất cả file sẽ được tự
+              động chuyển sang các tài khoản còn lại.
             </h2>
-            <select
-              className="w-full border rounded p-2 mb-4"
-              value={transferTarget || ""}
-              onChange={(e) => setTransferTarget(e.target.value)}
-            >
-              <option value="">-- Chọn tài khoản đích --</option>
-              {accounts
-                .filter((a) => a._id !== deletingAccount._id)
-                .map((a) => (
-                  <option key={a._id} value={a._id}>
-                    {a.email}
-                  </option>
-                ))}
-            </select>
             {transferError && (
               <div className="text-red-500 mb-2">{transferError}</div>
             )}
@@ -215,10 +196,10 @@ export default function AdminGoogleAccounts() {
               </button>
               <button
                 className="px-4 py-2 rounded bg-black text-white font-semibold hover:bg-gray-800 disabled:bg-gray-300"
-                disabled={!transferTarget || transferLoading}
-                onClick={handleConfirmTransfer}
+                disabled={transferLoading}
+                onClick={handleConfirmDelete}
               >
-                {transferLoading ? "Đang chuyển..." : "Chuyển và xóa"}
+                {transferLoading ? "Đang xóa..." : "Xác nhận xóa"}
               </button>
             </div>
           </div>
