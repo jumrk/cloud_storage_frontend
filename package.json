@@ -24,6 +24,7 @@
     "lottie-react": "^2.4.1",
     "mongoose": "^8.16.2",
     "next": "15.3.5",
+    "next-intl": "^4.3.4",
     "nodemailer": "^7.0.5",
     "qrcode": "^1.5.4",
     "react": "^19.0.0",

@@ -1,17 +1,20 @@
 "use client";
 import Link from "next/link";
 import Button_custom from "@/components/ui/Button_custom";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { decodeTokenGetUser } from "@/lib/jwt";
 import toast from "react-hot-toast";
 import axiosClient from "@/lib/axiosClient";
+import { HiOutlineGlobeAlt } from "react-icons/hi";
 
 export default function Header() {
   const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef();
+  const [currentLocale, setCurrentLocale] = useState("vi");
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -20,6 +23,11 @@ export default function Header() {
       setUser(info);
     } else {
       setUser(null);
+    }
+    // Lấy locale hiện tại từ cookie khi client render
+    if (typeof window !== "undefined") {
+      const match = document.cookie.match(/NEXT_LOCALE=([^;]+)/);
+      setCurrentLocale(match ? match[1] : "vi");
     }
   }, []);
 
@@ -49,6 +57,13 @@ export default function Header() {
     router.push("/Login");
   };
 
+  // Hàm chuyển đổi ngôn ngữ: set cookie và hard reload
+  const handleSwitchLocale = () => {
+    const nextLocale = currentLocale === "vi" ? "en" : "vi";
+    document.cookie = `NEXT_LOCALE=${nextLocale}; path=/; SameSite=Lax`;
+    window.location.href = window.location.pathname;
+  };
+
   return (
     <header className="w-full shadow-xl fixed top-0 left-0 z-50 bg-white">
       <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
@@ -58,6 +73,23 @@ export default function Header() {
         </Link>
 
         <div className="flex gap-2 md:gap-4 xl:gap-6 items-center">
+          {/* Nút chuyển đổi ngôn ngữ */}
+          <button
+            onClick={handleSwitchLocale}
+            className="flex flex-col relative p-2 items-center group"
+            style={{
+              minWidth: 40,
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+            }}
+            title="Chuyển đổi ngôn ngữ"
+          >
+            <HiOutlineGlobeAlt className="w-7 h-7 text-[#189ff2] group-hover:text-[#0d8ad1] transition" />
+            <span className="text-xs font-semibold mt-0.5 text-[#189ff2] group-hover:text-[#0d8ad1] absolute bottom-0 right-0">
+              {currentLocale.toUpperCase()}
+            </span>
+          </button>
           {user ? (
             <div className="relative" ref={menuRef}>
               <button

@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { decodeTokenGetUser } from "./lib/jwt";
 
-export function middleware(req) {
+export function middleware(request) {
   // Lấy token từ cookie
-  const token = req.cookies.get("token")?.value;
+  const token = request.cookies.get("token")?.value;
   let role = null;
   let slast = null;
   if (token) {
@@ -11,12 +11,11 @@ export function middleware(req) {
     role = userData?.role;
     slast = userData?.slast;
   }
-  const url = req.nextUrl.clone();
+  const url = request.nextUrl.clone();
   const path = url.pathname;
   // Cho phép truy cập API, Login, static, favicon, images
   if (
     path.startsWith("/api") ||
-    path === "/" ||
     path.startsWith("/Login") ||
     path.startsWith("/_next") ||
     path.startsWith("/static") ||

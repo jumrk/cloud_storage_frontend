@@ -1,6 +1,8 @@
 import React from "react";
+import { useTranslations } from "next-intl";
 
 function Footer() {
+  const t = useTranslations();
   return (
     <footer className="bg-[#181b20] text-gray-300 pt-10 pb-6 px-2 md:px-0">
       <div className="max-w-screen-xl mx-auto">
@@ -119,7 +121,7 @@ function Footer() {
               <ul className="space-y-1 text-sm">
                 <li>
                   <a href="/about" className="hover:text-[#189ff2] transition">
-                    Giới thiệu D2MBox
+                    {t("footer_about")}
                   </a>
                 </li>
               </ul>
@@ -135,12 +137,12 @@ function Footer() {
                     href="/contact"
                     className="hover:text-[#189ff2] transition"
                   >
-                    Liên hệ/Hỗ trợ
+                    {t("footer_support")}
                   </a>
                 </li>
                 <li>
                   <a href="/faq" className="hover:text-[#189ff2] transition">
-                    Câu hỏi thường gặp
+                    {t("footer_faq")}
                   </a>
                 </li>
               </ul>
@@ -154,7 +156,7 @@ function Footer() {
                       href="/privacy_policy"
                       className="hover:text-[#189ff2] transition"
                     >
-                      Chính sách bảo mật
+                      {t("footer_privacy")}
                     </a>
                   </li>
                   <li>
@@ -162,7 +164,7 @@ function Footer() {
                       href="/terms_of_use"
                       className="hover:text-[#189ff2] transition"
                     >
-                      Điều khoản sử dụng
+                      {t("footer_terms")}
                     </a>
                   </li>
                   <li>
@@ -171,7 +173,7 @@ function Footer() {
                       href="/cookie_policy"
                       className="hover:text-[#189ff2] transition"
                     >
-                      Chính sách cookie
+                      {t("footer_cookie")}
                     </a>
                   </li>
                 </ul>

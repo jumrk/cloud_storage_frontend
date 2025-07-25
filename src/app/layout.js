@@ -1,8 +1,15 @@
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
-export default function RootLayout({ children }) {
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale } from "next-intl/server";
+import Link from "next/link";
+
+export default async function RootLayout({ children }) {
+  const locale = await getLocale();
+  // Xác định ngôn ngữ còn lại để chuyển đổi
+  const otherLocale = locale === "vi" ? "en" : "vi";
   return (
-    <html lang="en">
+    <html lang={locale}>
       <head>
         <meta
           name="google-site-verification"
@@ -10,8 +17,10 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body>
-        {children}
-        <Toaster position="top-center" />
+        <NextIntlClientProvider locale={locale}>
+          {children}
+          <Toaster position="top-center" />
+        </NextIntlClientProvider>
       </body>
     </html>
   );

@@ -7,27 +7,29 @@ import wirel from "@/assets/animation/wirel.json";
 import Expert from "@/assets/animation/Expert.json";
 import UI from "@/assets/animation/UI.json";
 import Upload from "@/assets/animation/upload.json";
+import { useTranslations } from "next-intl";
 
 export default function Description() {
+  const t = useTranslations();
   const features = [
     {
-      title: "Tự tạo & quản lý người dùng nhóm",
-      desc: "Tự tạo và quản lý người dùng trong nhóm mà không cần thông qua hệ thống trung tâm.",
+      title: t("desc_feature_1_title"),
+      desc: t("desc_feature_1_desc"),
       animation: wirel,
     },
     {
-      title: "Chia sẻ bộ nhớ & thao tác nhanh",
-      desc: "Các thành viên sử dụng chung bộ nhớ, thao tác chỉ trong vài cú click.",
+      title: t("desc_feature_2_title"),
+      desc: t("desc_feature_2_desc"),
       animation: wirel,
     },
     {
-      title: "Phân quyền dạng cây",
-      desc: "Xây dựng mô hình phân quyền dạng cây, mỗi leader là một “admin thu nhỏ” của hệ thống riêng.",
+      title: t("desc_feature_3_title"),
+      desc: t("desc_feature_3_desc"),
       animation: wirel,
     },
     {
-      title: "Toàn quyền kiểm soát team",
-      desc: "Bạn nắm toàn quyền kiểm soát team mình – như một hệ thống riêng biệt trong hệ thống lớn.",
+      title: t("desc_feature_4_title"),
+      desc: t("desc_feature_4_desc"),
       animation: wirel,
     },
   ];
@@ -38,7 +40,7 @@ export default function Description() {
         <div className="w-full flex flex-col mt-20 items-center mb-14">
           <ScrollReveal>
             <h2 className="text-2xl text-center md:text-3xl font-bold text-[#0258a8] mb-10">
-              PHÂN QUYỀN NGƯỜI DÙNG THÔNG MINH
+              {t("desc_title")}
             </h2>
           </ScrollReveal>
           <div className="w-full max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2  gap-10 items-center">
@@ -68,15 +70,13 @@ export default function Description() {
             <ScrollReveal>
               <div className="flex flex-col justify-center text-center md:text-left">
                 <p className="text-[#01579B] font-bold text-sm md:text-lg uppercase tracking-wide">
-                  Đồng bộ & Lưu trữ Thông minh
+                  {t("desc_sync")}
                 </p>
                 <h2 className="text-primary font-bold text-2xl md:text-4xl mt-2">
-                  Tải lên nhanh chóng, lưu trữ an toàn
+                  {t("desc_sync_title")}
                 </h2>
                 <p className="text-primary/80 text-sm md:text-lg mt-3 max-w-md mx-auto md:mx-0">
-                  Chỉ với vài cú nhấp chuột, bạn có thể tải bất kỳ tệp nào từ
-                  thiết bị lên hệ thống. Dữ liệu được lưu trữ an toàn, đồng bộ
-                  hóa tự động, giúp bạn truy cập mọi lúc, mọi nơi.
+                  {t("desc_sync_desc")}
                 </p>
               </div>
             </ScrollReveal>
@@ -95,15 +95,13 @@ export default function Description() {
               <div className="flex flex-col items-end justify-center text-center md:text-left md:order-1">
                 <div>
                   <p className="text-[#01579B] font-bold text-sm md:text-lg uppercase tracking-wide">
-                    Chia sẻ & Quản lý Linh Hoạt
+                    {t("desc_share")}
                   </p>
                   <h2 className="text-primary font-bold text-2xl md:text-4xl mt-2">
-                    Chia sẻ trong tích tắc
+                    {t("desc_share_title")}
                   </h2>
                   <p className="text-primary/80 text-sm md:text-lg mt-3 max-w-md mx-auto md:mx-0">
-                    Gửi tệp đến đồng nghiệp, bạn bè hoặc nhóm làm việc chỉ trong
-                    vài giây. Tùy chỉnh quyền truy cập (xem, chỉnh sửa, tải
-                    xuống) dễ dàng, đảm bảo tính bảo mật và kiểm soát chặt chẽ.
+                    {t("desc_share_desc")}
                   </p>
                 </div>
               </div>
@@ -122,15 +120,13 @@ export default function Description() {
             <ScrollReveal>
               <div className="flex flex-col justify-center text-center md:text-left md:order-1">
                 <p className="text-[#01579B] font-bold text-sm md:text-lg uppercase tracking-wide">
-                  Giao diện Hiện Đại & Dễ Sử Dụng
+                  {t("desc_ui")}
                 </p>
                 <h2 className="text-primary font-bold text-2xl md:text-4xl mt-2">
-                  Thiết kế trực quan, thao tác đơn giản
+                  {t("desc_ui_title")}
                 </h2>
                 <p className="text-primary/80 text-sm md:text-lg mt-3 max-w-md mx-auto md:mx-0">
-                  Giao diện tối ưu trải nghiệm người dùng: Đẹp mắt, gọn gàng và
-                  dễ quản lý. Quản lý tất cả từ tệp đến người dùng chỉ trong vài
-                  bước đơn giản, tiết kiệm thời gian thao tác.
+                  {t("desc_ui_desc")}
                 </p>
               </div>
             </ScrollReveal>
