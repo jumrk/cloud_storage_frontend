@@ -57,11 +57,10 @@ export default function Header() {
     router.push("/Login");
   };
 
-  // Hàm chuyển đổi ngôn ngữ: set cookie và hard reload
   const handleSwitchLocale = () => {
     const nextLocale = currentLocale === "vi" ? "en" : "vi";
     document.cookie = `NEXT_LOCALE=${nextLocale}; path=/; SameSite=Lax`;
-    window.location.href = window.location.pathname;
+    window.location.reload(); // Đảm bảo reload full SSR
   };
 
   return (

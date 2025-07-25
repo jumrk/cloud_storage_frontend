@@ -4,6 +4,8 @@ import { decodeTokenGetUser } from "./lib/jwt";
 export function middleware(request) {
   // Lấy token từ cookie
   const token = request.cookies.get("token")?.value;
+  const locale = request.cookies.get("NEXT_LOCALE")?.value || "vi"; // fallback nếu chưa có
+
   let role = null;
   let slast = null;
   if (token) {
@@ -22,17 +24,24 @@ export function middleware(request) {
     path.startsWith("/favicon.ico") ||
     path.startsWith("/images")
   ) {
-    return NextResponse.next();
+    // Truyền locale cho next-intl qua header
+    const response = NextResponse.next();
+    response.headers.set("x-locale", locale);
+    return response;
   }
   // Admin chỉ được vào /admin
   if (role === "admin" && !path.startsWith("/admin")) {
     url.pathname = "/admin";
-    return NextResponse.redirect(url);
+    const response = NextResponse.redirect(url);
+    response.headers.set("x-locale", locale);
+    return response;
   }
   // Member chỉ được vào /member_file_management
   if (role === "member" && !path.startsWith("/member_file_management")) {
     url.pathname = "/member_file_management";
-    return NextResponse.redirect(url);
+    const response = NextResponse.redirect(url);
+    response.headers.set("x-locale", locale);
+    return response;
   }
   // Leader chỉ được vào /[slast] (hoặc /leader)
   if (
@@ -41,9 +50,14 @@ export function middleware(request) {
     !path.startsWith("/")
   ) {
     url.pathname = `/${slast}/home`;
-    return NextResponse.redirect(url);
+    const response = NextResponse.redirect(url);
+    response.headers.set("x-locale", locale);
+    return response;
   }
-  return NextResponse.next();
+  // Truyền locale cho next-intl qua header cho các request còn lại
+  const response = NextResponse.next();
+  response.headers.set("x-locale", locale);
+  return response;
 }
 
 export const config = {

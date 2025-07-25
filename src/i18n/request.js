@@ -1,12 +1,10 @@
 import { getRequestConfig } from "next-intl/server";
 export default getRequestConfig(async ({ request }) => {
-  let cookieLocale;
-  console.log("SSR COOKIE", request);
-  if (request && request.cookies && typeof request.cookies.get === "function") {
-    cookieLocale = request.cookies.get("NEXT_LOCALE")?.value;
+  let locale = "vi";
+  if (request && request.headers && typeof request.headers.get === "function") {
+    locale = request.headers.get("x-locale") || "vi";
+    console.log("SSR COOKIE", locale);
   }
-
-  const locale = cookieLocale || "vi"; // fallback mặc định
   return {
     locale,
     messages: (await import(`../../messages/${locale}.json`)).default,

@@ -56,52 +56,12 @@ export default function AdminGoogleAccounts() {
   };
   useEffect(fetchAccounts, [search, minUsed, maxUsed]);
 
-  // Xử lý xóa và liên kết lại (chỉ demo UI)
-  const handleDelete = async (acc) => {
-    setTransferError("");
+  // Xử lý xóa: Luôn yêu cầu chọn tài khoản đích để chuyển file trước khi xóa
+  const handleDelete = (acc) => {
     setDeletingAccount(acc);
     setTransferTarget(null);
-    setTransferLoading(true);
-    setShowProgressModal(true);
-    setProgress({ current: 0, total: 0, done: false, error: "" });
-    try {
-      // Gọi API lấy danh sách file trước để biết tổng số
-      const resList = await axiosClient.get("/api/admin/drive/list-files", {
-        params: { accountId: acc._id },
-      });
-      const files = resList.data.files || [];
-      setProgress({ current: 0, total: files.length, done: false, error: "" });
-      // Gọi API xóa và chuyển file, giả lập tiến trình
-      const res = await axiosClient.post(
-        "/api/admin/drive/delete-with-transfer",
-        { accountId: acc._id }
-      );
-      if (res.data && res.data.success) {
-        setProgress({
-          current: files.length,
-          total: files.length,
-          done: true,
-          error: "",
-        });
-        setTimeout(() => {
-          setShowProgressModal(false);
-          setAccounts((prev) => prev.filter((a) => a._id !== acc._id));
-          setDeletingAccount(null);
-          setTransferLoading(false);
-        }, 1200);
-        return;
-      }
-      if (res.data.error) {
-        setProgress((p) => ({ ...p, error: res.data.error, done: true }));
-      }
-    } catch (err) {
-      setProgress((p) => ({
-        ...p,
-        error: "Không thể xóa tài khoản",
-        done: true,
-      }));
-    }
-    setTransferLoading(false);
+    setTransferError("");
+    setShowTransferModal(true);
   };
   const handleRelink = (acc) => {
     alert(`Liên kết lại tài khoản: ${acc.email}`);
@@ -215,7 +175,7 @@ export default function AdminGoogleAccounts() {
             <DriveAccountCard
               key={acc._id}
               account={acc}
-              onDelete={handleDelete}
+              onDelete={handleDelete} // Chỉ còn 1 luồng xóa
               onRelink={handleRelink}
             />
           ))}
@@ -226,7 +186,8 @@ export default function AdminGoogleAccounts() {
         <Modal onClose={() => setShowTransferModal(false)}>
           <div className="p-6 max-w-md w-full">
             <h2 className="text-lg font-bold mb-4">
-              Tài khoản còn file, hãy chọn tài khoản đích để chuyển dữ liệu:
+              Để xóa tài khoản, hãy chọn tài khoản đích để chuyển toàn bộ dữ
+              liệu:
             </h2>
             <select
               className="w-full border rounded p-2 mb-4"
@@ -264,49 +225,7 @@ export default function AdminGoogleAccounts() {
         </Modal>
       )}
       {/* Modal progress khi xóa tài khoản */}
-      {showProgressModal && (
-        <Modal onClose={() => setShowProgressModal(false)}>
-          <div className="p-6 max-w-md w-full flex flex-col items-center">
-            <h2 className="text-lg font-bold mb-4">
-              Đang chuyển file và xóa tài khoản...
-            </h2>
-            <div className="w-full bg-gray-200 rounded-full h-4 mb-4">
-              <div
-                className="bg-primary h-4 rounded-full transition-all"
-                style={{
-                  width: progress.total
-                    ? `${(progress.current / progress.total) * 100}%`
-                    : "0%",
-                }}
-              />
-            </div>
-            <div className="mb-2 text-gray-700">
-              {progress.done ? (
-                progress.error ? (
-                  <span className="text-red-500">{progress.error}</span>
-                ) : (
-                  "Đã hoàn thành!"
-                )
-              ) : (
-                `Đang xử lý... (${progress.current}/${progress.total})`
-              )}
-            </div>
-            {!progress.done && (
-              <div className="text-sm text-gray-400">
-                Vui lòng không tắt trình duyệt...
-              </div>
-            )}
-            {progress.done && (
-              <button
-                className="mt-4 px-4 py-2 rounded bg-primary text-white font-semibold"
-                onClick={() => setShowProgressModal(false)}
-              >
-                Đóng
-              </button>
-            )}
-          </div>
-        </Modal>
-      )}
+      {/* Đoạn này có thể bỏ nếu không còn dùng tiến trình xóa trực tiếp, hoặc giữ lại nếu muốn hiển thị tiến trình khi API trả về trạng thái */}
     </div>
   );
 }
