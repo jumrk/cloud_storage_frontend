@@ -301,39 +301,13 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId }) => {
                     </span>
                   </div>
                 </div>
-
-                {/* Privacy Toggle */}
-                <div className="flex items-center gap-2 ml-2">
-                  <button
-                    onClick={() => togglePrivacy(index)}
-                    className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
-                      item.isPublic
-                        ? "bg-green-100 text-green-700 hover:bg-green-200"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    }`}
-                    title={item.isPublic ? "Công khai" : "Riêng tư"}
-                  >
-                    {item.isPublic ? (
-                      <>
-                        <FiGlobe size={12} />
-                        Công khai
-                      </>
-                    ) : (
-                      <>
-                        <FiLock size={12} />
-                        Riêng tư
-                      </>
-                    )}
-                  </button>
-
-                  <button
-                    onClick={() => handleRemoveFile(index)}
-                    className="text-red-500 hover:text-red-700 p-1"
-                    title="Xóa"
-                  >
-                    <IoClose size={16} />
-                  </button>
-                </div>
+                <button
+                  onClick={() => handleRemoveFile(index)}
+                  className="text-red-500 hover:text-red-700 p-1"
+                  title="Xóa"
+                >
+                  <IoClose size={16} />
+                </button>
               </div>
             ))}
           </div>

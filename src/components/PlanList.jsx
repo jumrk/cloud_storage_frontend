@@ -145,7 +145,7 @@ export default function PlanList() {
             return (
               <div
                 key={plan._id || idx}
-                className={`relative bg-white rounded-2xl shadow p-7 flex flex-col min-w-[240px] max-w-xs mx-auto md:mx-0 transition group
+                className={`relative bg-white rounded-2xl shadow p-7 flex flex-col min-w-[240px] max-w-xs min-h-[420px] mx-auto md:mx-0 transition group
                   ${
                     plan.featured
                       ? "border-l-2 border-r-2 border-b-2 border-[#1cadd9] border-t-0 rounded-b-2xl"
@@ -161,7 +161,7 @@ export default function PlanList() {
                 {/* Ribbon Ưu chuộng nhất */}
                 {plan.featured && (
                   <div className="absolute left-0 right-0 top-0 z-20">
-                    <div className="w-full bg-gradient-to-r from-blue-500 to-cyan-400 text-white text-xs py-2 rounded-t-2xl font-semibold shadow-lg border-b-2 border-blue-300 flex items-center justify-center">
+                    <div className="w-full bg-gradient-to-r from-blue-500 to-cyan-400 text-white text-xs py-1 rounded-t-2xl font-semibold shadow-lg border-b-2 border-blue-300 flex items-center justify-center">
                       Ưu chuộng nhất
                     </div>
                   </div>

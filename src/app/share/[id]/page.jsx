@@ -297,9 +297,7 @@ export default function SharePage() {
             </div>
           </>
         )}
-        <div className="text-xs text-gray-400 mt-2">
-          Chia sẻ bởi Cloud Storage
-        </div>
+        <div className="text-xs text-gray-400 mt-2">Chia sẻ bởi D2MBox</div>
       </div>
     </div>
   );

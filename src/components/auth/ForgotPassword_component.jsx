@@ -261,8 +261,26 @@ function ForgotPassword_component() {
               <div className="mt-8 text-center text-green-600 font-semibold text-lg">
                 Đổi mật khẩu thành công!
                 <br />
-                <a href="/Login" className="text-blue-600 underline">
-                  Quay lại đăng nhập
+                <a
+                  href="/Login"
+                  className="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-primary text-white rounded-md shadow hover:bg-primary/80 transition font-semibold text-base"
+                  style={{ textDecoration: "none" }}
+                >
+                  {/* Icon Home */}
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                    className="w-5 h-5"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M3 12l9-9 9 9M4.5 10.5V21h15v-10.5"
+                    />
+                  </svg>
                 </a>
               </div>
             </ScrollReveal>
