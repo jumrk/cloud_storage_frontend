@@ -66,7 +66,6 @@ const MiniStatusBatch = ({
       chunks: [],
       uploadedChunks: [],
       uploadId: null,
-      isPaused: false,
       error: null,
     }))
   );
@@ -95,11 +94,16 @@ const MiniStatusBatch = ({
   const [result, setResult] = useState(null); // for create_folder
   const hasUploaded = useRef(false);
   const uploadAbortController = useRef(null);
+  const cancelledRef = useRef({});
+  const abortControllersRef = useRef({}); // Thêm ref để lưu AbortController cho từng file
   console.log("nè nè " + fileStates.file);
   // Hàm upload file bằng chunked upload
   const uploadFileWithChunks = async (fileState, fileIndex) => {
     const file = fileState.file;
     const chunks = createFileChunks(file);
+
+    // Tạo AbortController cho file này
+    abortControllersRef.current[fileIndex] = new AbortController();
 
     setFileStates((prev) =>
       prev.map((f, idx) =>
@@ -157,8 +161,18 @@ const MiniStatusBatch = ({
           parentId,
           headers: firstHeaders,
         });
+        // Nếu đã bị hủy thì không upload nữa
+        if (cancelledRef.current[fileIndex]) {
+          setFileStates((prev) =>
+            prev.map((f, idx) =>
+              idx === fileIndex ? { ...f, status: "cancelled" } : f
+            )
+          );
+          return;
+        }
         const response = await axiosClient.post("/api/upload", firstChunk, {
           headers: firstHeaders,
+          signal: abortControllersRef.current[fileIndex]?.signal, // Thêm signal để có thể abort
         });
         const data = response.data;
         if (response.status !== 200 || !data.success) {
@@ -174,6 +188,16 @@ const MiniStatusBatch = ({
           return next;
         });
       } catch (error) {
+        // Kiểm tra nếu lỗi do abort
+        if (error.name === "AbortError" || error.message.includes("aborted")) {
+          console.log(`[FE] Upload aborted for file ${fileIndex}`);
+          setFileStates((prev) =>
+            prev.map((f, idx) =>
+              idx === fileIndex ? { ...f, status: "cancelled" } : f
+            )
+          );
+          return;
+        }
         // Lấy message từ axios error object
         const errorMsg =
           error?.response?.data?.error ||
@@ -192,11 +216,33 @@ const MiniStatusBatch = ({
     // Upload các chunk còn lại
     for (let i = 1; i < chunks.length; i++) {
       if (uploadedChunks.includes(i)) continue;
-      const currentFileState = fileStates[fileIndex];
-      if (currentFileState?.isPaused) return;
+      if (
+        cancelledRef.current[fileIndex] ||
+        fileStates[fileIndex]?.status === "cancelled"
+      ) {
+        setFileStates((prev) =>
+          prev.map((f, idx) =>
+            idx === fileIndex ? { ...f, status: "cancelled" } : f
+          )
+        );
+        return;
+      }
       try {
         const chunk = chunks[i];
         const chunkData = await readFileChunk(file, chunk.start, chunk.end);
+
+        // Kiểm tra flag cancelled ngay sau await
+        if (
+          cancelledRef.current[fileIndex] ||
+          fileStates[fileIndex]?.status === "cancelled"
+        ) {
+          setFileStates((prev) =>
+            prev.map((f, idx) =>
+              idx === fileIndex ? { ...f, status: "cancelled" } : f
+            )
+          );
+          return;
+        }
 
         // Thêm log:
         console.log("[FE] Gửi chunk:", {
@@ -241,9 +287,33 @@ const MiniStatusBatch = ({
           "X-Chunk-Start": chunk.start,
           "X-Chunk-End": chunk.end - 1,
         };
+        // Nếu đã bị hủy thì không upload nữa
+        if (cancelledRef.current[fileIndex]) {
+          setFileStates((prev) =>
+            prev.map((f, idx) =>
+              idx === fileIndex ? { ...f, status: "cancelled" } : f
+            )
+          );
+          return;
+        }
         const response = await axiosClient.post("/api/upload", chunkData, {
           headers,
+          signal: abortControllersRef.current[fileIndex]?.signal, // Thêm signal để có thể abort
         });
+
+        // Kiểm tra flag cancelled ngay sau await
+        if (
+          cancelledRef.current[fileIndex] ||
+          fileStates[fileIndex]?.status === "cancelled"
+        ) {
+          setFileStates((prev) =>
+            prev.map((f, idx) =>
+              idx === fileIndex ? { ...f, status: "cancelled" } : f
+            )
+          );
+          return;
+        }
+
         const data = response.data;
         if (response.status !== 200 || !data.success) {
           throw new Error(data.error || `Upload chunk ${i} thất bại`);
@@ -273,11 +343,48 @@ const MiniStatusBatch = ({
           );
         }
       } catch (error) {
-        console.error(`Error uploading chunk ${i}:`, error);
+        // Kiểm tra nếu lỗi do abort
+        if (error.name === "AbortError" || error.message.includes("aborted")) {
+          console.log(`[FE] Upload aborted for file ${fileIndex}, chunk ${i}`);
+          setFileStates((prev) =>
+            prev.map((f, idx) =>
+              idx === fileIndex ? { ...f, status: "cancelled" } : f
+            )
+          );
+          return;
+        }
+        // Kiểm tra lỗi 499 Client Closed Request hoặc lỗi hủy
+        const statusCode = error?.response?.status;
+        const msg =
+          error?.response?.data?.error ||
+          error?.response?.data?.message ||
+          error?.message;
+
+        // Nếu là lỗi 499 hoặc lỗi liên quan đến hủy/session
+        if (
+          statusCode === 499 ||
+          (msg &&
+            (msg.includes("session") ||
+              msg.includes("Không tìm thấy session") ||
+              msg.includes("not exist") ||
+              msg.includes("cancel") ||
+              msg.includes("hủy") ||
+              msg.includes("clientClosedRequest") ||
+              msg.includes("Client Closed Request")))
+        ) {
+          setFileStates((prev) =>
+            prev.map((f, idx) =>
+              idx === fileIndex ? { ...f, status: "cancelled" } : f
+            )
+          );
+          return;
+        }
+
+        // Nếu là lỗi khác, mới set error
         setFileStates((prev) =>
           prev.map((f, idx) =>
             idx === fileIndex
-              ? { ...f, status: "error", error: error.message }
+              ? { ...f, status: "error", error: msg || "Upload chunk thất bại" }
               : f
           )
         );
@@ -286,70 +393,83 @@ const MiniStatusBatch = ({
     }
   };
 
-  // Hàm resume upload hoặc retry
-  const resumeUpload = async (fileIndex) => {
-    const fileState = fileStates[fileIndex];
-
-    // Nếu file bị lỗi và không có uploadId, thử upload lại từ đầu
-    if (fileState.status === "error" && !fileState.uploadId) {
-      setFileStates((prev) =>
-        prev.map((f, idx) =>
-          idx === fileIndex ? { ...f, status: "uploading", error: null } : f
-        )
-      );
-
-      setTimeout(() => {
-        uploadFileWithChunks(fileState, fileIndex);
-      }, 100);
-      return;
-    }
-
-    // Nếu có uploadId, resume upload
-    if (!fileState.uploadId) return;
-
-    setFileStates((prev) =>
-      prev.map((f, idx) =>
-        idx === fileIndex ? { ...f, isPaused: false, status: "uploading" } : f
-      )
-    );
-
-    // Gọi lại upload function với state hiện tại
-    setTimeout(() => {
-      uploadFileWithChunks(fileState, fileIndex);
-    }, 100); // Delay nhỏ để đảm bảo state đã được cập nhật
-  };
-
-  // Hàm pause upload
-  const pauseUpload = (fileIndex) => {
-    setFileStates((prev) =>
-      prev.map((f, idx) =>
-        idx === fileIndex ? { ...f, isPaused: true, status: "paused" } : f
-      )
-    );
-  };
-
   // Hàm cancel upload
   const cancelUpload = async (fileIndex) => {
+    cancelledRef.current[fileIndex] = true; // Đánh dấu đã hủy
+
+    // Abort request HTTP đang gửi ngay lập tức
+    if (abortControllersRef.current[fileIndex]) {
+      console.log(`[FE] Aborting upload for file ${fileIndex}`);
+      abortControllersRef.current[fileIndex].abort();
+    }
+
     const fileState = fileStates[fileIndex];
     if (fileState.uploadId) {
       try {
         const response = await axiosClient.post("/api/upload/cancel", {
           uploadId: fileState.uploadId,
         });
-        if (response.status !== 200) {
-          const data = response.data;
-          console.error("Error canceling upload:", data.error);
+        // Kiểm tra trường success và message
+        const data = response.data;
+        if (data?.success || (data?.message && data.message.includes("hủy"))) {
+          setFileStates((prev) =>
+            prev.map((f, idx) =>
+              idx === fileIndex ? { ...f, status: "cancelled" } : f
+            )
+          );
+          return;
         }
+        // Nếu không phải success, vẫn set cancelled nếu message đúng
+        if (response.status === 200) {
+          setFileStates((prev) =>
+            prev.map((f, idx) =>
+              idx === fileIndex ? { ...f, status: "cancelled" } : f
+            )
+          );
+          return;
+        }
+        // Nếu thực sự lỗi, mới set error
+        setFileStates((prev) =>
+          prev.map((f, idx) =>
+            idx === fileIndex
+              ? {
+                  ...f,
+                  status: "error",
+                  error: data?.error || "Hủy upload thất bại",
+                }
+              : f
+          )
+        );
       } catch (error) {
-        console.error("Error canceling upload:", error);
+        // Nếu lỗi nhưng message có chữ "hủy thành công" thì vẫn set cancelled
+        const msg =
+          error?.response?.data?.message ||
+          error?.response?.data?.error ||
+          error?.message;
+        if (msg && msg.includes("hủy")) {
+          setFileStates((prev) =>
+            prev.map((f, idx) =>
+              idx === fileIndex ? { ...f, status: "cancelled" } : f
+            )
+          );
+        } else {
+          setFileStates((prev) =>
+            prev.map((f, idx) =>
+              idx === fileIndex
+                ? { ...f, status: "error", error: msg || "Hủy upload thất bại" }
+                : f
+            )
+          );
+        }
       }
+    } else {
+      // Nếu chưa có uploadId, chỉ cần set cancelled
+      setFileStates((prev) =>
+        prev.map((f, idx) =>
+          idx === fileIndex ? { ...f, status: "cancelled" } : f
+        )
+      );
     }
-
-    setFileStates((prev) =>
-      prev.map((f, idx) =>
-        idx === fileIndex ? { ...f, status: "cancelled" } : f
-      )
-    );
   };
 
   useEffect(() => {
@@ -590,18 +710,8 @@ const MiniStatusBatch = ({
     // eslint-disable-next-line
   }, [batchId]);
 
-  // Cleanup khi component unmount
-  useEffect(() => {
-    return () => {
-      // Cleanup upload sessions nếu component bị unmount
-      fileStates.forEach((fileState) => {
-        if (fileState.uploadId && fileState.status === "uploading") {
-          // Có thể gọi API để cancel session nếu cần
-          console.log(`Cleaning up upload session: ${fileState.uploadId}`);
-        }
-      });
-    };
-  }, [fileStates]);
+  // Thêm event listener để cảnh báo khi user rời khỏi trang
+  // XÓA toàn bộ useEffect thêm event listener beforeunload và visibilitychange
 
   if (!isVisible) return null;
 
@@ -852,8 +962,6 @@ const MiniStatusBatch = ({
                       ? " text-red-600"
                       : file.status === "uploading"
                       ? " text-blue-600"
-                      : file.status === "paused"
-                      ? " text-yellow-600"
                       : " text-gray-500")
                   }
                   title={file.name}
@@ -885,38 +993,18 @@ const MiniStatusBatch = ({
                       className="text-blue-500 animate-pulse"
                       size={14}
                     />
-                  ) : file.status === "paused" ? (
-                    <FiPause className="text-yellow-500" size={14} />
                   ) : (
                     <FiClock className="text-gray-400" size={14} />
                   )}
 
                   {/* Action buttons for paused/error files */}
-                  {file.status === "paused" && (
-                    <button
-                      onClick={() => resumeUpload(idx)}
-                      className="text-blue-500 hover:text-blue-700"
-                      title="Resume upload"
-                    >
-                      <FiPlay size={12} />
-                    </button>
-                  )}
                   {file.status === "error" && (
                     <button
-                      onClick={() => resumeUpload(idx)}
+                      onClick={() => uploadFileWithChunks(fileStates[idx], idx)}
                       className="text-blue-500 hover:text-blue-700"
                       title="Retry upload"
                     >
                       <FiUpload size={12} />
-                    </button>
-                  )}
-                  {file.status === "uploading" && (
-                    <button
-                      onClick={() => pauseUpload(idx)}
-                      className="text-yellow-500 hover:text-yellow-700"
-                      title="Pause upload"
-                    >
-                      <FiPause size={12} />
                     </button>
                   )}
                   {(file.status === "uploading" ||
