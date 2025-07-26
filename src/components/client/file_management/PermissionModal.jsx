@@ -3,8 +3,10 @@ import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import axiosClient from "@/lib/axiosClient";
 import toast from "react-hot-toast";
+import { useTranslations } from "next-intl";
 
 const PermissionModal = ({ isOpen, onClose, folder, onPermissionChange }) => {
+  const t = useTranslations();
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [currentPermissions, setCurrentPermissions] = useState([]);
@@ -86,7 +88,7 @@ const PermissionModal = ({ isOpen, onClose, folder, onPermissionChange }) => {
         onPermissionChange();
       }
     } catch (error) {
-      const msg = error?.response?.data?.error || "Có lỗi xảy ra khi cấp quyền";
+      const msg = error?.response?.data?.error || t("permission.grant_error");
       toast.error(msg);
       console.error("Error granting permissions:", error);
     } finally {
@@ -114,8 +116,7 @@ const PermissionModal = ({ isOpen, onClose, folder, onPermissionChange }) => {
         onPermissionChange();
       }
     } catch (error) {
-      const msg =
-        error?.response?.data?.error || "Có lỗi xảy ra khi thu hồi quyền";
+      const msg = error?.response?.data?.error || t("permission.revoke_error");
       toast.error(msg);
       console.error("Error revoking permission:", error);
     } finally {
@@ -146,22 +147,22 @@ const PermissionModal = ({ isOpen, onClose, folder, onPermissionChange }) => {
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-gray-400 hover:text-primary text-2xl font-bold transition-all"
-          title="Đóng"
+          title={t("permission.close")}
         >
           ✕
         </button>
         <div className="mb-6 text-center">
           <h2 className="text-2xl font-bold text-primary mb-1">
-            Quản lý quyền truy cập
+            {t("permission.manage_access_permissions")}
           </h2>
           <div className="text-gray-600 text-base">
-            Thư mục:{" "}
+            {t("permission.folder")}:{" "}
             <span className="text-primary font-semibold">{folder.name}</span>
           </div>
         </div>
         <div className="mb-2">
           <h4 className="font-semibold mb-3 text-gray-800 text-lg text-left">
-            Danh sách thành viên
+            {t("permission.member_list")}
           </h4>
           <div className="divide-y divide-gray-100 border rounded-xl overflow-hidden bg-[#f7f8fa]">
             {isLoadingList ? (
@@ -182,7 +183,7 @@ const PermissionModal = ({ isOpen, onClose, folder, onPermissionChange }) => {
               ))
             ) : members.length === 0 ? (
               <div className="p-6 text-gray-500 text-center bg-white">
-                Không có thành viên nào
+                {t("permission.no_members")}
               </div>
             ) : (
               members.map((member) => {
@@ -203,12 +204,12 @@ const PermissionModal = ({ isOpen, onClose, folder, onPermissionChange }) => {
                     <div className="flex items-center gap-2">
                       {locked === false && (
                         <span className="px-2 py-1 rounded bg-green-100 text-green-700 text-xs font-semibold">
-                          Đang mở quyền
+                          {t("permission.permission_open")}
                         </span>
                       )}
                       {locked === true && (
                         <span className="px-2 py-1 rounded bg-red-100 text-red-700 text-xs font-semibold">
-                          Đang bị khóa
+                          {t("permission.permission_locked")}
                         </span>
                       )}
                       {isFolder &&
@@ -220,7 +221,7 @@ const PermissionModal = ({ isOpen, onClose, folder, onPermissionChange }) => {
                             disabled={loading}
                             className="ml-2 px-3 py-1 rounded-lg bg-red-500 text-white text-sm font-semibold hover:bg-red-600 transition disabled:opacity-50 shadow"
                           >
-                            Khóa quyền
+                            {t("permission.lock_permission")}
                           </button>
                         ) : (
                           <button
@@ -230,7 +231,7 @@ const PermissionModal = ({ isOpen, onClose, folder, onPermissionChange }) => {
                             disabled={loading}
                             className="ml-2 px-3 py-1 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-blue-600 transition disabled:opacity-50 shadow"
                           >
-                            Mở quyền
+                            {t("permission.open_permission")}
                           </button>
                         ))}
                       {isFolder && locked !== null && (
@@ -238,9 +239,9 @@ const PermissionModal = ({ isOpen, onClose, folder, onPermissionChange }) => {
                           onClick={() => handleRevokePermission(member._id)}
                           disabled={loading}
                           className="ml-2 px-2 py-1 rounded-lg bg-gray-200 text-gray-700 text-xs hover:bg-gray-300 transition disabled:opacity-50 shadow"
-                          title="Thu hồi hoàn toàn quyền"
+                          title={t("permission.revoke_permission_title")}
                         >
-                          Xóa
+                          {t("permission.revoke")}
                         </button>
                       )}
                     </div>

@@ -11,19 +11,13 @@ import Modal from "@/components/Modal";
 import axiosClient from "@/lib/axiosClient";
 import EmptyState from "../ui/EmptyState";
 import useHomeTableActions from "@/hook/useHomeTableActions";
-
-function formatSize(size) {
-  if (!size || isNaN(size)) return "-";
-  if (size < 1024) return size + " B";
-  if (size < 1024 * 1024) return (size / 1024).toFixed(1) + " KB";
-  if (size < 1024 * 1024 * 1024) return (size / 1024 / 1024).toFixed(1) + " MB";
-  return (size / 1024 / 1024 / 1024).toFixed(1) + " GB";
-}
+import { useTranslations } from "next-intl";
 
 export default function MemberFileManager() {
   const [folders, setFolders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const t = useTranslations();
   const [currentFolder, setCurrentFolder] = useState(null); // object
   const [breadcrumb, setBreadcrumb] = useState([]); // [{id, name}]
   const [view, setView] = useState("grid"); // 'grid' | 'table'
@@ -82,7 +76,7 @@ export default function MemberFileManager() {
       const data = res.data;
       setFolders(data.folders || []);
     } catch {
-      setError("Không thể tải danh sách thư mục");
+      setError(t("member.page.load_folders_error"));
     }
     setLoading(false);
   };
@@ -254,7 +248,12 @@ export default function MemberFileManager() {
   };
 
   // Table header
-  const tableHeader = ["Tên", "Kích thước", "Ngày", "Chia sẻ"];
+  const tableHeader = [
+    t("member.table.name"),
+    t("member.table.size"),
+    t("member.table.date"),
+    t("member.table.share"),
+  ];
 
   // Chuẩn hóa data cho Table_custom và Card_file
   const normalizedData = folderChildren
@@ -306,10 +305,10 @@ export default function MemberFileManager() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 mb-1">
-            Quản lý file được cấp quyền
+            {t("member.page.title")}
           </h1>
           <p className="text-gray-500 text-sm">
-            Chỉ hiển thị các thư mục bạn được leader cấp quyền.
+            {t("member.page.description")}
           </p>
         </div>
         <div className="flex gap-2 items-center">
@@ -319,13 +318,13 @@ export default function MemberFileManager() {
                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white font-semibold text-sm shadow-sm hover:bg-blue-700"
                 onClick={() => setShowUpload(true)}
               >
-                <FiUpload className="text-lg" /> Upload
+                <FiUpload className="text-lg" /> {t("member.page.upload")}
               </button>
               <button
                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white font-semibold text-sm shadow-sm hover:bg-green-700"
                 onClick={() => setShowCreateFolder(true)}
               >
-                <FiPlus className="text-lg" /> Tạo thư mục
+                <FiPlus className="text-lg" /> {t("member.page.create_folder")}
               </button>
             </>
           )}
@@ -334,7 +333,7 @@ export default function MemberFileManager() {
               view === "grid" ? "bg-primary text-white" : "hover:bg-gray-50"
             }`}
             onClick={() => setView("grid")}
-            title="Xem dạng lưới"
+            title={t("member.page.view_grid")}
           >
             <FiGrid />
           </button>
@@ -343,7 +342,7 @@ export default function MemberFileManager() {
               view === "table" ? "bg-primary text-white" : "hover:bg-gray-50"
             }`}
             onClick={() => setView("table")}
-            title="Xem dạng bảng"
+            title={t("member.page.view_table")}
           >
             <FiList />
           </button>
@@ -356,7 +355,7 @@ export default function MemberFileManager() {
             className="hover:underline"
             onClick={() => setCurrentFolder(null)}
           >
-            Thư mục gốc
+            {t("member.page.root_folder")}
           </button>
           {breadcrumb.map((bc, idx) => (
             <React.Fragment key={bc.id}>
@@ -374,7 +373,9 @@ export default function MemberFileManager() {
       )}
       {/* Loading/error state */}
       {loading && (
-        <div className="text-center text-gray-400 py-12">Đang tải...</div>
+        <div className="text-center text-gray-400 py-12">
+          {t("member.page.loading")}
+        </div>
       )}
       {error && <div className="text-center text-red-500 py-12">{error}</div>}
       {/* Main content */}
@@ -407,7 +408,7 @@ export default function MemberFileManager() {
             <div className="w-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
               {normalizedData.length === 0 && (
                 <div className="col-span-full text-center text-gray-400 py-8">
-                  <EmptyState message="Không có thư mục nào" />
+                  <EmptyState message={t("member.page.no_folders")} />
                 </div>
               )}
               {normalizedData.map((item) => (
@@ -444,11 +445,13 @@ export default function MemberFileManager() {
           {showCreateFolder && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
               <div className="bg-white rounded-xl p-6 min-w-[320px] shadow-2xl relative">
-                <h3 className="font-bold text-lg mb-4">Tạo thư mục mới</h3>
+                <h3 className="font-bold text-lg mb-4">
+                  {t("member.modal.create_folder_title")}
+                </h3>
                 <input
                   type="text"
                   className="w-full border border-gray-300 rounded px-3 py-2 mb-4"
-                  placeholder="Tên thư mục"
+                  placeholder={t("member.modal.folder_name_placeholder")}
                   value={newFolderName}
                   onChange={(e) => setNewFolderName(e.target.value)}
                   autoFocus
@@ -458,7 +461,7 @@ export default function MemberFileManager() {
                     onClick={() => setShowCreateFolder(false)}
                     className="px-4 py-2 rounded bg-gray-200"
                   >
-                    Hủy
+                    {t("member.modal.cancel")}
                   </button>
                   <button
                     onClick={async () => {
@@ -482,7 +485,7 @@ export default function MemberFileManager() {
                     }}
                     className="px-4 py-2 rounded bg-green-600 text-white"
                   >
-                    Tạo
+                    {t("member.modal.create")}
                   </button>
                 </div>
               </div>
@@ -530,12 +533,12 @@ export default function MemberFileManager() {
             <Modal onClose={() => setShowRenameModal(false)}>
               <div className="p-6 min-w-[320px] flex flex-col items-center">
                 <div className="text-xl font-semibold mb-2 text-blue-600">
-                  Đổi tên
+                  {t("member.modal.rename_title")}
                 </div>
                 <input
                   type="text"
                   className="w-full border border-gray-300 rounded px-3 py-2 mb-4"
-                  placeholder="Tên mới"
+                  placeholder={t("member.modal.new_name_placeholder")}
                   value={renameValue}
                   onChange={(e) => setRenameValue(e.target.value)}
                   autoFocus
@@ -545,14 +548,14 @@ export default function MemberFileManager() {
                     onClick={() => setShowRenameModal(false)}
                     className="px-4 py-2 rounded bg-gray-200"
                   >
-                    Hủy
+                    {t("member.modal.cancel")}
                   </button>
                   <button
                     onClick={handleConfirmRename}
                     className="px-4 py-2 rounded bg-blue-600 text-white"
                     disabled={!renameValue.trim()}
                   >
-                    Đổi tên
+                    {t("member.modal.rename")}
                   </button>
                 </div>
               </div>
@@ -563,10 +566,10 @@ export default function MemberFileManager() {
             <Modal onClose={() => setShowMoveModal(false)}>
               <div className="p-6 min-w-[320px] flex flex-col items-center">
                 <div className="text-xl font-semibold mb-2 text-blue-600">
-                  Chọn thư mục đích
+                  {t("member.modal.select_destination_title")}
                 </div>
                 <div className="mb-4 text-gray-700 text-center">
-                  Chọn thư mục bạn muốn di chuyển tới:
+                  {t("member.modal.select_destination_description")}:
                 </div>
                 <div className="max-h-60 overflow-y-auto w-full mb-4">
                   <div
@@ -576,10 +579,13 @@ export default function MemberFileManager() {
                         : "hover:bg-blue-100"
                     }`}
                     onClick={() =>
-                      setMoveTargetFolder({ id: null, name: "Thư mục gốc" })
+                      setMoveTargetFolder({
+                        id: null,
+                        name: t("member.modal.move_to_root"),
+                      })
                     }
                   >
-                    📁 Ra ngoài tất cả thư mục (Thư mục gốc)
+                    📁 {t("member.modal.move_to_root")}
                   </div>
                   {renderFolderTree(folders)}
                 </div>
@@ -588,7 +594,7 @@ export default function MemberFileManager() {
                     onClick={() => setShowMoveModal(false)}
                     className="px-4 py-2 rounded bg-gray-200"
                   >
-                    Hủy
+                    {t("member.modal.cancel")}
                   </button>
                   <button
                     onClick={() =>
@@ -597,7 +603,7 @@ export default function MemberFileManager() {
                     className="px-4 py-2 rounded bg-blue-600 text-white"
                     disabled={!moveTargetFolder}
                   >
-                    Di chuyển
+                    {t("member.modal.move")}
                   </button>
                 </div>
               </div>
@@ -608,26 +614,27 @@ export default function MemberFileManager() {
             <Modal onClose={() => setShowConfirmDelete(false)}>
               <div className="p-6 flex flex-col items-center">
                 <div className="text-xl font-semibold mb-2 text-red-600">
-                  Xác nhận xóa
+                  {t("member.modal.confirm_delete_title")}
                 </div>
                 <div className="mb-4 text-gray-700 text-center">
-                  Bạn có chắc chắn muốn xóa {pendingDeleteItems.length} mục đã
-                  chọn?
+                  {t("member.modal.confirm_delete_message", {
+                    count: pendingDeleteItems.length,
+                  })}
                   <br />
-                  Hành động này không thể hoàn tác!
+                  {t("member.modal.confirm_delete_warning")}
                 </div>
                 <div className="flex gap-3 mt-2">
                   <button
                     onClick={() => setShowConfirmDelete(false)}
                     className="px-4 py-2 rounded bg-gray-200"
                   >
-                    Hủy
+                    {t("member.modal.cancel")}
                   </button>
                   <button
                     onClick={confirmDelete}
                     className="px-4 py-2 rounded bg-red-600 text-white"
                   >
-                    Xóa
+                    {t("member.modal.delete")}
                   </button>
                 </div>
               </div>

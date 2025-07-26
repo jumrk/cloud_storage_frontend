@@ -5,6 +5,7 @@ import Button_custom from "../ui/Button_custom";
 import ScrollReveal from "../ui/ScrollReveal";
 import Loader from "../ui/Loader";
 import axiosClient from "@/lib/axiosClient";
+import { useTranslations } from "next-intl";
 
 function OTPInput({ value, onChange, length = 5 }) {
   const inputs = Array(length).fill(0);
@@ -52,6 +53,7 @@ function ForgotPassword_component() {
   const [passwordError, setPasswordError] = useState("");
   const [emailError, setEmailError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+  const t = useTranslations();
 
   // Gửi email lấy mã
   const handleSendEmail = async () => {
@@ -59,7 +61,7 @@ function ForgotPassword_component() {
     setEmailError("");
     setSuccessMsg("");
     if (!email) {
-      setEmailError("Vui lòng nhập email");
+      setEmailError(t("auth.forgot_password.email_required"));
       setLoading(false);
       return;
     }
@@ -68,13 +70,13 @@ function ForgotPassword_component() {
         email,
       });
       if (!res.data.success) {
-        setEmailError(res.data.error || "Gửi mã thất bại");
+        setEmailError(res.data.error || t("auth.forgot_password.send_code_failed"));
       } else {
         setStep(2);
-        setSuccessMsg("Đã gửi mã xác thực đến email của bạn!");
+        setSuccessMsg(t("auth.forgot_password.code_sent_success"));
       }
     } catch (err) {
-      setEmailError(err?.response?.data?.error || "Có lỗi xảy ra, thử lại sau");
+      setEmailError(err?.response?.data?.error || t("auth.forgot_password.general_error"));
     } finally {
       setLoading(false);
     }
@@ -86,7 +88,7 @@ function ForgotPassword_component() {
     setOtpError("");
     setSuccessMsg("");
     if (otp.some((d) => !d)) {
-      setOtpError("Vui lòng nhập đủ mã xác thực");
+      setOtpError(t("auth.forgot_password.otp_required"));
       setLoading(false);
       return;
     }
@@ -97,13 +99,13 @@ function ForgotPassword_component() {
         code,
       });
       if (!res.data.success) {
-        setOtpError(res.data.error || "Mã xác thực không đúng");
+        setOtpError(res.data.error || t("auth.forgot_password.invalid_otp"));
       } else {
         setStep(3);
-        setSuccessMsg("Mã xác thực đúng, hãy nhập mật khẩu mới!");
+        setSuccessMsg(t("auth.forgot_password.otp_verified_success"));
       }
     } catch (err) {
-      setOtpError(err?.response?.data?.error || "Có lỗi xảy ra, thử lại sau");
+      setOtpError(err?.response?.data?.error || t("auth.forgot_password.general_error"));
     } finally {
       setLoading(false);
     }
@@ -115,12 +117,12 @@ function ForgotPassword_component() {
     setPasswordError("");
     setSuccessMsg("");
     if (!newPassword || !confirmPassword) {
-      setPasswordError("Vui lòng nhập đủ thông tin");
+      setPasswordError(t("auth.forgot_password.password_required"));
       setLoading(false);
       return;
     }
     if (newPassword !== confirmPassword) {
-      setPasswordError("Mật khẩu không khớp");
+      setPasswordError(t("auth.forgot_password.password_mismatch"));
       setLoading(false);
       return;
     }
@@ -134,14 +136,14 @@ function ForgotPassword_component() {
         }
       );
       if (!res.data.success) {
-        setPasswordError(res.data.error || "Đổi mật khẩu thất bại");
+        setPasswordError(res.data.error || t("auth.forgot_password.reset_failed"));
       } else {
         setStep(4);
-        setSuccessMsg("Đổi mật khẩu thành công! Vui lòng đăng nhập lại.");
+        setSuccessMsg(t("auth.forgot_password.reset_success"));
       }
     } catch (err) {
       setPasswordError(
-        err?.response?.data?.error || "Có lỗi xảy ra, thử lại sau"
+        err?.response?.data?.error || t("auth.forgot_password.general_error")
       );
     } finally {
       setLoading(false);
@@ -156,13 +158,13 @@ function ForgotPassword_component() {
         <div>
           <ScrollReveal direction="down">
             <h1 className="text-3xl lg:text-4xl font-bold text-primary">
-              Quên mật khẩu 🔒
+              {t("auth.forgot_password.title")} 🔒
             </h1>
             <p className="text-sx lg:text-xl text-primary/60">
-              {step === 1 && "Nhập email để nhận mã xác thực."}
-              {step === 2 && "Nhập mã xác thực đã gửi đến email của bạn."}
-              {step === 3 && "Nhập mật khẩu mới cho tài khoản của bạn."}
-              {step === 4 && "Đổi mật khẩu thành công! Vui lòng đăng nhập lại."}
+              {step === 1 && t("auth.forgot_password.step1_description")}
+              {step === 2 && t("auth.forgot_password.step2_description")}
+              {step === 3 && t("auth.forgot_password.step3_description")}
+              {step === 4 && t("auth.forgot_password.step4_description")}
             </p>
             {successMsg && (
               <div className="text-green-600 text-center mt-2">
@@ -175,12 +177,12 @@ function ForgotPassword_component() {
             <ScrollReveal direction="left">
               <div className="mt-6">
                 <InputCustom
-                  label="Email"
+                  label={t("auth.forgot_password.email")}
                   type="email"
                   value={email}
                   name="email"
                   id="Email"
-                  placeholder="Example@gmail.com"
+                  placeholder={t("auth.forgot_password.email_placeholder")}
                   errors={emailError}
                   handelChange={(e) => setEmail(e.target.value)}
                 />
@@ -188,7 +190,7 @@ function ForgotPassword_component() {
                   <Button_custom
                     onclick={handleSendEmail}
                     bg="bg-primary"
-                    text="Gửi mã xác thực"
+                    text={t("auth.forgot_password.send_code")}
                   />
                 </div>
               </div>
@@ -215,7 +217,7 @@ function ForgotPassword_component() {
                   <Button_custom
                     onclick={handleVerifyOtp}
                     bg="bg-primary"
-                    text="Xác thực mã"
+                    text={t("auth.forgot_password.verify_code")}
                   />
                 </div>
               </div>
@@ -226,22 +228,22 @@ function ForgotPassword_component() {
             <ScrollReveal direction="left">
               <div className="mt-6">
                 <InputCustom
-                  label="Mật khẩu mới"
+                  label={t("auth.forgot_password.new_password")}
                   type="password"
                   value={newPassword}
                   name="newPassword"
                   id="NewPassword"
-                  placeholder="Nhập mật khẩu mới"
+                  placeholder={t("auth.forgot_password.new_password_placeholder")}
                   errors={passwordError}
                   handelChange={(e) => setNewPassword(e.target.value)}
                 />
                 <InputCustom
-                  label="Xác nhận mật khẩu"
+                  label={t("auth.forgot_password.confirm_password")}
                   type="password"
                   value={confirmPassword}
                   name="confirmPassword"
                   id="ConfirmPassword"
-                  placeholder="Nhập lại mật khẩu"
+                  placeholder={t("auth.forgot_password.confirm_password_placeholder")}
                   errors={passwordError}
                   handelChange={(e) => setConfirmPassword(e.target.value)}
                 />
@@ -249,7 +251,7 @@ function ForgotPassword_component() {
                   <Button_custom
                     onclick={handleChangePassword}
                     bg="bg-primary"
-                    text="Đổi mật khẩu"
+                    text={t("auth.forgot_password.reset_password")}
                   />
                 </div>
               </div>
@@ -259,7 +261,7 @@ function ForgotPassword_component() {
           {step === 4 && (
             <ScrollReveal direction="down">
               <div className="mt-8 text-center text-green-600 font-semibold text-lg">
-                Đổi mật khẩu thành công!
+                {t("auth.forgot_password.success_message")}
                 <br />
                 <a
                   href="/Login"

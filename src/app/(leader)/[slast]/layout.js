@@ -10,9 +10,11 @@ import { decodeTokenGetUser } from "@/lib/jwt";
 import axiosClient from "@/lib/axiosClient";
 import { usePathname } from "next/navigation";
 import ChatLayout from "@/components/client/chat/ChatLayout";
+import { useTranslations } from "next-intl";
 
 export default function ClientLayout({ children }) {
   const router = useRouter();
+  const t = useTranslations();
   const [isAuthChecked, setIsAuthChecked] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [role, setRole] = useState(null);
@@ -23,7 +25,7 @@ export default function ClientLayout({ children }) {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
-      toast.error("Bạn chưa đăng nhập, vui lòng đăng nhập");
+      toast.error(t("auth.not_logged_in"));
       router.push("/Login");
       return;
     }
@@ -32,7 +34,7 @@ export default function ClientLayout({ children }) {
     const user = decodeTokenGetUser(token);
     setRole(user?.role || null);
     setMyId(user?.id || user?._id || null);
-  }, [router]);
+  }, [router, t]);
   // Hàm cập nhật unreadCount từ API
   const updateUnreadCount = useCallback(async () => {
     try {

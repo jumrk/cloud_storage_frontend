@@ -6,10 +6,12 @@ import useLoginForm from "@/hook/useLoginForm";
 import ScrollReveal from "../ui/ScrollReveal";
 import Link from "next/link";
 import Loader from "../ui/Loader";
+import { useTranslations } from "next-intl";
 
 function Login_component() {
   const { errors, handelSubmit, formData, loading, handelChange } =
     useLoginForm();
+  const t = useTranslations();
 
   if (loading) return <Loader />;
   return (
@@ -18,22 +20,22 @@ function Login_component() {
         <div className="flex flex-col justify-center md:mb-20">
           <ScrollReveal direction="down">
             <h1 className="text-3xl lg:text-4xl font-bold text-primary">
-              Chào mừng trở lại👋
+              {t("auth.login.welcome_back")}👋
             </h1>
             <p className="text-sx lg:text-xl text-primary/60">
-              Đăng nhập để bắt đầu quản lý các dự án của bạn.
+              {t("auth.login.description")}
             </p>
           </ScrollReveal>
 
           <ScrollReveal direction="left">
             <InputCustom
               handelChange={handelChange}
-              label="Email"
+              label={t("auth.login.email")}
               type="email"
               value={formData.email}
               name="email"
               id="Email"
-              placeholder="Example@gmail.com"
+              placeholder={t("auth.login.email_placeholder")}
               errors={errors.email}
             />
           </ScrollReveal>
@@ -41,20 +43,20 @@ function Login_component() {
           <ScrollReveal direction="right">
             <InputCustom
               handelChange={handelChange}
-              label="Mật khẩu"
+              label={t("auth.login.password")}
               id="Password"
               name="password"
               value={formData.password}
               type={"password"}
               errors={errors.password}
-              placeholder={"Nhập mật khẩu"}
+              placeholder={t("auth.login.password_placeholder")}
             />
           </ScrollReveal>
 
           <ScrollReveal direction="right">
             <div className="mt-2 flex justify-end">
               <Link href={"/ForgotPassword"}>
-                <p className="text-blue-500 cursor-pointer">Quên mật khẩu?</p>
+                <p className="text-blue-500 cursor-pointer">{t("auth.login.forgot_password")}</p>
               </Link>
             </div>
           </ScrollReveal>
@@ -64,7 +66,7 @@ function Login_component() {
               <Button_custom
                 onclick={handelSubmit}
                 bg="bg-primary"
-                text="Đăng nhập"
+                text={t("auth.login.login_button")}
               />
             </ScrollReveal>
           </div>
@@ -107,7 +109,7 @@ function Login_component() {
                   </svg>
                 </span>
                 <span className="font-medium text-[14px] text-[#1f1f1f]">
-                  Sign in with Google
+                  {t("auth.login.sign_in_with_google")}
                 </span>
               </button>
             </a>

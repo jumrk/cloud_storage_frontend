@@ -16,8 +16,10 @@ import "react-loading-skeleton/dist/skeleton.css";
 import axiosClient from "@/lib/axiosClient";
 import EmptyState from "@/components/ui/EmptyState";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { useTranslations } from "next-intl";
 
 function User_Management_Page() {
+  const t = useTranslations();
   const [showPassword, setShowPassword] = useState({});
   const [copiedId, setCopiedId] = useState(null);
   const [members, setMembers] = useState([]);
@@ -80,22 +82,10 @@ function User_Management_Page() {
       if (data.members) setMembers(data.members);
       else setMembers([]);
     } catch (e) {
-      toast.error("Lỗi khi tải danh sách thành viên");
+      toast.error(t("user_management.load_members_error"));
       setMembers([]);
     }
     setLoading(false);
-  };
-
-  const handleTogglePassword = (id) => {
-    setShowPassword((prev) => ({ ...prev, [id]: !prev[id] }));
-  };
-
-  const handleCopyPassword = (id, password) => {
-    if (showPassword[id]) {
-      navigator.clipboard.writeText(password);
-      setCopiedId(id);
-      setTimeout(() => setCopiedId(null), 1200);
-    }
   };
 
   const handleOpenModal = () => {
@@ -149,12 +139,12 @@ function User_Management_Page() {
     setFormLoading(true);
     setFormError("");
     if (emailExists) {
-      setFormError("Email đã tồn tại trên hệ thống");
+      setFormError(t("user_management.email_exists"));
       setFormLoading(false);
       return;
     }
     if (slastExists) {
-      setFormError("Định danh này đã được sử dụng, hãy chọn định danh khác.");
+      setFormError(t("user_management.slast_exists"));
       setFormLoading(false);
       return;
     }
@@ -162,15 +152,15 @@ function User_Management_Page() {
       const res = await axiosClient.post("/api/user/members", form);
       const data = res.data;
       if (data.success) {
-        toast.success("Tạo thành viên thành công!");
+        toast.success(t("user_management.create_success"));
         setShowModal(false);
         fetchMembers();
       } else {
-        setFormError(data.error || "Tạo thành viên thất bại");
-        toast.error(data.error || "Tạo thành viên thất bại");
+        setFormError(data.error || t("user_management.create_failed"));
+        toast.error(data.error || t("user_management.create_failed"));
       }
     } catch (e) {
-      let errorMsg = "Lỗi kết nối";
+      let errorMsg = t("user_management.connection_error");
       if (e.response && e.response.data && e.response.data.error) {
         errorMsg = e.response.data.error;
       }
@@ -203,16 +193,16 @@ function User_Management_Page() {
       );
       const data = res.data;
       if (data.success) {
-        toast.success("Cập nhật thành viên thành công!");
+        toast.success(t("user_management.update_success"));
         setEditModal({ open: false, user: null });
         fetchMembers();
       } else {
-        setEditError(data.error || "Cập nhật thất bại");
-        toast.error(data.error || "Cập nhật thất bại");
+        setEditError(data.error || t("user_management.update_failed"));
+        toast.error(data.error || t("user_management.update_failed"));
       }
     } catch (e) {
-      setEditError("Lỗi kết nối");
-      toast.error("Lỗi kết nối");
+      setEditError(t("user_management.connection_error"));
+      toast.error(t("user_management.connection_error"));
     }
     setEditLoading(false);
   };
@@ -227,23 +217,16 @@ function User_Management_Page() {
       const res = await axiosClient.delete(`/api/user/members/${user._id}`);
       const data = res.data;
       if (data.success) {
-        toast.success("Đã xóa thành viên!");
+        toast.success(t("user_management.delete_success"));
         fetchMembers();
       } else {
-        toast.error(data.error || "Xóa thất bại");
+        toast.error(data.error || t("user_management.delete_failed"));
       }
     } catch (e) {
-      toast.error("Lỗi kết nối");
+      toast.error(t("user_management.connection_error"));
     }
     setConfirmDialog({ open: false, user: null });
   };
-
-  // Handle select all
-  // Remove selectedIds state and all multi-select logic
-
-  // Handle select one
-  // Remove selectedIds state and all multi-select logic
-
   // Compute filtered members (search only)
   const filteredMembers = members.filter((user) => {
     return (
@@ -265,11 +248,9 @@ function User_Management_Page() {
       {/* Tiêu đề & mô tả */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 mb-1">
-          Quản lý người dùng
+          {t("user_management.page_title")}
         </h1>
-        <p className="text-gray-500 text-sm">
-          Quản lý thành viên và phân quyền tài khoản tại đây.
-        </p>
+        <p className="text-gray-500 text-sm">{t("user_management.title")}</p>
       </div>
       {/* Thanh công cụ */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
@@ -281,7 +262,7 @@ function User_Management_Page() {
             </span>
             <input
               type="text"
-              placeholder="Tìm kiếm"
+              placeholder={t("user_management.search_placeholder")}
               className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary text-sm"
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
@@ -292,7 +273,7 @@ function User_Management_Page() {
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-black hover:bg-gray-800 text-white font-semibold text-sm shadow-sm"
             onClick={handleOpenModal}
           >
-            <FiPlus className="text-lg" /> Thêm người dùng
+            <FiPlus className="text-lg" /> {t("user_management.add_user")}
           </button>
         </div>
       </div>
@@ -301,13 +282,13 @@ function User_Management_Page() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
           <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl relative border border-gray-200">
             <h2 className="text-xl font-bold mb-4 text-center">
-              Thêm thành viên mới
+              {t("user_management.add_new")}
             </h2>
             <form onSubmit={handleFormSubmit} className="flex flex-col gap-3">
               <input
                 type="email"
                 name="email"
-                placeholder="Email"
+                placeholder={t("user_management.email_placeholder")}
                 className="border rounded-lg px-4 py-3"
                 value={form.email}
                 onChange={handleFormChange}
@@ -317,18 +298,18 @@ function User_Management_Page() {
               />
               {checkingEmail && (
                 <div className="text-xs text-blue-500">
-                  Đang kiểm tra email...
+                  {t("user_management.checking_email")}
                 </div>
               )}
               {emailExists && !checkingEmail && (
                 <div className="text-xs text-red-500">
-                  Email đã tồn tại trên hệ thống
+                  {t("user_management.email_exists")}
                 </div>
               )}
               <input
                 type="text"
                 name="fullName"
-                placeholder="Họ và tên"
+                placeholder={t("user_management.fullname_placeholder")}
                 className="border rounded-lg px-4 py-3"
                 value={form.fullName}
                 onChange={handleFormChange}
@@ -339,7 +320,7 @@ function User_Management_Page() {
               <input
                 type="password"
                 name="password"
-                placeholder="Mật khẩu"
+                placeholder={t("user_management.password_placeholder")}
                 className="border rounded-lg px-4 py-3"
                 value={form.password}
                 onChange={handleFormChange}
@@ -351,7 +332,7 @@ function User_Management_Page() {
                 <input
                   type="text"
                   name="slast"
-                  placeholder="Định danh cá nhân (slast)"
+                  placeholder={t("user_management.slast_placeholder")}
                   className="border rounded-lg px-4 py-3 w-full"
                   value={form.slast}
                   onChange={handleFormChange}
@@ -360,22 +341,19 @@ function User_Management_Page() {
                   disabled={formLoading}
                 />
                 <div className="text-xs text-gray-500 mt-1">
-                  Định danh này sẽ xuất hiện trên đường dẫn truy cập cá nhân của
-                  thành viên (ví dụ:{" "}
-                  <b>
-                    cloudstorage.com/leader/<i>slast</i>/home
-                  </b>
-                  ). Mỗi thành viên phải có một định danh duy nhất, không trùng
-                  với người khác.
+                  {t("user_management.slast_description")}{" "}
+                  {t("user_management.member_example")}{" "}
+                  <b>{t("user_management.slast_path")}</b>
+                  ). {t("user_management.slast_unique")}
                 </div>
                 {checkingSlast && (
                   <div className="text-xs text-blue-500">
-                    Đang kiểm tra định danh...
+                    {t("user_management.checking_slast")}
                   </div>
                 )}
                 {slastExists && !checkingSlast && (
                   <div className="text-xs text-red-500">
-                    Định danh này đã được sử dụng, hãy chọn định danh khác.
+                    {t("user_management.slast_exists")}
                   </div>
                 )}
               </div>
@@ -392,7 +370,7 @@ function User_Management_Page() {
                   onClick={handleCloseModal}
                   disabled={formLoading}
                 >
-                  Hủy
+                  {t("user_management.cancel")}
                 </button>
                 <button
                   type="submit"
@@ -405,7 +383,9 @@ function User_Management_Page() {
                     checkingSlast
                   }
                 >
-                  {formLoading ? "Đang tạo..." : "Tạo"}
+                  {formLoading
+                    ? t("user_management.creating")
+                    : t("user_management.create")}
                 </button>
               </div>
             </form>
@@ -416,7 +396,9 @@ function User_Management_Page() {
       {editModal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
           <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl relative">
-            <h2 className="text-lg font-bold mb-4">Chỉnh sửa thành viên</h2>
+            <h2 className="text-lg font-bold mb-4">
+              {t("user_management.edit_title")}
+            </h2>
             <form
               onSubmit={handleEditFormSubmit}
               className="flex flex-col gap-3"
@@ -424,7 +406,7 @@ function User_Management_Page() {
               <input
                 type="email"
                 name="email"
-                placeholder="Email"
+                placeholder={t("user_management.email_placeholder")}
                 className="border rounded px-3 py-2"
                 value={editForm.email}
                 onChange={handleEditFormChange}
@@ -433,7 +415,7 @@ function User_Management_Page() {
               <input
                 type="text"
                 name="fullName"
-                placeholder="Họ và tên"
+                placeholder={t("user_management.fullname_placeholder")}
                 className="border rounded px-3 py-2"
                 value={editForm.fullName}
                 onChange={handleEditFormChange}
@@ -442,7 +424,7 @@ function User_Management_Page() {
               <input
                 type="password"
                 name="password"
-                placeholder="Mật khẩu mới (bỏ trống nếu không đổi)"
+                placeholder={t("user_management.new_password_placeholder")}
                 className="border rounded px-3 py-2"
                 value={editForm.password}
                 onChange={handleEditFormChange}
@@ -457,14 +439,16 @@ function User_Management_Page() {
                   onClick={handleCloseEditModal}
                   disabled={editLoading}
                 >
-                  Hủy
+                  {t("user_management.cancel")}
                 </button>
                 <button
                   type="submit"
                   className="px-4 py-2 rounded bg-primary text-white disabled:bg-gray-300"
                   disabled={editLoading}
                 >
-                  {editLoading ? "Đang lưu..." : "Lưu"}
+                  {editLoading
+                    ? t("user_management.saving")
+                    : t("user_management.save")}
                 </button>
               </div>
             </form>
@@ -477,22 +461,24 @@ function User_Management_Page() {
           <thead>
             <tr className="bg-gray-50 text-gray-500 text-xs uppercase">
               <th className="px-4 py-3 text-left font-semibold">
-                Tên người dùng
+                {t("user_management.user_name")}
               </th>
-              <th className="px-4 py-3 text-left font-semibold">Ngày thêm</th>
+              <th className="px-4 py-3 text-left font-semibold">
+                {t("user_management.added_date")}
+              </th>
               <th
                 className="px-4 py-2 cursor-pointer select-none"
                 onClick={() =>
                   setSortFolderCount(sortFolderCount === "asc" ? "desc" : "asc")
                 }
               >
-                Số folder đang quản lý
+                {t("user_management.folders_managed")}
                 {sortFolderCount === "asc" && <span> ▲</span>}
                 {sortFolderCount === "desc" && <span> ▼</span>}
               </th>
-              <th className="px-4 py-2">Dung lượng đã dùng</th>
+              <th className="px-4 py-2">{t("user_management.storage_used")}</th>
               <th className="px-4 py-3 text-left font-semibold">
-                Số user tối đa
+                {t("user_management.max_users")}
               </th>
               <th className="px-4 py-3 text-right font-semibold"></th>
             </tr>
@@ -536,7 +522,7 @@ function User_Management_Page() {
             ) : sortedMembers.length === 0 ? (
               <tr>
                 <td colSpan={6} className="text-center py-8 text-gray-400">
-                  <EmptyState message="Không có thành viên nào phù hợp" />
+                  <EmptyState message={t("user_management.no_members_found")} />
                 </td>
               </tr>
             ) : (
@@ -590,14 +576,14 @@ function User_Management_Page() {
                     <button
                       className="text-gray-400 hover:text-blue-600 p-2 rounded-full"
                       onClick={() => handleOpenEditModal(user)}
-                      title="Sửa"
+                      title={t("user_management.edit")}
                     >
                       <FiEdit2 className="text-lg" />
                     </button>
                     <button
                       className="text-gray-400 hover:text-red-600 p-2 rounded-full"
                       onClick={() => handleDeleteUser(user)}
-                      title="Xóa"
+                      title={t("user_management.delete")}
                     >
                       <FiTrash2 className="text-lg" />
                     </button>
@@ -613,12 +599,12 @@ function User_Management_Page() {
         open={confirmDialog.open}
         onClose={() => setConfirmDialog({ open: false, user: null })}
         onConfirm={handleConfirmDelete}
-        title="Xác nhận xóa thành viên"
-        message={`Bạn có chắc muốn xóa thành viên ${
-          confirmDialog.user?.fullName || ""
-        }?`}
-        confirmText="Xóa"
-        cancelText="Hủy"
+        title={t("user_management.confirm_delete_title")}
+        message={t("user_management.confirm_delete_message", {
+          name: confirmDialog.user?.fullName || "",
+        })}
+        confirmText={t("user_management.delete")}
+        cancelText={t("user_management.cancel")}
       />
     </div>
   );

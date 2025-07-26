@@ -1,16 +1,17 @@
 "use client";
 import Link from "next/link";
 import Button_custom from "@/components/ui/Button_custom";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { decodeTokenGetUser } from "@/lib/jwt";
 import toast from "react-hot-toast";
 import axiosClient from "@/lib/axiosClient";
 import { HiOutlineGlobeAlt } from "react-icons/hi";
+import { useTranslations } from "next-intl";
 
 export default function Header() {
   const router = useRouter();
-  const pathname = usePathname();
+  const t = useTranslations();
   const [user, setUser] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef();
@@ -53,14 +54,16 @@ export default function Header() {
     } catch {}
     localStorage.removeItem("token");
     localStorage.clear();
-    toast.success("Đăng xuất thành công!");
+    toast.success(t("header.logout_success"));
     router.push("/Login");
   };
 
   const handleSwitchLocale = () => {
     const nextLocale = currentLocale === "vi" ? "en" : "vi";
     document.cookie = `NEXT_LOCALE=${nextLocale}; path=/; SameSite=Lax`;
-    window.location.reload(); // Đảm bảo reload full SSR
+
+    // Reload trang để đảm bảo tất cả component được cập nhật với ngôn ngữ mới
+    window.location.reload();
   };
 
   return (
@@ -82,7 +85,7 @@ export default function Header() {
               border: "none",
               cursor: "pointer",
             }}
-            title="Chuyển đổi ngôn ngữ"
+            title={t("header.switch_language")}
           >
             <HiOutlineGlobeAlt className="w-7 h-7 text-[#189ff2] group-hover:text-[#0d8ad1] transition" />
             <span className="text-xs font-semibold mt-0.5 text-[#189ff2] group-hover:text-[#0d8ad1] absolute bottom-0 right-0">
@@ -120,13 +123,13 @@ export default function Header() {
                       router.push(`/${user.slast}/home`);
                     }}
                   >
-                    Quản lý file
+                    {t("header.file_management")}
                   </button>
                   <button
                     className="w-full text-left cursor-pointer px-4 py-3 hover:bg-gray-50 transition text-red-500"
                     onClick={handleLogout}
                   >
-                    Đăng xuất
+                    {t("header.logout")}
                   </button>
                 </div>
               )}
@@ -135,7 +138,7 @@ export default function Header() {
             <>
               <Button_custom
                 onclick={() => router.push("/Login")}
-                text="Đăng nhập"
+                text={t("header.login")}
                 bg="bg-[#1cadd9]"
               />
             </>

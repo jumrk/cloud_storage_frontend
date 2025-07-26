@@ -1,8 +1,10 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
 import axiosClient from "@/lib/axiosClient";
+import { useTranslations } from "next-intl";
 
 export default function useDriveActions() {
+  const t = useTranslations();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -24,9 +26,9 @@ export default function useDriveActions() {
         limit: files.length,
       };
     } catch (err) {
-      setError(err.message || "Lỗi khi tải dữ liệu");
+      setError(err.message || t("hooks.drive_actions.load_data_error"));
       setLoading(false);
-      toast.error(err.message || "Lỗi khi tải dữ liệu");
+      toast.error(err.message || t("hooks.drive_actions.load_data_error"));
       return {
         files: [],
         folders: [],
@@ -65,17 +67,17 @@ export default function useDriveActions() {
               const result = JSON.parse(xhr.responseText);
               setLoading(false);
               setUploadProgress(100);
-              toast.success("Tải lên thành công!");
+              toast.success(t("hooks.drive_actions.upload_success"));
               resolve(result);
             } catch (e) {
               setLoading(false);
-              setError("Lỗi khi parse response");
-              toast.error("Lỗi khi xử lý response");
-              reject(new Error("Lỗi khi parse response"));
+              setError(t("hooks.drive_actions.parse_response_error"));
+              toast.error(t("hooks.drive_actions.process_response_error"));
+              reject(new Error(t("hooks.drive_actions.parse_response_error")));
             }
           } else {
             setLoading(false);
-            let errorMessage = "Tải lên thất bại";
+            let errorMessage = t("hooks.drive_actions.upload_failed");
             try {
               const errorResult = JSON.parse(xhr.responseText);
               errorMessage = errorResult.error || errorMessage;
@@ -91,7 +93,7 @@ export default function useDriveActions() {
         // Handle network errors
         xhr.addEventListener("error", () => {
           setLoading(false);
-          const errorMessage = "Lỗi kết nối mạng";
+          const errorMessage = t("hooks.drive_actions.network_error");
           setError(errorMessage);
           toast.error(errorMessage);
           reject(new Error(errorMessage));
@@ -100,7 +102,7 @@ export default function useDriveActions() {
         // Handle timeout
         xhr.addEventListener("timeout", () => {
           setLoading(false);
-          const errorMessage = "Upload timeout";
+          const errorMessage = t("hooks.drive_actions.upload_timeout");
           setError(errorMessage);
           toast.error(errorMessage);
           reject(new Error(errorMessage));
@@ -113,8 +115,8 @@ export default function useDriveActions() {
       });
     } catch (err) {
       setLoading(false);
-      setError(err.message || "Lỗi khi tải lên");
-      toast.error(err.message || "Lỗi khi tải lên");
+      setError(err.message || t("hooks.drive_actions.upload_error"));
+      toast.error(err.message || t("hooks.drive_actions.upload_error"));
       return null;
     }
   };
@@ -139,8 +141,8 @@ export default function useDriveActions() {
       return result;
     } catch (err) {
       setLoading(false);
-      setError(err.message || "Lỗi khi tải lên batch");
-      toast.error(err.message || "Lỗi khi tải lên batch");
+      setError(err.message || t("hooks.drive_actions.batch_upload_error"));
+      toast.error(err.message || t("hooks.drive_actions.batch_upload_error"));
       return null;
     }
   };
@@ -158,15 +160,15 @@ export default function useDriveActions() {
       const data = res.data;
       setLoading(false);
       if (data.success) {
-        toast.success("Di chuyển thành công!");
+        toast.success(t("hooks.drive_actions.move_success"));
         return true;
       } else {
-        throw new Error(data.error || "Di chuyển thất bại");
+        throw new Error(data.error || t("hooks.drive_actions.move_failed"));
       }
     } catch (err) {
-      setError(err.message || "Lỗi khi di chuyển");
+      setError(err.message || t("hooks.drive_actions.move_error"));
       setLoading(false);
-      toast.error(err.message || "Lỗi khi di chuyển");
+      toast.error(err.message || t("hooks.drive_actions.move_error"));
       return false;
     }
   };
@@ -180,15 +182,15 @@ export default function useDriveActions() {
       const data = res.data;
       setLoading(false);
       if (data.success) {
-        toast.success("Đã xóa thành công!");
+        toast.success(t("hooks.drive_actions.delete_success"));
         return true;
       } else {
-        throw new Error(data.error || "Xóa thất bại");
+        throw new Error(data.error || t("hooks.drive_actions.delete_failed"));
       }
     } catch (err) {
-      setError(err.message || "Lỗi khi xóa");
+      setError(err.message || t("hooks.drive_actions.delete_error"));
       setLoading(false);
-      toast.error(err.message || "Lỗi khi xóa");
+      toast.error(err.message || t("hooks.drive_actions.delete_error"));
       return false;
     }
   };
@@ -206,15 +208,15 @@ export default function useDriveActions() {
       const data = res.data;
       setLoading(false);
       if (data.success) {
-        toast.success("Đổi tên thành công!");
+        toast.success(t("hooks.drive_actions.rename_success"));
         return true;
       } else {
-        throw new Error(data.error || "Đổi tên thất bại");
+        throw new Error(data.error || t("hooks.drive_actions.rename_failed"));
       }
     } catch (err) {
-      setError(err.message || "Lỗi khi đổi tên");
+      setError(err.message || t("hooks.drive_actions.rename_error"));
       setLoading(false);
-      toast.error(err.message || "Lỗi khi đổi tên");
+      toast.error(err.message || t("hooks.drive_actions.rename_error"));
       return false;
     }
   };

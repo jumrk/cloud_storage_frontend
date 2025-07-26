@@ -57,11 +57,11 @@ export default function PlanList() {
     if (plan.isCustom) {
       // Validate custom input
       if (!Number.isInteger(Number(custom.storage)) || custom.storage < 20) {
-        setCustomError(t("plan_custom_storage_error"));
+        setCustomError(t("plans.custom_storage_error"));
         return;
       }
       if (!Number.isInteger(Number(custom.users)) || custom.users < 20) {
-        setCustomError(t("plan_custom_users_error"));
+        setCustomError(t("plans.custom_users_error"));
         return;
       }
       setCustomError("");
@@ -135,7 +135,7 @@ export default function PlanList() {
         </div>
       ) : plans.length === 0 ? (
         <div className="text-center text-gray-400 py-12 px-2">
-          {t("plan_no_plan")}
+          {t("plans.no_plan")}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mb-6 px-2 sm:px-0">
@@ -164,7 +164,7 @@ export default function PlanList() {
                 {plan.featured && (
                   <div className="absolute left-0 right-0 top-0 z-20">
                     <div className="w-full bg-gradient-to-r from-blue-500 to-cyan-400 text-white text-xs py-1 rounded-t-2xl font-semibold shadow-lg border-b-2 border-blue-300 flex items-center justify-center">
-                      {t("plan_featured")}
+                      {t("plans.featured")}
                     </div>
                   </div>
                 )}
@@ -184,30 +184,30 @@ export default function PlanList() {
                 <div className="mb-2 text-center">
                   <span className="text-2xl font-bold text-gray-900">
                     {plan.isCustom
-                      ? t("plan_custom")
+                      ? t("plans.custom")
                       : plan.priceMonth === 0
-                      ? t("plan_free")
+                      ? t("plans.free")
                       : plan.priceMonth?.toLocaleString("vi-VN") + "₫"}
                   </span>
                   <span className="text-base font-normal text-gray-500">
-                    {t("plan_month")}
+                    {t("plans.month")}
                   </span>
                 </div>
                 {/* Giá năm + sale */}
                 <div className="mb-2 text-center flex items-center justify-center gap-2">
                   <span className="text-sm text-gray-700">
-                    {t("plan_year")}
+                    {t("plans.year")}
                   </span>
                   <span className="font-semibold text-gray-900">
                     {plan.isCustom
-                      ? t("plan_custom")
+                      ? t("plans.custom")
                       : plan.priceYear === 0
-                      ? t("plan_free")
+                      ? t("plans.free")
                       : plan.priceYear?.toLocaleString("vi-VN") + "₫"}
                   </span>
                   {plan.sale > 0 && !plan.isCustom && (
                     <span className="bg-[#1cadd9] text-white text-xs px-2 py-0.5 rounded ml-1">
-                      {t("plan_save", { sale: plan.sale })}
+                      {t("plans.save", { sale: plan.sale })}
                     </span>
                   )}
                 </div>
@@ -216,13 +216,13 @@ export default function PlanList() {
                   <span className="flex items-center gap-1">
                     <FaUser className="inline-block text-base align-middle" />{" "}
                     {plan.isCustom
-                      ? t("plan_custom")
-                      : t("plan_users", { users: plan.users })}
+                      ? t("plans.custom")
+                      : t("plans.users", { users: plan.users })}
                   </span>
                   <span className="flex items-center gap-1">
                     <FaHdd className="inline-block text-base align-middle" />{" "}
                     {plan.isCustom
-                      ? t("plan_custom")
+                      ? t("plans.custom")
                       : plan.storage
                       ? formatSize(plan.storage)
                       : "-"}
@@ -244,7 +244,7 @@ export default function PlanList() {
                   className="rounded-md py-2 font-semibold transition border-2 border-[#1cadd9] text-white bg-[#1cadd9] hover:bg-[#189bc2] hover:shadow-lg w-full text-center"
                   onClick={() => handleChoosePlan(plan)}
                 >
-                  {t("plan_choose")}
+                  {t("plans.choose")}
                 </button>
               </div>
             );

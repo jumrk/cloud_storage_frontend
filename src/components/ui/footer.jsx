@@ -13,16 +13,16 @@ function Footer() {
               <img src="/images/Logo_2.png" alt="D2MBox" className="w-40 " />
             </div>
             <div className="text-white font-semibold text-base ">
-              The Privacy Company
+              {t("footer.tagline")}
             </div>
             <div className="text-gray-400 text-sm ">
-              Dịch vụ mã hoá điện toán đám mây cho cộng đồng
+              {t("footer.description")}
             </div>
             <div className="text-gray-500 text-xs ">
-              © D2MBox 2025 Mọi quyền được bảo lưu
+              {t("footer.copyright")}
             </div>
             <div className="text-white font-semibold text-sm mb-2">
-              Theo dõi D2MBox
+              {t("footer.follow_us")}
             </div>
             <div className="flex gap-3">
               {/* Social icons, giữ đều, bo tròn, nền xám đậm */}
@@ -121,7 +121,7 @@ function Footer() {
               <ul className="space-y-1 text-sm">
                 <li>
                   <a href="/about" className="hover:text-[#189ff2] transition">
-                    {t("footer_about")}
+                    {t("footer.about")}
                   </a>
                 </li>
               </ul>
@@ -129,7 +129,7 @@ function Footer() {
 
             <div>
               <div className="text-white font-semibold text-sm mb-3">
-                Hỗ trợ
+                {t("footer.support_title")}
               </div>
               <ul className="space-y-1 text-sm">
                 <li>
@@ -137,18 +137,18 @@ function Footer() {
                     href="/contact"
                     className="hover:text-[#189ff2] transition"
                   >
-                    {t("footer_support")}
+                    {t("footer.support")}
                   </a>
                 </li>
                 <li>
                   <a href="/faq" className="hover:text-[#189ff2] transition">
-                    {t("footer_faq")}
+                    {t("footer.faq")}
                   </a>
                 </li>
               </ul>
               <div className="mt-10">
                 <div className="text-white font-semibold text-sm mb-3">
-                  Chính sách
+                  {t("footer.policy_title")}
                 </div>
                 <ul className="space-y-1 text-sm">
                   <li>
@@ -156,7 +156,7 @@ function Footer() {
                       href="/privacy_policy"
                       className="hover:text-[#189ff2] transition"
                     >
-                      {t("footer_privacy")}
+                      {t("footer.privacy")}
                     </a>
                   </li>
                   <li>
@@ -164,7 +164,7 @@ function Footer() {
                       href="/terms_of_use"
                       className="hover:text-[#189ff2] transition"
                     >
-                      {t("footer_terms")}
+                      {t("footer.terms")}
                     </a>
                   </li>
                   <li>
@@ -173,7 +173,7 @@ function Footer() {
                       href="/cookie_policy"
                       className="hover:text-[#189ff2] transition"
                     >
-                      {t("footer_cookie")}
+                      {t("footer.cookie")}
                     </a>
                   </li>
                 </ul>

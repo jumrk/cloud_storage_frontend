@@ -1,8 +1,10 @@
 import React, { useState } from "react";
 import toast from "react-hot-toast";
 import axiosClient from "@/lib/axiosClient";
+import { useTranslations } from "next-intl";
 
 export default function ChangePasswordModal({ open, onClose }) {
+  const t = useTranslations();
   const [form, setForm] = useState({
     oldPassword: "",
     newPassword: "",
@@ -24,28 +26,28 @@ export default function ChangePasswordModal({ open, onClose }) {
     if (!form.oldPassword) {
       setErrors((prev) => ({
         ...prev,
-        oldPassword: "Vui lòng nhập mật khẩu hiện tại",
+        oldPassword: t("change_password.old_password_required"),
       }));
       return;
     }
     if (!form.newPassword) {
       setErrors((prev) => ({
         ...prev,
-        newPassword: "Vui lòng nhập mật khẩu mới",
+        newPassword: t("change_password.new_password_required"),
       }));
       return;
     }
     if (form.newPassword.length < 6) {
       setErrors((prev) => ({
         ...prev,
-        newPassword: "Mật khẩu mới phải từ 6 ký tự",
+        newPassword: t("change_password.password_min_length"),
       }));
       return;
     }
     if (form.newPassword !== form.confirmPassword) {
       setErrors((prev) => ({
         ...prev,
-        confirmPassword: "Mật khẩu nhập lại không khớp",
+        confirmPassword: t("change_password.password_mismatch"),
       }));
       return;
     }
@@ -55,7 +57,7 @@ export default function ChangePasswordModal({ open, onClose }) {
         oldPassword: form.oldPassword,
         newPassword: form.newPassword,
       });
-      toast.success("Đổi mật khẩu thành công!");
+      toast.success(t("change_password.change_success"));
       setForm({ oldPassword: "", newPassword: "", confirmPassword: "" });
       // Xóa toàn bộ localStorage và chuyển hướng về login
       localStorage.clear();
@@ -66,8 +68,8 @@ export default function ChangePasswordModal({ open, onClose }) {
         setErrors({ general: err.response.data.error });
         toast.error(err.response.data.error);
       } else {
-        setErrors({ general: "Có lỗi xảy ra" });
-        toast.error("Có lỗi xảy ra");
+        setErrors({ general: t("change_password.general_error") });
+        toast.error(t("change_password.general_error"));
       }
     } finally {
       setLoading(false);
@@ -85,7 +87,7 @@ export default function ChangePasswordModal({ open, onClose }) {
           ×
         </button>
         <h2 className="text-xl font-bold mb-4 text-center text-slate-800">
-          Đổi mật khẩu
+          {t("change_password.title")}
         </h2>
         <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
           <input
@@ -94,7 +96,7 @@ export default function ChangePasswordModal({ open, onClose }) {
             className={`bg-slate-50 border rounded px-4 py-2 text-base focus:outline-none ${
               errors.oldPassword ? "border-red-500" : "border-slate-200"
             }`}
-            placeholder="Mật khẩu hiện tại"
+            placeholder={t("change_password.old_password_placeholder")}
             value={form.oldPassword}
             onChange={handleChange}
             autoComplete="current-password"
@@ -111,7 +113,7 @@ export default function ChangePasswordModal({ open, onClose }) {
             className={`bg-slate-50 border rounded px-4 py-2 text-base focus:outline-none ${
               errors.newPassword ? "border-red-500" : "border-slate-200"
             }`}
-            placeholder="Mật khẩu mới"
+            placeholder={t("change_password.new_password_placeholder")}
             value={form.newPassword}
             onChange={handleChange}
             autoComplete="new-password"
@@ -128,7 +130,7 @@ export default function ChangePasswordModal({ open, onClose }) {
             className={`bg-slate-50 border rounded px-4 py-2 text-base focus:outline-none ${
               errors.confirmPassword ? "border-red-500" : "border-slate-200"
             }`}
-            placeholder="Nhập lại mật khẩu mới"
+            placeholder={t("change_password.confirm_password_placeholder")}
             value={form.confirmPassword}
             onChange={handleChange}
             autoComplete="new-password"
@@ -149,14 +151,16 @@ export default function ChangePasswordModal({ open, onClose }) {
               onClick={onClose}
               disabled={loading}
             >
-              Hủy
+              {t("change_password.cancel")}
             </button>
             <button
               type="submit"
               className="px-4 py-2 rounded bg-indigo-600 text-white shadow hover:bg-indigo-700 transition-all text-base font-medium"
               disabled={loading}
             >
-              {loading ? "Đang đổi..." : "Xác nhận đổi mật khẩu"}
+              {loading
+                ? t("change_password.changing")
+                : t("change_password.confirm_change")}
             </button>
           </div>
         </form>

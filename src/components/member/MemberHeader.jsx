@@ -4,10 +4,12 @@ import { useRouter } from "next/navigation";
 import { FiUser } from "react-icons/fi";
 import { IoIosLogOut } from "react-icons/io";
 import axiosClient from "@/lib/axiosClient";
+import { useTranslations } from "next-intl";
 
 export default function MemberHeader() {
   const [email, setEmail] = useState("");
   const router = useRouter();
+  const t = useTranslations();
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -38,7 +40,7 @@ export default function MemberHeader() {
           <FiUser className="text-primary" />
           <span className="text-gray-800 font-medium text-sm">{email}</span>
         </div>
-        <button onClick={handleLogout} title="Đăng xuất">
+        <button onClick={handleLogout} title={t("member.header.logout")}>
           <IoIosLogOut className="cursor-pointer text-2xl" />
         </button>
       </div>

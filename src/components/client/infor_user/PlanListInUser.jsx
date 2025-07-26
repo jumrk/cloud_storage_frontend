@@ -6,6 +6,7 @@ import { PLAN_ICONS } from "@/components/admin/planIcons";
 import { getCustomPlanPrice } from "@/utils/planUtils";
 import { formatSize } from "@/utils/driveUtils";
 import { FaUser, FaHdd } from "react-icons/fa";
+import { useTranslations } from "next-intl";
 
 const PLAN_COLORS = [
   "#4abad9",
@@ -25,6 +26,7 @@ export default function PlanListInUser({
   currentPlanStorage,
   user, // nhận thêm prop user
 }) {
+  const t = useTranslations();
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   // State cho custom plan
@@ -67,11 +69,11 @@ export default function PlanListInUser({
   // Validate custom input
   const validateCustom = () => {
     if (!Number.isInteger(Number(custom.storage)) || custom.storage < 20) {
-      setCustomError("Dung lượng tối thiểu 20TB, số nguyên");
+      setCustomError(t("plans.custom_storage_error"));
       return false;
     }
     if (!Number.isInteger(Number(custom.users)) || custom.users < 20) {
-      setCustomError("Số người dùng tối thiểu 20, số nguyên");
+      setCustomError(t("plans.custom_users_error"));
       return false;
     }
     setCustomError("");
@@ -145,7 +147,9 @@ export default function PlanListInUser({
 
   return (
     <div className="mt-10">
-      <div className="font-bold text-lg mb-4">Các gói dịch vụ</div>
+      <div className="font-bold text-lg mb-4">
+        {t("plan_list_in_user.title")}
+      </div>
       {/* Custom plan card giống các plan khác, không có input */}
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-6 px-2 sm:px-0">
@@ -183,7 +187,7 @@ export default function PlanListInUser({
         </div>
       ) : plans.length === 0 ? (
         <div className="text-center text-gray-400 py-12 px-2">
-          Không có gói dịch vụ nào.
+          {t("plan_list_in_user.no_plans")}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-6 px-2 sm:px-0">
@@ -234,7 +238,7 @@ export default function PlanListInUser({
                 {plan.featured && (
                   <div className="absolute left-0 right-0 top-0 z-20">
                     <div className="w-full bg-gradient-to-r from-blue-500 to-cyan-400 text-white text-xs py-2 rounded-t-2xl font-semibold shadow-lg border-b-2 border-blue-300 flex items-center justify-center">
-                      Ưu chuộng nhất
+                      {t("plan_list_in_user.featured")}
                     </div>
                   </div>
                 )}
@@ -254,28 +258,30 @@ export default function PlanListInUser({
                 <div className="mb-2 text-center">
                   <span className="text-2xl font-bold text-gray-900">
                     {plan.isCustom
-                      ? "Tùy chọn"
+                      ? t("plan_list_in_user.custom")
                       : plan.priceMonth === 0
-                      ? "Miễn phí"
+                      ? t("plan_list_in_user.free")
                       : plan.priceMonth?.toLocaleString("vi-VN") + "₫"}
                   </span>
                   <span className="text-base font-normal text-gray-500">
-                    /tháng
+                    {t("plan_list_in_user.per_month")}
                   </span>
                 </div>
                 {/* Giá năm + sale */}
                 <div className="mb-2 text-center flex items-center justify-center gap-2">
-                  <span className="text-sm text-gray-700">Năm:</span>
+                  <span className="text-sm text-gray-700">
+                    {t("plan_list_in_user.year")}
+                  </span>
                   <span className="font-semibold text-gray-900">
                     {plan.isCustom
-                      ? "Tùy chọn"
+                      ? t("plan_list_in_user.custom")
                       : plan.priceYear === 0
-                      ? "Miễn phí"
+                      ? t("plan_list_in_user.free")
                       : plan.priceYear?.toLocaleString("vi-VN") + "₫"}
                   </span>
                   {plan.sale > 0 && !plan.isCustom && (
                     <span className="bg-[#1cadd9] text-white text-xs px-2 py-0.5 rounded ml-1">
-                      Tiết kiệm {plan.sale}%
+                      {t("plan_list_in_user.save", { sale: plan.sale })}
                     </span>
                   )}
                 </div>
@@ -283,12 +289,14 @@ export default function PlanListInUser({
                 <div className="flex justify-center gap-4 mb-2 text-xs text-gray-500">
                   <span className="flex items-center gap-1">
                     <FaUser className="inline-block text-base align-middle" />{" "}
-                    {plan.isCustom ? "Tùy chọn" : plan.users + " người dùng"}
+                    {plan.isCustom
+                      ? t("plan_list_in_user.custom")
+                      : t("plan_list_in_user.users", { users: plan.users })}
                   </span>
                   <span className="flex items-center gap-1">
                     <FaHdd className="inline-block text-base align-middle" />{" "}
                     {plan.isCustom
-                      ? "Tùy chọn"
+                      ? t("plan_list_in_user.custom")
                       : plan.storage
                       ? formatSize(plan.storage)
                       : "-"}
@@ -312,23 +320,23 @@ export default function PlanListInUser({
                       className="rounded-md py-2 font-semibold transition border-2 border-[#1cadd9] text-[#1cadd9] bg-white hover:bg-[#1cadd9] hover:text-white hover:shadow-lg w-full text-center"
                       onClick={() => onRenew && onRenew(plan)}
                     >
-                      Gia hạn
+                      {t("plan_list_in_user.renew")}
                     </button>
                   ) : (
                     <button
                       className="rounded-md py-2 font-semibold transition bg-gray-300 text-gray-500 border-2 border-gray-300 cursor-not-allowed w-full text-center"
                       disabled
                     >
-                      Đang sử dụng
+                      {t("plan_list_in_user.currently_using")}
                     </button>
                   )
                 ) : isPlanSmallerThanCustom ? (
                   <button
                     className="rounded-md py-2 font-semibold transition bg-gray-300 text-gray-500 border-2 border-gray-300 cursor-not-allowed w-full text-center"
                     disabled
-                    title="Không thể mua gói nhỏ hơn gói tùy chọn hiện tại"
+                    title={t("plan_list_in_user.cannot_buy_smaller_tooltip")}
                   >
-                    Không thể mua gói nhỏ hơn
+                    {t("plan_list_in_user.cannot_buy_smaller")}
                   </button>
                 ) : isLower ? (
                   canDowngrade ? (
@@ -336,15 +344,15 @@ export default function PlanListInUser({
                       className="rounded-md py-2 font-semibold transition border-2 border-[#1cadd9] text-[#1cadd9] bg-white hover:bg-[#1cadd9] hover:text-white hover:shadow-lg w-full text-center"
                       onClick={() => onChoose && onChoose(plan, "downgrade")}
                     >
-                      Chọn gói này
+                      {t("plan_list_in_user.choose_this_plan")}
                     </button>
                   ) : (
                     <button
                       className="rounded-md py-2 font-semibold transition bg-gray-300 text-gray-500 border-2 border-gray-300 cursor-not-allowed w-full text-center"
                       disabled
-                      title="Chỉ được hạ cấp khi gói sắp hết hạn hoặc đã hết hạn"
+                      title={t("plan_list_in_user.cannot_downgrade_tooltip")}
                     >
-                      Không thể hạ cấp
+                      {t("plan_list_in_user.cannot_downgrade")}
                     </button>
                   )
                 ) : (
@@ -352,7 +360,7 @@ export default function PlanListInUser({
                     className="rounded-md py-2 font-semibold transition border-2 border-[#1cadd9] text-white bg-[#1cadd9] hover:bg-[#189bc2] hover:shadow-lg w-full text-center"
                     onClick={() => onChoose && onChoose(plan, "upgrade")}
                   >
-                    Chọn gói này
+                    {t("plan_list_in_user.choose_this_plan")}
                   </button>
                 )}
               </div>

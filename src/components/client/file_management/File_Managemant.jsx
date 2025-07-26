@@ -31,6 +31,7 @@ import axiosClient from "@/lib/axiosClient";
 import EmptyState from "@/components/ui/EmptyState";
 import FilePreviewModal from "./FilePreviewModal";
 import { toast } from "react-hot-toast";
+import { useTranslations } from "next-intl";
 
 // Lấy tất cả ext từ extMap trong getFileIcon
 const extMap = {
@@ -87,6 +88,7 @@ function SidebarFilter({
   onChangeFilter,
   members,
 }) {
+  const t = useTranslations();
   // Nếu là mobile và chưa open thì không render
   if (isMobile && !open) return null;
   return (
@@ -119,7 +121,7 @@ function SidebarFilter({
           <button
             className="absolute top-4 right-4 text-gray-500 hover:text-primary text-2xl z-10 transition-all duration-200 hover:scale-110 active:scale-95"
             onClick={onClose}
-            aria-label="Đóng bộ lọc"
+            aria-label={t("file.sidebar.close_filter")}
           >
             <FiX />
           </button>
@@ -128,7 +130,7 @@ function SidebarFilter({
         <div className="px-4 mb-2 mt-2">
           <div className="flex items-center gap-2 text-gray-700 font-bold text-[14px] mb-1">
             <FiLayers className="text-primary text-lg" />
-            Loại
+            {t("file.sidebar.type")}
           </div>
           <ul className="flex flex-col gap-1 ml-2 mt-1">
             {loading ? (
@@ -150,7 +152,7 @@ function SidebarFilter({
                   }`}
                   onClick={() => onChangeFilter({ ...filter, type: "all" })}
                 >
-                  Tất cả
+                  {t("file.sidebar.all")}
                   <span className="w-2 h-2 bg-gray-300 rounded-full ml-auto group-hover:bg-primary transition" />
                 </li>
                 <li
@@ -161,7 +163,7 @@ function SidebarFilter({
                   }`}
                   onClick={() => onChangeFilter({ ...filter, type: "file" })}
                 >
-                  Tệp
+                  {t("file.sidebar.file")}
                   <span className="w-2 h-2 bg-gray-300 rounded-full ml-auto group-hover:bg-primary transition" />
                 </li>
                 <li
@@ -172,7 +174,7 @@ function SidebarFilter({
                   }`}
                   onClick={() => onChangeFilter({ ...filter, type: "folder" })}
                 >
-                  Thư mục
+                  {t("file.sidebar.folder")}
                   <span className="w-2 h-2 bg-gray-300 rounded-full ml-auto group-hover:bg-primary transition" />
                 </li>
               </>
@@ -183,7 +185,7 @@ function SidebarFilter({
         <div className="px-4 mb-2">
           <div className="flex items-center gap-2 text-gray-700 font-bold text-[14px] mb-1">
             <FiUser className="text-primary text-lg" />
-            Tài khoản
+            {t("file.sidebar.account")}
           </div>
           <ul className="flex flex-col gap-1 ml-2 mt-1">
             {loading ? (
@@ -205,7 +207,7 @@ function SidebarFilter({
                   }`}
                   onClick={() => onChangeFilter({ ...filter, memberId: null })}
                 >
-                  Tất cả
+                  {t("file.sidebar.all")}
                   <span className="w-2 h-2 bg-gray-300 rounded-full ml-auto group-hover:bg-primary transition" />
                 </li>
                 {members &&
@@ -233,7 +235,7 @@ function SidebarFilter({
         <div className="px-4 mb-2">
           <div className="flex items-center gap-2 text-gray-700 font-bold text-[14px] mb-1">
             <FiLink className="text-primary text-lg" />
-            Các loại tệp
+            {t("file.sidebar.file_types")}
           </div>
           <ul className="flex flex-col gap-1 ml-2 mt-1">
             {loading ? (
@@ -255,7 +257,7 @@ function SidebarFilter({
                   }`}
                   onClick={() => onChangeFilter({ ...filter, fileType: "all" })}
                 >
-                  <span className="font-medium">Tất cả</span>
+                  <span className="font-medium">{t("file.sidebar.all")}</span>
                   <span className="w-2 h-2 bg-gray-300 rounded-full ml-auto group-hover:bg-primary transition" />
                 </li>
                 {fileTypes.map((type) => (
@@ -302,6 +304,7 @@ function getGoogleDriveDownloadUrl(url) {
 }
 
 export default function YourFolder() {
+  const t = useTranslations();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   // Xác định có phải mobile không (dùng matchMedia)
   const [isMobile, setIsMobile] = React.useState(false);
@@ -412,7 +415,12 @@ export default function YourFolder() {
     setUploadBatches((prev) => [...prev, ...newBatches]);
   };
 
-  const tableHeader = ["Tên", "Kích thước", "Ngày", "Lượt tải"];
+  const tableHeader = [
+    t("file.table.name"),
+    t("file.table.size"),
+    t("file.table.date"),
+    t("file.table.downloads"),
+  ];
   const tableActions = useHomeTableActions({ data, setData });
 
   React.useEffect(() => {
@@ -457,16 +465,6 @@ export default function YourFolder() {
   // Handle folder click (enter folder)
   const handleFolderClick = (folder) => {
     setCurrentFolderId(folder.id);
-  };
-  // Handle breadcrumb click (go to ancestor)
-  const handleBreadcrumbClick = (idx) => {
-    if (idx === -1) {
-      setCurrentFolderId(null);
-      setBreadcrumb([]);
-    } else {
-      setCurrentFolderId(breadcrumb[idx].id);
-      setBreadcrumb(breadcrumb.slice(0, idx + 1));
-    }
   };
 
   // Handle create folder
@@ -571,7 +569,7 @@ export default function YourFolder() {
       target = { ...target, _id: target.id };
     }
     if (!target || !target._id) {
-      alert("Không xác định được thư mục hoặc file để cấp quyền!");
+      alert(t("file.error.cannot_identify_permission_target"));
       return;
     }
     setGrantPermissionTarget(target);
@@ -694,7 +692,7 @@ export default function YourFolder() {
         document.body.removeChild(a);
       }
     });
-    toast.success("Đã tải xuống các file đã chọn");
+    toast.success(t("file.toast.download_success"));
   };
 
   return (
@@ -708,7 +706,7 @@ export default function YourFolder() {
             </span>
             <input
               type="text"
-              placeholder="Tìm kiếm..."
+              placeholder={t("file.search.placeholder")}
               className="w-full pl-10 pr-4 py-2 rounded-xl bg-white shadow-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary text-[15px]"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -722,7 +720,7 @@ export default function YourFolder() {
               onClick={() => setShowUploadDropdown(!showUploadDropdown)}
             >
               <FiPlus className="text-lg" />
-              Tải lên
+              {t("file.button.upload")}
               <FiChevronDown
                 className={`text-sm transition-transform ${
                   showUploadDropdown ? "rotate-180" : ""
@@ -744,7 +742,9 @@ export default function YourFolder() {
                   }}
                 >
                   <FiUpload className="text-gray-600" />
-                  <span className="text-gray-700">Tải tệp và thư mục</span>
+                  <span className="text-gray-700">
+                    {t("file.button.upload_files_folders")}
+                  </span>
                 </button>
                 <button
                   className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors rounded-b-lg"
@@ -754,7 +754,9 @@ export default function YourFolder() {
                   }}
                 >
                   <FiFolderPlus className="text-gray-600" />
-                  <span className="text-gray-700">Tạo thư mục</span>
+                  <span className="text-gray-700">
+                    {t("file.button.create_folder")}
+                  </span>
                 </button>
               </div>
             )}
@@ -769,7 +771,7 @@ export default function YourFolder() {
                   : "text-gray-400 hover:bg-gray-100"
               }`}
               onClick={() => setViewMode("grid")}
-              aria-label="Dạng thẻ"
+              aria-label={t("file.button.view_grid")}
             >
               <FiGrid />
             </button>
@@ -780,7 +782,7 @@ export default function YourFolder() {
                   : "text-gray-400 hover:bg-gray-100"
               }`}
               onClick={() => setViewMode("list")}
-              aria-label="Dạng bảng"
+              aria-label={t("file.button.view_list")}
             >
               <FiList />
             </button>
@@ -819,7 +821,7 @@ export default function YourFolder() {
                 <button
                   className="flex items-center justify-center w-10 h-10 rounded-full bg-white shadow hover:bg-blue-100 border border-gray-200 text-primary text-2xl mb-4 transition-all duration-150"
                   onClick={handleBack}
-                  title="Quay lại"
+                  title={t("file.button.back")}
                   style={{ outline: "none" }}
                 >
                   <FiArrowLeft />
@@ -917,7 +919,7 @@ export default function YourFolder() {
               )}
               {loadingMore && (
                 <div className="text-center py-4 text-gray-500">
-                  Đang tải thêm...
+                  {t("file.toast.loading_more")}
                 </div>
               )}
               {hasMore && !loadingMore && (
@@ -926,7 +928,7 @@ export default function YourFolder() {
                     className="px-4 py-1.5 text-sm bg-primary text-white rounded-md shadow hover:bg-blue-600 transition min-w-[100px]"
                     onClick={() => setPage((prev) => prev + 1)}
                   >
-                    Xem thêm
+                    {t("file.button.view_more")}
                   </button>
                 </div>
               )}
@@ -959,7 +961,7 @@ export default function YourFolder() {
         <button
           className="fixed bottom-6 right-6 z-40 bg-primary text-white p-3 rounded-full shadow-lg md:hidden hover:bg-[#189ec6] transition-all duration-200 hover:scale-110 active:scale-95"
           onClick={() => setSidebarOpen(true)}
-          aria-label="Mở bộ lọc"
+          aria-label={t("file.sidebar.open_filter")}
         >
           <FiFilter className="text-2xl" />
         </button>
@@ -978,12 +980,12 @@ export default function YourFolder() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-2">
           <div className="bg-white rounded-xl p-4 w-full max-w-xs md:max-w-md mx-auto shadow-lg">
             <h3 className="text-lg font-semibold mb-4 text-center">
-              Tạo thư mục mới
+              {t("file.modal.create_folder_title")}
             </h3>
             <input
               type="text"
               className="w-full border border-gray-300 rounded px-3 py-2 mb-4"
-              placeholder="Tên thư mục"
+              placeholder={t("file.modal.create_folder_placeholder")}
               value={newFolderName}
               onChange={(e) => setNewFolderName(e.target.value)}
               autoFocus
@@ -993,13 +995,13 @@ export default function YourFolder() {
                 onClick={handleCreateFolder}
                 className="flex-1 bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600"
               >
-                Tạo
+                {t("file.button.create")}
               </button>
               <button
                 onClick={() => setShowCreateFolderModal(false)}
                 className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300"
               >
-                Hủy
+                {t("file.button.cancel")}
               </button>
             </div>
           </div>
@@ -1052,7 +1054,9 @@ export default function YourFolder() {
       {showMoveModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-xl p-6 min-w-[320px] shadow-2xl relative">
-            <h3 className="font-bold text-lg mb-4">Chọn thư mục đích</h3>
+            <h3 className="font-bold text-lg mb-4">
+              {t("file.modal.move_folder_title")}
+            </h3>
             <div className="max-h-60 overflow-y-auto mb-4">
               <div
                 className={`p-2 rounded cursor-pointer mb-1 ${
@@ -1061,10 +1065,13 @@ export default function YourFolder() {
                     : "hover:bg-blue-100"
                 }`}
                 onClick={() =>
-                  setMoveTargetFolder({ id: null, name: "Thư mục gốc" })
+                  setMoveTargetFolder({
+                    id: null,
+                    name: t("file.modal.move_outside_all"),
+                  })
                 }
               >
-                📁 Ra ngoài tất cả thư mục (Thư mục gốc)
+                {t("file.modal.move_outside_all")}
               </div>
               {data
                 .filter((item) => item.type === "folder")
@@ -1080,7 +1087,9 @@ export default function YourFolder() {
                       setMoveTargetFolder({ id: folder.id, name: folder.name })
                     }
                   >
-                    📁 {folder.name}
+                    {t("file.modal.move_folder_option", {
+                      folderName: folder.name,
+                    })}
                   </div>
                 ))}
             </div>
@@ -1089,14 +1098,14 @@ export default function YourFolder() {
                 onClick={() => setShowMoveModal(false)}
                 className="px-4 py-2 rounded bg-gray-200"
               >
-                Hủy
+                {t("file.button.cancel")}
               </button>
               <button
                 onClick={handleConfirmMove}
                 className="px-4 py-2 rounded bg-primary text-white disabled:bg-gray-300"
                 disabled={!moveTargetFolder}
               >
-                Di chuyển
+                {t("file.button.move")}
               </button>
             </div>
           </div>

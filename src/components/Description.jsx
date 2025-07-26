@@ -13,23 +13,23 @@ export default function Description() {
   const t = useTranslations();
   const features = [
     {
-      title: t("desc_feature_1_title"),
-      desc: t("desc_feature_1_desc"),
+      title: t("description.feature_1_title"),
+      desc: t("description.feature_1_desc"),
       animation: wirel,
     },
     {
-      title: t("desc_feature_2_title"),
-      desc: t("desc_feature_2_desc"),
+      title: t("description.feature_2_title"),
+      desc: t("description.feature_2_desc"),
       animation: wirel,
     },
     {
-      title: t("desc_feature_3_title"),
-      desc: t("desc_feature_3_desc"),
+      title: t("description.feature_3_title"),
+      desc: t("description.feature_3_desc"),
       animation: wirel,
     },
     {
-      title: t("desc_feature_4_title"),
-      desc: t("desc_feature_4_desc"),
+      title: t("description.feature_4_title"),
+      desc: t("description.feature_4_desc"),
       animation: wirel,
     },
   ];
@@ -40,7 +40,7 @@ export default function Description() {
         <div className="w-full flex flex-col mt-20 items-center mb-14">
           <ScrollReveal>
             <h2 className="text-2xl text-center md:text-3xl font-bold text-[#0258a8] mb-10">
-              {t("desc_title")}
+              {t("description.title")}
             </h2>
           </ScrollReveal>
           <div className="w-full max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2  gap-10 items-center">
@@ -70,13 +70,13 @@ export default function Description() {
             <ScrollReveal>
               <div className="flex flex-col justify-center text-center md:text-left">
                 <p className="text-[#01579B] font-bold text-sm md:text-lg uppercase tracking-wide">
-                  {t("desc_sync")}
+                  {t("description.sync")}
                 </p>
                 <h2 className="text-primary font-bold text-2xl md:text-4xl mt-2">
-                  {t("desc_sync_title")}
+                  {t("description.sync_title")}
                 </h2>
                 <p className="text-primary/80 text-sm md:text-lg mt-3 max-w-md mx-auto md:mx-0">
-                  {t("desc_sync_desc")}
+                  {t("description.sync_desc")}
                 </p>
               </div>
             </ScrollReveal>
@@ -95,13 +95,13 @@ export default function Description() {
               <div className="flex flex-col items-end justify-center text-center md:text-left md:order-1">
                 <div>
                   <p className="text-[#01579B] font-bold text-sm md:text-lg uppercase tracking-wide">
-                    {t("desc_share")}
+                    {t("description.share")}
                   </p>
                   <h2 className="text-primary font-bold text-2xl md:text-4xl mt-2">
-                    {t("desc_share_title")}
+                    {t("description.share_title")}
                   </h2>
                   <p className="text-primary/80 text-sm md:text-lg mt-3 max-w-md mx-auto md:mx-0">
-                    {t("desc_share_desc")}
+                    {t("description.share_desc")}
                   </p>
                 </div>
               </div>
@@ -120,13 +120,13 @@ export default function Description() {
             <ScrollReveal>
               <div className="flex flex-col justify-center text-center md:text-left md:order-1">
                 <p className="text-[#01579B] font-bold text-sm md:text-lg uppercase tracking-wide">
-                  {t("desc_ui")}
+                  {t("description.ui")}
                 </p>
                 <h2 className="text-primary font-bold text-2xl md:text-4xl mt-2">
-                  {t("desc_ui_title")}
+                  {t("description.ui_title")}
                 </h2>
                 <p className="text-primary/80 text-sm md:text-lg mt-3 max-w-md mx-auto md:mx-0">
-                  {t("desc_ui_desc")}
+                  {t("description.ui_desc")}
                 </p>
               </div>
             </ScrollReveal>

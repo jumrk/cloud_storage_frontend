@@ -2,8 +2,10 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
 import axiosClient from "@/lib/axiosClient";
+import { useTranslations } from "next-intl";
 
 export default function useHomeTableActions({ data = [], setData }) {
+  const t = useTranslations();
   const [selectedItems, setSelectedItems] = useState([]); // [{id, type, ...}]
   const [draggedItems, setDraggedItems] = useState([]); // [{id, type, ...}]
 
@@ -48,9 +50,9 @@ export default function useHomeTableActions({ data = [], setData }) {
       setData((prev) =>
         prev.map((item) => (item.id === id ? { ...item, name: newName } : item))
       );
-      toast.success("Đổi tên thành công!");
+      toast.success(t("hooks.home_table.rename_success"));
     } catch (e) {
-      toast.error("Đổi tên thất bại: " + e.message);
+      toast.error(t("hooks.home_table.rename_failed", { message: e.message }));
     }
   };
 

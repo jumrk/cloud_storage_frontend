@@ -10,8 +10,10 @@ import {
 import { IoClose } from "react-icons/io5";
 import toast from "react-hot-toast";
 import { v4 as uuidv4 } from "uuid";
+import { useTranslations } from "next-intl";
 
 const UploadModal = ({ isOpen, onClose, onStartUpload, parentId }) => {
+  const t = useTranslations();
   const fileInputRef = useRef();
   const folderInputRef = useRef();
   const [dragActive, setDragActive] = useState(false);
@@ -267,18 +269,16 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId }) => {
         <div className="flex flex-col items-center gap-4 text-center mb-6">
           <FiUploadCloud size={60} className="text-blue-600 animate-pulse" />
           <h2 className="text-2xl font-bold text-gray-800">
-            Tải lên tệp hoặc thư mục
+            {t("upload_modal.title")}
           </h2>
-          <p className="text-sm text-gray-500">
-            Kéo và thả file/thư mục hoặc chọn từ thiết bị
-          </p>
+          <p className="text-sm text-gray-500">{t("upload_modal.drag_drop")}</p>
         </div>
 
         {/* Drag Area Overlay */}
         {dragActive && (
           <div className="absolute inset-0 border-4 border-dashed border-blue-500 rounded-2xl bg-blue-50/50 flex items-center justify-center pointer-events-none">
             <p className="text-lg font-semibold text-blue-600">
-              Thả file/thư mục tại đây!
+              {t("upload_modal.drop_here")}
             </p>
           </div>
         )}
@@ -287,7 +287,7 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId }) => {
         {selectedFiles.length > 0 && (
           <div className="mb-6 max-h-60 overflow-y-auto border border-gray-200 rounded-lg p-2">
             <div className="text-sm font-medium text-gray-700 mb-2 px-2">
-              Danh sách tệp ({selectedFiles.length})
+              {t("upload_modal.file_list", { count: selectedFiles.length })}
             </div>
             {selectedFiles.map((item, index) => (
               <div
@@ -304,7 +304,7 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId }) => {
                 <button
                   onClick={() => handleRemoveFile(index)}
                   className="text-red-500 hover:text-red-700 p-1"
-                  title="Xóa"
+                  title={t("upload_modal.remove")}
                 >
                   <IoClose size={16} />
                 </button>
@@ -322,12 +322,13 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId }) => {
           >
             {isUploading ? (
               <>
-                <span className="animate-spin">⏳</span> Đang tải...
+                <span className="animate-spin">⏳</span>{" "}
+                {t("upload_modal.uploading")}
               </>
             ) : (
               <>
                 <FiUploadCloud size={20} />
-                Chọn tệp
+                {t("upload_modal.choose_file")}
               </>
             )}
           </button>
@@ -346,12 +347,13 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId }) => {
           >
             {isUploading ? (
               <>
-                <span className="animate-spin">⏳</span> Đang tải...
+                <span className="animate-spin">⏳</span>{" "}
+                {t("upload_modal.uploading")}
               </>
             ) : (
               <>
                 <FiUploadCloud size={20} />
-                Chọn thư mục
+                {t("upload_modal.choose_folder")}
               </>
             )}
           </button>
@@ -374,7 +376,7 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId }) => {
               {isUploading ? (
                 <span className="animate-spin">⏳</span>
               ) : (
-                `Tải lên ${selectedFiles.length} mục`
+                t("upload_modal.upload_count", { count: selectedFiles.length })
               )}
             </button>
           )}
@@ -383,7 +385,7 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId }) => {
         {/* Feedback */}
         {isUploading && (
           <p className="mt-4 text-center text-sm text-gray-600">
-            Đang xử lý, vui lòng chờ...
+            {t("upload_modal.processing")}
           </p>
         )}
       </div>

@@ -9,8 +9,10 @@ import {
   ChatBubbleLeftRightIcon,
 } from "@heroicons/react/24/outline";
 import axiosClient from "@/lib/axiosClient";
+import { useTranslations } from "next-intl";
 
 export default function ContactPage() {
+  const t = useTranslations();
   const [form, setForm] = useState({ name: "", email: "", message: "" });
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState(null);
@@ -23,7 +25,7 @@ export default function ContactPage() {
     e.preventDefault();
     setAlert(null);
     if (!form.name || !form.email || !form.message) {
-      setAlert({ type: "error", msg: "Vui lòng nhập đầy đủ thông tin." });
+      setAlert({ type: "error", msg: t("pages.contact.please_fill_all") });
       return;
     }
     setLoading(true);
@@ -32,11 +34,11 @@ export default function ContactPage() {
       const data = res.data;
       setAlert({
         type: "success",
-        msg: data.message || "Gửi yêu cầu thành công!",
+        msg: data.message || t("pages.contact.send_success"),
       });
       setForm({ name: "", email: "", message: "" });
     } catch (err) {
-      const msg = err?.response?.data?.error || "Gửi yêu cầu thất bại.";
+      const msg = err?.response?.data?.error || t("pages.contact.send_failed");
       setAlert({ type: "error", msg });
     } finally {
       setLoading(false);
@@ -48,12 +50,10 @@ export default function ContactPage() {
       <section className="max-w-6xl mx-auto px-4 pt-12 pb-8">
         <ScrollReveal>
           <h1 className="text-4xl md:text-5xl font-bold text-[#189ff2] mb-4 text-center">
-            Liên hệ & Hỗ trợ
+            {t("pages.contact.title")}
           </h1>
           <p className="text-gray-700 text-lg mb-8 text-center">
-            Nếu bạn cần hỗ trợ, tư vấn hoặc có bất kỳ thắc mắc nào về D2MBox,
-            hãy liên hệ với chúng tôi qua các kênh dưới đây hoặc gửi yêu cầu
-            trực tiếp bằng form.
+            {t("pages.contact.subtitle")}
           </p>
         </ScrollReveal>
         <ScrollReveal>
@@ -61,35 +61,43 @@ export default function ContactPage() {
             {/* Thông tin liên hệ */}
             <div className="bg-white rounded-2xl shadow-lg p-8 flex-1 mb-8 md:mb-0 flex flex-col justify-center">
               <h2 className="text-2xl font-bold mb-6 text-[#189ff2] flex items-center gap-2">
-                <GlobeAltIcon className="w-7 h-7 text-[#189ff2]" /> Thông tin
-                liên hệ
+                <GlobeAltIcon className="w-7 h-7 text-[#189ff2]" />{" "}
+                {t("pages.contact.contact_info")}
               </h2>
               <ul className="text-gray-700 text-base space-y-5">
                 <li className="flex items-start gap-3">
                   <MapPinIcon className="w-6 h-6 text-[#189ff2] mt-1" />
                   <div>
-                    <span className="font-semibold">Địa chỉ:</span> 205 Bình Đức
-                    5, Phường Bình Đức, An Giang
+                    <span className="font-semibold">
+                      {t("pages.contact.address")}:
+                    </span>{" "}
+                    205 Bình Đức 5, Phường Bình Đức, An Giang
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
                   <EnvelopeIcon className="w-6 h-6 text-[#189ff2] mt-1" />
                   <div>
-                    <span className="font-semibold">Email:</span>{" "}
+                    <span className="font-semibold">
+                      {t("pages.contact.email")}:
+                    </span>{" "}
                     contact-d2m@dammeviet.vn
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
                   <PhoneIcon className="w-6 h-6 text-[#189ff2] mt-1" />
                   <div>
-                    <span className="font-semibold">Điện thoại:</span> +84 911
-                    930 807
+                    <span className="font-semibold">
+                      {t("pages.contact.phone")}:
+                    </span>{" "}
+                    +84 911 930 807
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
                   <GlobeAltIcon className="w-6 h-6 text-[#189ff2] mt-1" />
                   <div>
-                    <span className="font-semibold">Fanpage:</span>{" "}
+                    <span className="font-semibold">
+                      {t("pages.contact.fanpage")}:
+                    </span>{" "}
                     <a
                       href="https://facebook.com/dichthuatdammeviet"
                       target="_blank"
@@ -103,8 +111,10 @@ export default function ContactPage() {
                 <li className="flex items-start gap-3">
                   <ChatBubbleLeftRightIcon className="w-6 h-6 text-[#189ff2] mt-1" />
                   <div>
-                    <span className="font-semibold">Whatsapp/Wechat:</span> +84
-                    911 930 807
+                    <span className="font-semibold">
+                      {t("pages.contact.whatsapp")}:
+                    </span>{" "}
+                    +84 911 930 807
                   </div>
                 </li>
               </ul>
@@ -112,8 +122,8 @@ export default function ContactPage() {
             {/* Form liên hệ */}
             <div className="bg-white rounded-2xl shadow-lg p-8 flex-1">
               <h2 className="text-2xl font-bold mb-6 text-[#189ff2] flex items-center gap-2">
-                <EnvelopeIcon className="w-7 h-7 text-[#189ff2]" /> Gửi yêu cầu
-                hỗ trợ
+                <EnvelopeIcon className="w-7 h-7 text-[#189ff2]" />{" "}
+                {t("pages.contact.send_request")}
               </h2>
               {alert && (
                 <div
@@ -128,24 +138,28 @@ export default function ContactPage() {
               )}
               <form className="space-y-4" onSubmit={handleSubmit}>
                 <div>
-                  <label className="block font-medium mb-1">Họ và tên</label>
+                  <label className="block font-medium mb-1">
+                    {t("pages.contact.full_name")}
+                  </label>
                   <input
                     name="name"
                     type="text"
                     className="w-full border rounded px-3 py-2 outline-none focus:ring-2 focus:ring-[#189ff2]"
-                    placeholder="Nhập họ tên của bạn"
+                    placeholder={t("pages.contact.full_name_placeholder")}
                     value={form.name}
                     onChange={handleChange}
                     required
                   />
                 </div>
                 <div>
-                  <label className="block font-medium mb-1">Email</label>
+                  <label className="block font-medium mb-1">
+                    {t("pages.contact.email")}
+                  </label>
                   <input
                     name="email"
                     type="email"
                     className="w-full border rounded px-3 py-2 outline-none focus:ring-2 focus:ring-[#189ff2]"
-                    placeholder="Nhập email liên hệ"
+                    placeholder={t("pages.contact.email_placeholder")}
                     value={form.email}
                     onChange={handleChange}
                     required
@@ -153,13 +167,13 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <label className="block font-medium mb-1">
-                    Nội dung hỗ trợ
+                    {t("pages.contact.support_content")}
                   </label>
                   <textarea
                     name="message"
                     className="w-full border rounded px-3 py-2 outline-none focus:ring-2 focus:ring-[#189ff2]"
                     rows={5}
-                    placeholder="Mô tả vấn đề bạn cần hỗ trợ..."
+                    placeholder={t("pages.contact.support_content_placeholder")}
                     value={form.message}
                     onChange={handleChange}
                     required
@@ -170,7 +184,9 @@ export default function ContactPage() {
                   disabled={loading}
                   className="bg-[#189ff2] text-white font-bold px-8 py-3 rounded-lg shadow hover:bg-[#0d8ad1] transition disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  {loading ? "Đang gửi..." : "Gửi yêu cầu"}
+                  {loading
+                    ? t("pages.contact.sending")
+                    : t("pages.contact.send_request_btn")}
                 </button>
               </form>
             </div>

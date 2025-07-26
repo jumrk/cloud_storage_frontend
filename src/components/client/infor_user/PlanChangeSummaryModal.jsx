@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import axiosClient from "@/lib/axiosClient";
 import { calcPlanChange, getCustomPlanPrice } from "@/utils/planUtils";
+import { useTranslations } from "next-intl";
 
 const bankIdMap = {
   MBbank: "mbbank",
@@ -22,6 +23,7 @@ export default function PlanChangeSummaryModal({
   actionType, // "renew" | "upgrade" | "downgrade"
   onConfirm,
 }) {
+  const t = useTranslations();
   const [discountCode, setDiscountCode] = useState("");
   const [discountInfo, setDiscountInfo] = useState(null); // {valid, percent}
   const [discountLoading, setDiscountLoading] = useState(false);
@@ -72,11 +74,11 @@ export default function PlanChangeSummaryModal({
   // Validate custom input
   const validateCustom = () => {
     if (!Number.isInteger(Number(custom.storage)) || custom.storage < 20) {
-      setCustomError("Dung lượng tối thiểu 20TB, số nguyên");
+      setCustomError(t("plan_change_summary.storage_min_error"));
       return false;
     }
     if (!Number.isInteger(Number(custom.users)) || custom.users < 20) {
-      setCustomError("Số người dùng tối thiểu 20, số nguyên");
+      setCustomError(t("plan_change_summary.users_min_error"));
       return false;
     }
     setCustomError("");
@@ -170,16 +172,18 @@ export default function PlanChangeSummaryModal({
   // Ghi chú hiển thị cho user
   let note = "";
   if (!allowChange) {
-    note =
-      "Bạn không thể hạ cấp gói khi gói hiện tại còn thời hạn. Vui lòng đợi hết hạn để đổi sang gói thấp hơn.";
+    note = t("plan_change_summary.cannot_change_plan");
   } else if (oldType === selectedCycle) {
-    note = `Nâng cấp gói cùng loại. Số tiền thanh toán = (giá trị gói mới cho số ngày còn lại) trừ đi giá trị còn lại của gói cũ.`;
+    note = t("plan_change_summary.upgrade_renew_same_type", {
+      amount: amount.toLocaleString("vi-VN"),
+      newPrice: targetCustomPlanPrice.year.toLocaleString("vi-VN"),
+    });
   } else if (oldType === "month" && selectedCycle === "year") {
-    note = `Nâng cấp từ tháng lên năm. Số tiền thanh toán = giá gói năm trừ đi giá trị còn lại của gói tháng.`;
+    note = t("plan_change_summary.upgrade_month_to_year");
   } else if (oldType === "year" && selectedCycle === "month") {
-    note = `Chuyển từ năm sang tháng. Số ngày còn lại của gói năm sẽ được quy đổi thành ${extraDays} ngày sử dụng gói tháng mới.`;
+    note = t("plan_change_summary.downgrade_year_to_month", { extraDays });
   } else {
-    note = "Đổi gói dịch vụ.";
+    note = t("plan_change_summary.change_plan");
   }
 
   // Áp dụng giảm giá nếu có mã hợp lệ
@@ -329,7 +333,7 @@ export default function PlanChangeSummaryModal({
         <button
           className="absolute top-4 right-6 text-gray-400 hover:text-gray-700 text-2xl z-10"
           onClick={onClose}
-          title="Đóng"
+          title={t("plan_change_summary.close")}
         >
           ×
         </button>
@@ -337,17 +341,22 @@ export default function PlanChangeSummaryModal({
         <div className="md:w-1/2 w-full p-10 border-b md:border-b-0 md:border-r border-gray-100 flex flex-col justify-between gap-8">
           <div>
             <div className="text-2xl font-bold mb-4">
-              Thông tin người sở hữu
+              {t("plan_change_summary.owner_info_title")}
             </div>
             <div className="mb-3 text-lg font-semibold">
               {user.fullName} ({user.email})
             </div>
             <div className="mb-2 text-base text-gray-600">
-              Gói hiện tại: <b>{currentPlan?.name || "-"}</b> (
-              {oldType === "year" ? "Năm" : "Tháng"})
+              {t("plan_change_summary.current_plan")}{" "}
+              <b>{currentPlan?.name || "-"}</b> (
+              {oldType === "year"
+                ? t("plan_change_summary.year")
+                : t("plan_change_summary.month")}
+              )
             </div>
             <div className="mb-2 text-base text-gray-600">
-              Gói mới: <b>{targetPlan?.name || "-"}</b>
+              {t("plan_change_summary.new_plan")}{" "}
+              <b>{targetPlan?.name || "-"}</b>
             </div>
             {/* Nếu là custom plan thì cho nhập input ở đây */}
             {targetPlan?.isCustom && (
@@ -355,7 +364,7 @@ export default function PlanChangeSummaryModal({
                 <div className="flex gap-2 mb-2">
                   <div>
                     <label className="block text-gray-700 text-sm font-medium mb-1">
-                      Dung lượng (TB):
+                      {t("plan_change_summary.storage_label")}
                     </label>
                     <input
                       type="number"
@@ -374,7 +383,7 @@ export default function PlanChangeSummaryModal({
                   </div>
                   <div>
                     <label className="block text-gray-700 text-sm font-medium mb-1">
-                      Số người dùng:
+                      {t("plan_change_summary.users_label")}
                     </label>
                     <input
                       type="number"
@@ -398,12 +407,14 @@ export default function PlanChangeSummaryModal({
                 {/* Hiển thị giá custom plan: nếu là custom thì dùng amount đã tính toán, không dùng customPlanPriceSelected trực tiếp */}
                 <div className="mb-2 text-lg font-bold text-primary">
                   {amount.toLocaleString("vi-VN")}₫/
-                  {selectedCycle === "year" ? "năm" : "tháng"}
+                  {selectedCycle === "year"
+                    ? t("plan_change_summary.year")
+                    : t("plan_change_summary.month")}
                 </div>
               </div>
             )}
             <div className="mb-2 text-base text-gray-600 flex items-center gap-3">
-              <span>Chọn loại:</span>
+              <span>{t("plan_change_summary.select_type")}</span>
               <label className="inline-flex items-center gap-1 cursor-pointer">
                 <input
                   type="radio"
@@ -413,7 +424,7 @@ export default function PlanChangeSummaryModal({
                   onChange={() => setBillingType("month")}
                   className="accent-primary"
                 />
-                <span>Tháng</span>
+                <span>{t("plan_change_summary.month")}</span>
               </label>
               <label className="inline-flex items-center gap-1 cursor-pointer">
                 <input
@@ -424,19 +435,20 @@ export default function PlanChangeSummaryModal({
                   onChange={() => setBillingType("year")}
                   className="accent-primary"
                 />
-                <span>Năm</span>
+                <span>{t("plan_change_summary.year")}</span>
               </label>
             </div>
             <div className="mb-2 text-base text-gray-600">
-              Ngày hết hạn hiện tại: <b>{formattedPlanEndDate || "-"}</b>
+              {t("plan_change_summary.current_expiry")}{" "}
+              <b>{formattedPlanEndDate || "-"}</b>
             </div>
             <div className="mb-2 text-base text-gray-600">
-              Số ngày còn lại:{" "}
+              {t("plan_change_summary.days_remaining")}{" "}
               <b>{clientDaysLeft !== null ? clientDaysLeft : daysLeft}</b>
             </div>
             {extraDays > 0 && (
               <div className="mb-2 text-base text-green-700 font-semibold flex items-center gap-2">
-                Số ngày được cộng thêm vào gói mới: <b>{extraDays}</b>
+                {t("plan_change_summary.extra_days")} <b>{extraDays}</b>
                 <span className="relative group cursor-pointer">
                   <svg
                     width="18"
@@ -459,20 +471,14 @@ export default function PlanChangeSummaryModal({
                     </text>
                   </svg>
                   <span className="absolute left-6 top-1/2 -translate-y-1/2 z-20 hidden group-hover:block bg-gray-900 text-white text-xs rounded px-3 py-2 shadow-lg w-[260px]">
-                    Số ngày được cộng thêm = (Số ngày còn lại của gói cũ ×
-                    giá/ngày gói cũ) chia cho giá/ngày gói mới.\n\nNếu gói mới
-                    đắt hơn, số ngày quy đổi sẽ ít hơn. Nếu gói mới rẻ hơn, số
-                    ngày quy đổi sẽ nhiều hơn.
+                    {t("plan_change_summary.extra_days_tooltip")}
                   </span>
                 </span>
               </div>
             )}
             {actionType === "upgrade" && oldType === selectedCycle && (
               <div className="mb-2 text-base text-blue-700 font-semibold flex items-center gap-2">
-                <span>
-                  Số tiền thanh toán đã được tính theo tỉ lệ ngày còn lại
-                  (pro-rata)
-                </span>
+                <span>{t("plan_change_summary.pro_rata_payment")}</span>
                 <span className="relative group cursor-pointer">
                   <svg
                     width="18"
@@ -495,10 +501,7 @@ export default function PlanChangeSummaryModal({
                     </text>
                   </svg>
                   <span className="absolute left-6 top-1/2 -translate-y-1/2 z-20 hidden group-hover:block bg-gray-900 text-white text-xs rounded px-3 py-2 shadow-lg w-[260px]">
-                    Khi chuyển gói cùng loại (tháng → tháng hoặc năm → năm), số
-                    tiền thanh toán = (giá trị gói mới cho số ngày còn lại) trừ
-                    đi giá trị còn lại của gói cũ.\n\nBạn chỉ trả phần chênh
-                    lệch khi nâng cấp.
+                    {t("plan_change_summary.pro_rata_tooltip")}
                   </span>
                 </span>
               </div>
@@ -506,10 +509,9 @@ export default function PlanChangeSummaryModal({
             {/* Hiển thị logic tính toán theo từng case */}
             {!allowChange && actionType === "downgrade" && daysLeft > 0 && (
               <div className="bg-yellow-100 text-yellow-800 p-3 rounded mb-4">
-                <b>Không thể hạ cấp khi gói hiện tại còn ngày sử dụng.</b>
+                <b>{t("plan_change_summary.cannot_downgrade_title")}</b>
                 <br />
-                Vui lòng đợi hết hạn để đổi sang gói thấp hơn hoặc hết hạn mới
-                được đổi.
+                {t("plan_change_summary.cannot_downgrade")}
               </div>
             )}
             {allowChange &&
@@ -518,33 +520,34 @@ export default function PlanChangeSummaryModal({
               selectedCycle === "month" &&
               (extraDays > 0 ? (
                 <div className="bg-blue-100 text-blue-800 p-3 rounded mb-4">
-                  <b>Hạ cấp từ gói năm sang gói tháng:</b>
+                  <b>
+                    {t("plan_change_summary.downgrade_year_to_month_title")}
+                  </b>
                   <br />
-                  Số ngày còn lại của gói năm sẽ được quy đổi thành{" "}
-                  <b>{extraDays}</b> ngày sử dụng gói tháng mới.
+                  {t("plan_change_summary.downgrade_year_to_month", {
+                    extraDays,
+                  })}
                 </div>
               ) : (
                 <div className="bg-yellow-100 text-yellow-800 p-3 rounded mb-4">
-                  <b>
-                    Giá trị còn lại của gói cũ không đủ để quy đổi thành ngày sử
-                    dụng gói mới.
-                  </b>
+                  <b>{t("plan_change_summary.insufficient_value_title")}</b>
                   <br />
-                  Bạn sẽ bắt đầu gói mới mà không được cộng thêm ngày.
+                  {t("plan_change_summary.insufficient_value")}
                 </div>
               ))}
             {allowChange &&
               (actionType === "upgrade" || actionType === "renew") &&
               oldType === selectedCycle && (
                 <div className="bg-green-100 text-green-800 p-3 rounded mb-4">
-                  <b>Nâng cấp/gia hạn cùng loại:</b>
+                  <b>
+                    {t("plan_change_summary.upgrade_renew_same_type_title")}
+                  </b>
                   <br />
-                  Số tiền thanh toán = Giá gói mới - Giá trị còn lại của gói cũ.
-                  <br />
-                  <b>Giá trị còn lại:</b> {amount.toLocaleString("vi-VN")}₫
-                  <br />
-                  <b>Giá gói mới:</b>{" "}
-                  {targetCustomPlanPrice.year.toLocaleString("vi-VN")}₫
+                  {t("plan_change_summary.upgrade_renew_same_type", {
+                    amount: amount.toLocaleString("vi-VN"),
+                    newPrice:
+                      targetCustomPlanPrice.year.toLocaleString("vi-VN"),
+                  })}
                 </div>
               )}
             {allowChange &&
@@ -552,40 +555,37 @@ export default function PlanChangeSummaryModal({
               oldType === "month" &&
               selectedCycle === "year" && (
                 <div className="bg-green-100 text-green-800 p-3 rounded mb-4">
-                  <b>Nâng cấp từ tháng lên năm:</b>
+                  <b>{t("plan_change_summary.upgrade_month_to_year_title")}</b>
                   <br />
-                  Số tiền thanh toán = Giá gói năm - Giá trị còn lại của gói
-                  tháng.
-                  <br />
-                  <b>Giá trị còn lại:</b> {amount.toLocaleString("vi-VN")}₫
-                  <br />
-                  <b>Giá gói năm:</b>{" "}
-                  {targetCustomPlanPrice.year.toLocaleString("vi-VN")}₫
+                  {t("plan_change_summary.upgrade_month_to_year", {
+                    amount: amount.toLocaleString("vi-VN"),
+                    yearPrice:
+                      targetCustomPlanPrice.year.toLocaleString("vi-VN"),
+                  })}
                 </div>
               )}
             {allowChange && actionType === "register" && (
               <div className="bg-green-100 text-green-800 p-3 rounded mb-4">
-                <b>Đăng ký mới:</b> Trả đủ giá gói mới.
+                <b>{t("plan_change_summary.new_registration_title")}</b>{" "}
+                {t("plan_change_summary.new_registration")}
               </div>
             )}
             {/* Hiển thị cảnh báo nếu không cho đổi gói */}
             {!allowChange && (
               <div className="bg-yellow-100 text-yellow-800 p-3 rounded mb-4">
-                Bạn không thể hạ cấp hoặc đổi gói khi gói hiện tại còn thời hạn.
-                Vui lòng đợi hết hạn để đổi sang gói thấp hơn hoặc hết hạn mới
-                được đổi.
+                {t("plan_change_summary.cannot_change_plan")}
               </div>
             )}
           </div>
           <div className="mt-8">
             <label className="block text-base font-medium text-gray-700 mb-2">
-              Mã giảm giá (nếu có):
+              {t("plan_change_summary.discount_code_label")}
             </label>
             <div className="flex gap-3">
               <input
                 type="text"
                 className="border border-gray-300 rounded-lg px-4 py-3 flex-1 focus:outline-none focus:ring-2 focus:ring-blue-200 text-lg"
-                placeholder="Nhập mã giảm giá..."
+                placeholder={t("plan_change_summary.discount_code_placeholder")}
                 value={discountCode}
                 onChange={(e) => {
                   setDiscountCode(e.target.value);
@@ -600,7 +600,9 @@ export default function PlanChangeSummaryModal({
                 onClick={handleCheckDiscount}
                 disabled={discountLoading || !discountCode.trim()}
               >
-                {discountLoading ? "Đang kiểm tra..." : "Áp dụng"}
+                {discountLoading
+                  ? t("plan_change_summary.checking")
+                  : t("plan_change_summary.apply")}
               </button>
             </div>
             {discountError && (
@@ -608,7 +610,9 @@ export default function PlanChangeSummaryModal({
             )}
             {discountInfo && discountInfo.valid && (
               <div className="text-xs text-green-600 mt-1">
-                Áp dụng giảm {discountInfo.percent}%
+                {t("plan_change_summary.discount_applied", {
+                  percent: discountInfo.percent,
+                })}
               </div>
             )}
           </div>
@@ -619,10 +623,10 @@ export default function PlanChangeSummaryModal({
             <>
               <div>
                 <div className="text-2xl font-bold mb-4">
-                  Thông tin thanh toán
+                  {t("plan_change_summary.payment_info_title")}
                 </div>
                 <div className="mb-3 text-lg text-gray-700">
-                  Số tiền cần thanh toán:{" "}
+                  {t("plan_change_summary.amount_to_pay")}{" "}
                   <b className="text-2xl text-primary">
                     {finalAmount.toLocaleString("vi-VN")}₫
                   </b>
@@ -633,7 +637,7 @@ export default function PlanChangeSummaryModal({
               </div>
               <div className="mt-4">
                 <div className="mb-3 text-base font-medium text-gray-700">
-                  Quét mã QR để thanh toán:
+                  {t("plan_change_summary.scan_qr")}
                 </div>
                 <div className="flex justify-center">
                   {paymentLoading ? (
@@ -648,25 +652,31 @@ export default function PlanChangeSummaryModal({
                 </div>
                 <div className="mt-4">
                   <div className="mb-1">
-                    <span className="font-semibold">Ngân hàng:</span>{" "}
+                    <span className="font-semibold">
+                      {t("plan_change_summary.bank")}
+                    </span>{" "}
                     {paymentLoading
-                      ? "Đang tải..."
+                      ? t("plan_change_summary.loading")
                       : paymentBankName || (
                           <span className="text-gray-400">-</span>
                         )}
                   </div>
                   <div className="mb-1">
-                    <span className="font-semibold">Số tài khoản:</span>{" "}
+                    <span className="font-semibold">
+                      {t("plan_change_summary.account_number")}
+                    </span>{" "}
                     {paymentLoading
-                      ? "Đang tải..."
+                      ? t("plan_change_summary.loading")
                       : paymentAccountNumber || (
                           <span className="text-gray-400">-</span>
                         )}
                   </div>
                   <div className="mb-1">
-                    <span className="font-semibold">Chủ tài khoản:</span>{" "}
+                    <span className="font-semibold">
+                      {t("plan_change_summary.account_name")}
+                    </span>{" "}
                     {paymentLoading
-                      ? "Đang tải..."
+                      ? t("plan_change_summary.loading")
                       : paymentAccountName || (
                           <span className="text-gray-400">-</span>
                         )}
@@ -681,7 +691,7 @@ export default function PlanChangeSummaryModal({
               onClick={onClose}
               type="button"
             >
-              Hủy
+              {t("plan_change_summary.cancel")}
             </button>
             <button
               className="px-6 py-3 rounded-lg bg-primary text-white font-medium hover:bg-primary/90 text-lg"
@@ -695,7 +705,9 @@ export default function PlanChangeSummaryModal({
                 submitLoading
               }
             >
-              {submitLoading ? "Đang gửi..." : "Xác nhận"}
+              {submitLoading
+                ? t("plan_change_summary.sending")
+                : t("plan_change_summary.confirm")}
             </button>
           </div>
           {submitError && (
@@ -703,7 +715,7 @@ export default function PlanChangeSummaryModal({
           )}
           {submitSuccess && (
             <div className="text-green-600 text-base mt-2 font-semibold">
-              Đã gửi đơn hàng thành công! Vui lòng chờ admin duyệt.
+              {t("plan_change_summary.order_success")}
             </div>
           )}
         </div>

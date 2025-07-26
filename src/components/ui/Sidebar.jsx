@@ -17,6 +17,7 @@ import toast from "react-hot-toast";
 import { decodeTokenGetUser } from "@/lib/jwt";
 import { FaBars } from "react-icons/fa";
 import axiosClient from "@/lib/axiosClient";
+import { useTranslations } from "next-intl";
 
 export default function Sidebar({
   isMobile = false,
@@ -31,6 +32,7 @@ export default function Sidebar({
   const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [slast, setSlast] = useState("");
+  const t = useTranslations();
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -58,7 +60,7 @@ export default function Sidebar({
     } catch {}
     localStorage.removeItem("token");
     localStorage.clear();
-    toast.success("Đăng xuất thành công!");
+    toast.success(t("sidebar.logout_success"));
     router.push("/Login");
   };
 
@@ -72,33 +74,33 @@ export default function Sidebar({
   // Sidebar menu items
   const menu = [
     {
-      label: "Trang chủ",
+      label: t("sidebar.home"),
       icon: <CiHome className="text-2xl" />,
       href: `/${slast}/home`,
     },
     {
-      label: "Quản lý tệp",
+      label: t("sidebar.file_management"),
       icon: <CiFolderOn className="text-2xl" />,
       href: `/${slast}/file_management`,
     },
     {
-      label: "Quản lý tài khoản",
+      label: t("sidebar.user_management"),
       icon: <CiUser className="text-2xl" />,
       href: `/${slast}/user_management`,
     },
     {
-      label: "Thông báo",
+      label: t("sidebar.notification"),
       icon: <CiBellOn className="text-2xl" />,
       href: `/${slast}/notification`,
       badge: unreadNotificationCount,
     },
     {
-      label: "Thông tin tài khoản",
+      label: t("sidebar.account_info"),
       icon: <CiFileOn className="text-2xl" />,
       href: `/${slast}/infor_user`,
     },
     {
-      label: "Nhắn tin",
+      label: t("sidebar.chat"),
       icon: <CiChat1 className="text-2xl" />,
       href: `/${slast}/chat`,
     },
@@ -145,7 +147,7 @@ export default function Sidebar({
               onClick={onClose}
               className="p-2 text-gray-600 hover:bg-gray-100 rounded-full"
             >
-              <span className="sr-only">Đóng menu</span>×
+              <span className="sr-only">{t("sidebar.close_menu")}</span>×
             </button>
           )}
         </div>
@@ -193,7 +195,7 @@ export default function Sidebar({
             className="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all font-medium text-gray-700 hover:bg-gray-100 hover:text-primary"
           >
             <CiLogout className="text-2xl" />
-            <span>Đăng xuất</span>
+            <span>{t("sidebar.logout")}</span>
           </button>
         </div>
       </nav>

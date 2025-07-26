@@ -16,6 +16,7 @@ import { decodeTokenGetUser } from "@/lib/jwt";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import SkeletonChat from "@/components/ui/SkeletonChat";
+import { useTranslations } from "next-intl";
 
 // Định nghĩa màu cho các loại label
 const LABEL_STYLES = {
@@ -41,6 +42,7 @@ function ChatSidebar({
   setChats,
   loadingChats = false,
 }) {
+  const t = useTranslations();
   const [showSearch, setShowSearch] = useState(false);
   const [searchUser, setSearchUser] = useState("");
   const [searchResults, setSearchResults] = useState([]);
@@ -184,7 +186,7 @@ function ChatSidebar({
             <div className="bg-white rounded-xl shadow-lg p-4 border border-gray-100 mt-2">
               <input
                 className="w-full border border-gray-200 rounded-xl px-3 py-2 mb-2 text-[15px] focus:outline-none focus:ring-1 focus:ring-[#189ff2]"
-                placeholder="Tìm theo email hoặc slast..."
+                placeholder={t("chat.sidebar.search_user_placeholder")}
                 value={searchUser}
                 onChange={(e) => setSearchUser(e.target.value)}
                 autoFocus
@@ -192,14 +194,14 @@ function ChatSidebar({
               <div className="bg-white rounded-xl shadow p-2 max-h-56 overflow-y-auto border border-gray-100">
                 {loading && (
                   <div className="text-center text-gray-400 py-2 text-sm">
-                    Đang tìm...
+                    {t("chat.sidebar.searching")}
                   </div>
                 )}
                 {!loading &&
                   searchResults.length === 0 &&
                   searchUser.trim() && (
                     <div className="text-center text-gray-400 py-2 text-sm">
-                      Không tìm thấy người dùng
+                      {t("chat.sidebar.no_user_found")}
                     </div>
                   )}
                 {searchResults
@@ -243,7 +245,7 @@ function ChatSidebar({
           />
           <input
             className="w-full pl-10 pr-3 py-2 rounded-full bg-gray-100 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#189ff2] text-[15px]"
-            placeholder="Tìm kiếm tin nhắn"
+            placeholder={t("chat.sidebar.search_placeholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -328,7 +330,7 @@ function ChatSidebar({
                         LABEL_STYLES[capitalizeWords(chat.role)]?.bg || "#eee",
                     }}
                   >
-                    {capitalizeWords(chat.role)}
+                    {t(`chat.role.${chat.role.toLowerCase()}`)}
                   </span>
                 )}
                 {/* Nếu muốn có thêm label khác, có thể map thêm ở đây */}
@@ -355,6 +357,7 @@ function ChatSidebar({
 }
 
 function ChatModal({ open, onClose, options, onSelect }) {
+  const t = useTranslations();
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
@@ -366,7 +369,7 @@ function ChatModal({ open, onClose, options, onSelect }) {
           <FiX size={20} />
         </button>
         <div className="font-bold text-lg mb-4 flex items-center gap-2 text-[#189ff2]">
-          <FiUser size={ICON_SIZE} /> Bắt đầu trò chuyện mới
+          <FiUser size={ICON_SIZE} /> {t("chat.modal.new_conversation")}
         </div>
         <div className="flex flex-col gap-2">
           {options.map((opt) => (
@@ -402,6 +405,7 @@ function ChatConversation({
   loadingMessages,
   onlineList,
 }) {
+  const t = useTranslations();
   const messagesEndRef = useRef(null);
   const scrollRef = useRef(null);
   const prevScrollHeight = useRef(0);
@@ -493,7 +497,7 @@ function ChatConversation({
             {loadingMessages ? (
               <Skeleton width={120} height={20} />
             ) : (
-              chat?.name || "Chọn cuộc trò chuyện"
+              chat?.name || t("chat.conversation.select_conversation")
             )}
           </div>
           <div className="text-xs flex items-center gap-1 mt-0.5">
@@ -507,7 +511,9 @@ function ChatConversation({
                   }`}
                 />
                 <span className={isOnline ? "text-green-500" : "text-gray-400"}>
-                  {isOnline ? "Online" : "Offline"}
+                  {isOnline
+                    ? t("chat.status.online")
+                    : t("chat.status.offline")}
                 </span>
               </>
             )}
@@ -522,7 +528,7 @@ function ChatConversation({
       >
         {hasMore && loadingMore && (
           <div className="text-center text-xs text-[#189ff2] mb-2">
-            Đang tải thêm...
+            {t("chat.conversation.loading_more")}
           </div>
         )}
         {loadingMessages ? (
@@ -630,7 +636,7 @@ function ChatConversation({
         </button>
         <input
           className="flex-1 border border-gray-200 rounded-full px-4 py-2 bg-white focus:outline-none focus:ring-1 focus:ring-[#189ff2] text-[15px] placeholder:text-gray-400"
-          placeholder="Type a message"
+          placeholder={t("chat.conversation.input_placeholder")}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           style={{ minHeight: 44 }}

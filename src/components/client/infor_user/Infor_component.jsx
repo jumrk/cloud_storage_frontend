@@ -9,6 +9,7 @@ import "react-loading-skeleton/dist/skeleton.css";
 import PlanListInUser from "./PlanListInUser";
 import PlanChangeSummaryModal from "./PlanChangeSummaryModal";
 import axiosClient from "@/lib/axiosClient";
+import { useTranslations } from "next-intl";
 
 function formatDate(dateStr) {
   if (!dateStr) return "";
@@ -17,6 +18,7 @@ function formatDate(dateStr) {
 }
 
 export default function Infor_component() {
+  const t = useTranslations();
   const [editMode, setEditMode] = useState(false);
   const [user, setUser] = useState(null);
   const [form, setForm] = useState({
@@ -118,12 +120,12 @@ export default function Infor_component() {
       if (data.success) {
         setUser((prev) => ({ ...prev, ...form }));
         setEditMode(false);
-        toast.success("Cập nhật thông tin thành công!");
+        toast.success(t("user_info.update_success"));
       } else {
-        toast.error(data.error || "Cập nhật thất bại");
+        toast.error(data.error || t("user_info.update_failed"));
       }
     } catch (e) {
-      toast.error("Lỗi kết nối");
+      toast.error(t("user_info.connection_error"));
     }
     setEditLoading(false);
   };
@@ -163,7 +165,7 @@ export default function Infor_component() {
         {/* Bảng thông tin chi tiết */}
         <div className="w-full bg-white border border-gray-100">
           <div className="px-6 py-3 border-b border-gray-100 font-semibold text-gray-800 bg-gray-50">
-            Thông tin chi tiết
+            {t("user_info.detail_info")}
           </div>
           <div className="divide-y divide-gray-100">
             {Array.from({ length: 8 }).map((_, idx) => (
@@ -198,7 +200,7 @@ export default function Infor_component() {
   if (!user) {
     return (
       <div className="p-8 text-center text-red-500">
-        Không thể tải thông tin người dùng.
+        {t("user_info.cannot_load_user")}
       </div>
     );
   }
@@ -208,23 +210,25 @@ export default function Infor_component() {
       {/* Cảnh báo sắp hết hạn gói */}
       {daysLeft !== null && daysLeft <= 2 && daysLeft > 0 && (
         <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4 rounded">
-          <div className="font-bold mb-1">Gói của bạn sắp hết hạn!</div>
+          <div className="font-bold mb-1">
+            {t("user_info.plan_expiring_title")}
+          </div>
           <div>
-            Gói <b>{user.plan?.name}</b> sẽ hết hạn vào{" "}
-            <b>{formattedPlanEndDate}</b> (còn <b>{daysLeft}</b> ngày).
-            <br />
-            Vui lòng gia hạn để tránh gián đoạn dịch vụ.
+            {t("user_info.plan_expiring", {
+              plan: user.plan?.name,
+              date: formattedPlanEndDate,
+              days: daysLeft,
+            })}
           </div>
         </div>
       )}
       {/* Cảnh báo sắp hết hạn gói */}
       {hasPendingOrder && (
         <div className="bg-blue-100 border-l-4 border-blue-500 text-blue-800 p-4 mb-4 rounded shadow">
-          <div className="font-bold mb-1 text-lg">Đang chờ duyệt đơn hàng</div>
-          <div>
-            Bạn đã gửi yêu cầu đổi/gia hạn gói. Vui lòng chờ admin duyệt trước
-            khi thực hiện thao tác tiếp theo.
+          <div className="font-bold mb-1 text-lg">
+            {t("user_info.pending_order_title")}
           </div>
+          <div>{t("user_info.pending_order")}</div>
         </div>
       )}
       {/* Avatar + tên + email */}
@@ -244,11 +248,13 @@ export default function Infor_component() {
       {/* Bảng thông tin chi tiết */}
       <div className="w-full bg-white border border-gray-100">
         <div className="px-6 py-3 border-b border-gray-100 font-semibold text-gray-800 bg-gray-50">
-          Thông tin chi tiết
+          {t("user_info.detail_info")}
         </div>
         <div className="divide-y divide-gray-100">
           <div className="flex items-center px-6 py-3">
-            <div className="w-1/3 text-gray-500 font-medium">Họ và tên:</div>
+            <div className="w-1/3 text-gray-500 font-medium">
+              {t("user_info.full_name")}
+            </div>
             <div className="flex-1">
               {editMode ? (
                 <input
@@ -264,7 +270,9 @@ export default function Infor_component() {
             </div>
           </div>
           <div className="flex items-center px-6 py-3">
-            <div className="w-1/3 text-gray-500 font-medium">Ngày sinh:</div>
+            <div className="w-1/3 text-gray-500 font-medium">
+              {t("user_info.date_of_birth")}
+            </div>
             <div className="flex-1">
               {editMode ? (
                 <input
@@ -281,7 +289,7 @@ export default function Infor_component() {
           </div>
           <div className="flex items-center px-6 py-3">
             <div className="w-1/3 text-gray-500 font-medium">
-              Số điện thoại:
+              {t("user_info.phone")}
             </div>
             <div className="flex-1">
               {editMode ? (
@@ -299,13 +307,13 @@ export default function Infor_component() {
           </div>
           <div className="flex items-center px-6 py-3">
             <div className="w-1/3 text-gray-500 font-medium">
-              Tổng file đã upload:
+              {t("user_info.total_files")}
             </div>
             <div className="flex-1 text-gray-900">{user.totalFiles}</div>
           </div>
           <div className="flex items-center px-6 py-3">
             <div className="w-1/3 text-gray-500 font-medium">
-              Tổng dung lượng:
+              {t("user_info.total_storage")}
             </div>
             <div className="flex-1 text-gray-900">
               {formatSize(user.maxStorage)}
@@ -313,7 +321,7 @@ export default function Infor_component() {
           </div>
           <div className="flex items-center px-6 py-3">
             <div className="w-1/3 text-gray-500 font-medium">
-              Dung lượng đã dùng:
+              {t("user_info.used_storage")}
             </div>
             <div className="flex-1 text-gray-900">
               {formatSize(user.usedStorage)}
@@ -321,18 +329,18 @@ export default function Infor_component() {
           </div>
           <div className="flex items-center px-6 py-3">
             <div className="w-1/3 text-gray-500 font-medium">
-              Tổng tài khoản con:
+              {t("user_info.sub_accounts")}
             </div>
             <div className="flex-1 text-gray-900 font-semibold">
               {user.maxUser || user.plan?.users || 0}
               <span className="ml-2 text-gray-400 text-sm">
-                (Số tài khoản user được cấp theo gói hiện tại)
+                {t("user_info.sub_accounts_note")}
               </span>
             </div>
           </div>
           <div className="flex items-center px-6 py-3">
             <div className="w-1/3 text-gray-500 font-medium">
-              Gói dịch vụ hiện tại:
+              {t("user_info.current_plan")}
             </div>
             <div className="flex-1 text-gray-900 font-semibold">
               {user.plan?.name || "-"}
@@ -348,7 +356,7 @@ export default function Infor_component() {
               type="button"
               disabled={editLoading}
             >
-              Hủy
+              {t("user_info.cancel")}
             </button>
             <button
               className="px-4 py-1 rounded bg-primary text-white font-medium hover:bg-primary/90 disabled:bg-gray-300"
@@ -356,7 +364,7 @@ export default function Infor_component() {
               type="button"
               disabled={editLoading}
             >
-              {editLoading ? "Đang lưu..." : "Lưu"}
+              {editLoading ? t("user_info.saving") : t("user_info.save")}
             </button>
           </div>
         )}
@@ -368,7 +376,7 @@ export default function Infor_component() {
           type="button"
           onClick={() => setShowChangePassword(true)}
         >
-          <FiKey className="text-lg" /> Đổi mật khẩu
+          <FiKey className="text-lg" /> {t("change_password.title")}
         </button>
         {!editMode && (
           <button
@@ -376,7 +384,7 @@ export default function Infor_component() {
             type="button"
             onClick={handleEdit}
           >
-            <FiEdit2 className="text-lg" /> Chỉnh sửa
+            <FiEdit2 className="text-lg" /> {t("user_info.edit")}
           </button>
         )}
       </div>

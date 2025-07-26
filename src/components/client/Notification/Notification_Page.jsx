@@ -8,6 +8,7 @@ import {
 } from "react-icons/fi";
 import axiosClient from "@/lib/axiosClient";
 import useSocket from "@/lib/useSocket";
+import { useTranslations } from "next-intl";
 
 const ICON_MAP = {
   info: <FiBell className="text-primary text-lg" />,
@@ -17,6 +18,7 @@ const ICON_MAP = {
 };
 
 function Notification_Page({ onUnreadChange }) {
+  const t = useTranslations();
   const [notifications, setNotifications] = useState([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -136,16 +138,18 @@ function Notification_Page({ onUnreadChange }) {
       {/* Tiêu đề & mô tả + nút đánh dấu đã đọc tất cả */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">Thông báo</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">
+            {t("notification.title")}
+          </h1>
           <p className="text-gray-500 text-sm">
-            Xem các thông báo mới nhất của bạn tại đây.
+            {t("notification.description")}
           </p>
         </div>
         <button
           className="px-4 py-2 rounded bg-primary text-white font-semibold text-sm shadow hover:bg-blue-700"
           onClick={markAllAsRead}
         >
-          Đánh dấu đã đọc tất cả
+          {t("notification.mark_all_read")}
         </button>
       </div>
       {/* Danh sách thông báo */}
@@ -153,7 +157,7 @@ function Notification_Page({ onUnreadChange }) {
         {notifications.length === 0 ? (
           <div className="py-16 flex flex-col items-center text-gray-400">
             <FiBell className="text-4xl mb-2" />
-            Không có thông báo nào.
+            {t("notification.empty")}
           </div>
         ) : (
           notifications.map((item, index) => (
@@ -177,7 +181,7 @@ function Notification_Page({ onUnreadChange }) {
                   </span>
                   {!item.isRead && (
                     <span className="ml-2 px-2 py-0.5 rounded-full bg-primary text-white text-xs font-semibold">
-                      Mới
+                      {t("notification.new")}
                     </span>
                   )}
                 </div>
@@ -196,10 +200,10 @@ function Notification_Page({ onUnreadChange }) {
                   e.stopPropagation();
                   deleteNotification(item._id);
                 }}
-                title="Xóa thông báo"
+                title={t("notification.delete_tooltip")}
               >
                 <FiMoreHorizontal className="text-lg" />
-                <span className="sr-only">Xóa</span>
+                <span className="sr-only">{t("notification.delete")}</span>
               </button>
             </div>
           ))
@@ -212,13 +216,15 @@ function Notification_Page({ onUnreadChange }) {
             className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold"
             onClick={loadMore}
           >
-            Tải thêm
+            {t("notification.load_more")}
           </button>
         </div>
       )}
       {renderPagination()}
       {loading && (
-        <div className="text-center text-gray-400 py-4">Đang tải...</div>
+        <div className="text-center text-gray-400 py-4">
+          {t("notification.loading")}
+        </div>
       )}
     </div>
   );

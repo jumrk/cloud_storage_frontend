@@ -2,12 +2,15 @@
 import React from "react";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { formatSize } from "@/utils/driveUtils";
 import axiosClient from "@/lib/axiosClient";
 import EmptyState from "@/components/ui/EmptyState";
+import { useTranslations } from "next-intl";
 
 function FilterBar({ sortColumn, sortOrder, onSort }) {
+  const t = useTranslations();
+
   // Helper để render mũi tên
   const renderArrow = (col) => {
     if (sortColumn !== col) return <span className="ml-1">▼</span>;
@@ -27,7 +30,7 @@ function FilterBar({ sortColumn, sortOrder, onSort }) {
         }`}
         onClick={() => onSort("account")}
       >
-        Tài khoản {renderArrow("account")}
+        {t("home.filter.account")} {renderArrow("account")}
       </button>
       <button
         className={`${
@@ -41,7 +44,7 @@ function FilterBar({ sortColumn, sortOrder, onSort }) {
         }`}
         onClick={() => onSort("file")}
       >
-        Loại tệp {renderArrow("file")}
+        {t("home.filter.file")} {renderArrow("file")}
       </button>
       <button
         className={`${
@@ -55,7 +58,7 @@ function FilterBar({ sortColumn, sortOrder, onSort }) {
         }`}
         onClick={() => onSort("date")}
       >
-        Ngày đăng {renderArrow("date")}
+        {t("home.filter.date")} {renderArrow("date")}
       </button>
       <button
         className={`${
@@ -69,7 +72,7 @@ function FilterBar({ sortColumn, sortOrder, onSort }) {
         }`}
         onClick={() => onSort("size")}
       >
-        Dung lượng {renderArrow("size")}
+        {t("home.filter.size")} {renderArrow("size")}
       </button>
     </div>
   );
@@ -77,20 +80,21 @@ function FilterBar({ sortColumn, sortOrder, onSort }) {
 
 // Bảng basic
 const columns = [
-  { key: "account", label: "Tài khoản" },
-  { key: "file", label: "Tệp & Thư mục" },
-  { key: "date", label: "Ngày đăng" },
-  { key: "size", label: "Dung lượng" },
+  { key: "account", label: "home.table.account" },
+  { key: "file", label: "home.table.file" },
+  { key: "date", label: "home.table.date" },
+  { key: "size", label: "home.table.size" },
 ];
 
 function BasicTable({ sortColumn, sortOrder, onSort }) {
+  const t = useTranslations();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sortedData, setSortedData] = useState([]);
 
-  useEffect(() => {
-    async function fetchData() {
-      setLoading(true);
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
       // Fetch members, folders, files
       const [membersRes, uploadRes] = await Promise.all([
         axiosClient.get("/api/user/members").then((r) => r.data),
@@ -139,10 +143,17 @@ function BasicTable({ sortColumn, sortOrder, onSort }) {
         }
       }
       setData(rows);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      setData([]);
+    } finally {
       setLoading(false);
     }
-    fetchData();
   }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   useEffect(() => {
     // Sắp xếp data theo sortColumn/sortOrder
@@ -171,7 +182,7 @@ function BasicTable({ sortColumn, sortOrder, onSort }) {
   }, [data, sortColumn, sortOrder]);
 
   if (!loading && sortedData.length === 0) {
-    return <EmptyState message="Không có dữ liệu để hiển thị" />;
+    return <EmptyState message={t("home.empty")} />;
   }
 
   return (
@@ -184,7 +195,7 @@ function BasicTable({ sortColumn, sortOrder, onSort }) {
                 key={col.key}
                 className="px-5 py-3 font-semibold text-left border-b border-gray-200"
               >
-                {col.label}
+                {t(`home.table.${col.key}`)}
               </th>
             ))}
           </tr>
@@ -292,6 +303,7 @@ function FileTypeRatio({ types }) {
 }
 
 function RightSidebar() {
+  const t = useTranslations();
   const [loading, setLoading] = useState(true);
   const [leader, setLeader] = useState(null);
   const [members, setMembers] = useState([]);
@@ -301,9 +313,9 @@ function RightSidebar() {
   const [fileTypes, setFileTypes] = useState([]);
   const [overview, setOverview] = useState({});
 
-  useEffect(() => {
-    async function fetchSidebar() {
-      setLoading(true);
+  const fetchSidebar = useCallback(async () => {
+    setLoading(true);
+    try {
       const [userRes, membersRes, uploadRes] = await Promise.all([
         axiosClient.get("/api/user").then((r) => r.data),
         axiosClient.get("/api/user/members").then((r) => r.data),
@@ -337,10 +349,31 @@ function RightSidebar() {
         usedNum: used,
         totalNum: total,
       });
+    } catch (error) {
+      console.error("Error fetching sidebar data:", error);
+      // Set default values if API fails
+      setLeader({});
+      setMembers([]);
+      setFiles([]);
+      setFolders([]);
+      setFileTypes([]);
+      setOverview({
+        totalFiles: 0,
+        used: "0 B",
+        subAccounts: 0,
+        remain: "0 B",
+        plan: "-",
+        usedNum: 0,
+        totalNum: 1,
+      });
+    } finally {
       setLoading(false);
     }
-    fetchSidebar();
   }, []);
+
+  useEffect(() => {
+    fetchSidebar();
+  }, [fetchSidebar]);
 
   if (loading) {
     return (
@@ -395,24 +428,26 @@ function RightSidebar() {
       {/* Tổng quan + biểu đồ */}
       <div className="mb-6 p-5 rounded-xl bg-[#f7f8fa] border border-gray-100 shadow-sm">
         <div className="font-semibold text-gray-700 mb-3 text-lg tracking-wide">
-          Tổng quan
+          {t("home.sidebar.overview")}
         </div>
         <StoragePieChart used={overview.usedNum} total={overview.totalNum} />
       </div>
       {/* Tổng dung lượng & đã sử dụng */}
       <div className="mb-6 p-5 rounded-xl bg-white border border-gray-100 shadow-sm">
         <div className="font-semibold text-gray-700 mb-3 text-base tracking-wide">
-          Tổng dung lượng
+          {t("home.sidebar.total_storage")}
         </div>
         <div className="flex flex-col gap-2 text-sm">
           <div className="flex justify-between items-center py-1">
-            <span className="text-gray-500">Đã sử dụng</span>
+            <span className="text-gray-500">{t("home.sidebar.used")}</span>
             <span className="font-semibold text-[#1cadd9]">
               {formatSize(overview.usedNum)}
             </span>
           </div>
           <div className="flex justify-between items-center py-1">
-            <span className="text-gray-500">Tổng dung lượng</span>
+            <span className="text-gray-500">
+              {t("home.sidebar.total_storage")}
+            </span>
             <span className="font-semibold">
               {formatSize(overview.totalNum)}
             </span>
@@ -422,42 +457,46 @@ function RightSidebar() {
       {/* Tỉ lệ file */}
       <div className="mb-6 p-5 rounded-xl bg-white border border-gray-100 shadow-sm">
         <div className="font-semibold text-gray-700 mb-3 text-base tracking-wide">
-          Tỉ lệ file
+          {t("home.sidebar.file_ratio")}
         </div>
         <FileTypeRatio types={fileTypes} />
       </div>
       {/* Tổng quan mới */}
       <div className="mb-2 p-5 rounded-xl bg-white border border-gray-100 shadow-sm">
         <div className="font-semibold text-gray-700 mb-3 text-base tracking-wide">
-          Thông tin tài khoản
+          {t("home.sidebar.account_info")}
         </div>
         <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
           <div className="flex flex-col gap-0.5">
-            <span className="text-gray-400">Tổng số file</span>
+            <span className="text-gray-400">
+              {t("home.sidebar.total_files")}
+            </span>
             <span className="font-bold text-base text-gray-800">
               {overview.totalFiles}
             </span>
           </div>
           <div className="flex flex-col gap-0.5">
-            <span className="text-gray-400">Đã sử dụng</span>
+            <span className="text-gray-400">{t("home.sidebar.used")}</span>
             <span className="font-bold text-base text-gray-800">
               {formatSize(overview.usedNum)}
             </span>
           </div>
           <div className="flex flex-col gap-0.5">
-            <span className="text-gray-400">Tài khoản con</span>
+            <span className="text-gray-400">
+              {t("home.sidebar.sub_accounts")}
+            </span>
             <span className="font-bold text-base text-gray-800">
               {overview.subAccounts}
             </span>
           </div>
           <div className="flex flex-col gap-0.5">
-            <span className="text-gray-400">Còn lại</span>
+            <span className="text-gray-400">{t("home.sidebar.remain")}</span>
             <span className="font-bold text-base text-gray-800">
               {formatSize(Math.max(0, overview.totalNum - overview.usedNum))}
             </span>
           </div>
           <div className="col-span-2 flex flex-col gap-0.5 mt-2">
-            <span className="text-gray-400">Gói đăng ký</span>
+            <span className="text-gray-400">{t("home.sidebar.plan")}</span>
             <span className="font-bold text-base text-gray-800">
               {overview.plan}
             </span>

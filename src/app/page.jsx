@@ -24,7 +24,7 @@ export default function Home() {
             <div className="w-full mt-16" id="plan-section">
               <ScrollReveal direction="up">
                 <h2 className="text-primary font-bold text-center text-3xl mb-8">
-                  {t("service_title")}
+                  {t("plans.title")}
                 </h2>
               </ScrollReveal>
               <ScrollReveal direction="down">
@@ -35,48 +35,48 @@ export default function Home() {
             <div className="w-full mt-16 max-w-2xl mx-auto">
               <ScrollReveal direction="up">
                 <h2 className="text-primary font-bold text-center text-3xl mb-8">
-                  {t("faq_title")}
+                  {t("faq.title")}
                 </h2>
               </ScrollReveal>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <ScrollReveal direction="up">
                   <div className="bg-white rounded-lg shadow p-5">
                     <h3 className="font-semibold text-lg text-[#1cadd9] mb-2">
-                      {t("faq_1_q")}
+                      {t("faq.1_q")}
                     </h3>
-                    <p className="text-gray-700">{t("faq_1_a")}</p>
+                    <p className="text-gray-700">{t("faq.1_a")}</p>
                   </div>
                 </ScrollReveal>
                 <ScrollReveal direction="up">
                   <div className="bg-white rounded-lg shadow p-5">
                     <h3 className="font-semibold text-lg text-[#1cadd9] mb-2">
-                      {t("faq_2_q")}
+                      {t("faq.2_q")}
                     </h3>
-                    <p className="text-gray-700">{t("faq_2_a")}</p>
+                    <p className="text-gray-700">{t("faq.2_a")}</p>
                   </div>
                 </ScrollReveal>
                 <ScrollReveal direction="up">
                   <div className="bg-white rounded-lg shadow p-5">
                     <h3 className="font-semibold text-lg text-[#1cadd9] mb-2">
-                      {t("faq_3_q")}
+                      {t("faq.3_q")}
                     </h3>
-                    <p className="text-gray-700">{t("faq_3_a")}</p>
+                    <p className="text-gray-700">{t("faq.3_a")}</p>
                   </div>
                 </ScrollReveal>
                 <ScrollReveal direction="up">
                   <div className="bg-white rounded-lg shadow p-5">
                     <h3 className="font-semibold text-lg text-[#1cadd9] mb-2">
-                      {t("faq_4_q")}
+                      {t("faq.4_q")}
                     </h3>
-                    <p className="text-gray-700">{t("faq_4_a")}</p>
+                    <p className="text-gray-700">{t("faq.4_a")}</p>
                   </div>
                 </ScrollReveal>
                 <ScrollReveal direction="up">
                   <div className="bg-white rounded-lg shadow p-5">
                     <h3 className="font-semibold text-lg text-[#1cadd9] mb-2">
-                      {t("faq_5_q")}
+                      {t("faq.5_q")}
                     </h3>
-                    <p className="text-gray-700">{t("faq_5_a")}</p>
+                    <p className="text-gray-700">{t("faq.5_a")}</p>
                   </div>
                 </ScrollReveal>
               </div>
@@ -87,19 +87,19 @@ export default function Home() {
               <section className="w-full bg-[#e5e7eb] rounded-xl flex flex-col md:flex-row items-center md:items-stretch gap-8 md:gap-12 p-6 md:p-12 mb-10 max-w-5xl mx-auto">
                 <div className="flex-1 flex flex-col  md:items-start text-center md:text-left">
                   <h2 className="text-2xl md:text-5xl font-semibold text-gray-900 mb-4 leading-tight">
-                    {t("cta_title")}{" "}
+                    {t("cta.title")}{" "}
                     <span className="text-[#189ff2]">D2MBox</span>
                   </h2>
                 </div>
                 <div className="flex-1 flex flex-col justify-center items-center md:items-start text-center md:text-left">
                   <p className="text-gray-700 text-sm md:text-base mb-6 max-w-xl">
-                    {t("cta_desc")}
+                    {t("cta.desc")}
                   </p>
                   <a
                     href="#plan-section"
                     className="bg-[#189ff2] text-white font-semibold px-6 py-2 rounded-md shadow hover:bg-[#0d8ad1] transition flex items-center gap-2 mt-2 md:mt-0"
                   >
-                    {t("cta_btn")}
+                    {t("cta.btn")}
                     <span className="ml-1">→</span>
                   </a>
                 </div>

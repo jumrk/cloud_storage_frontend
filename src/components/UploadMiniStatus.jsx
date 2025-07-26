@@ -10,6 +10,7 @@ import {
 } from "react-icons/fi";
 import axiosClient from "@/lib/axiosClient";
 import toast from "react-hot-toast";
+import { useTranslations } from "next-intl";
 
 // Hàm chia file thành chunk
 const createFileChunks = (file, chunkSize = 100 * 1024 * 1024) => {
@@ -53,6 +54,7 @@ const MiniStatusBatch = ({
   moveTargetFolderId,
   useChunkedUpload = false,
 }) => {
+  const t = useTranslations();
   const [fileStates, setFileStates] = useState(
     files.map((f) => ({
       file: f.file,
@@ -620,10 +622,10 @@ const MiniStatusBatch = ({
           )}
           <span className="font-semibold text-sm text-gray-700 truncate">
             {status === "pending"
-              ? `Đang di chuyển...`
+              ? t("upload_status.moving")
               : status === "success"
-              ? "Di chuyển thành công!"
-              : "Di chuyển thất bại"}
+              ? t("upload_status.move_success")
+              : t("upload_status.move_failed")}
           </span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
@@ -682,10 +684,10 @@ const MiniStatusBatch = ({
           )}
           <span className="font-semibold text-sm text-gray-700 truncate">
             {status === "pending"
-              ? `Đang tạo thư mục...`
+              ? t("upload_status.creating_folder")
               : status === "success"
-              ? "Tạo thư mục thành công!"
-              : "Tạo thư mục thất bại"}
+              ? t("upload_status.create_folder_success")
+              : t("upload_status.create_folder_failed")}
           </span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
@@ -712,7 +714,7 @@ const MiniStatusBatch = ({
         </div>
         {status === "error" && (
           <div className="text-xs text-red-500 mt-2">
-            {result?.error || "Có lỗi xảy ra khi tạo thư mục."}
+            {result?.error || t("upload_status.create_folder_error")}
           </div>
         )}
       </div>
@@ -736,10 +738,10 @@ const MiniStatusBatch = ({
           )}
           <span className="font-semibold text-sm text-gray-700 truncate">
             {status === "pending"
-              ? `Đang xóa...`
+              ? t("upload_status.deleting")
               : status === "success"
-              ? "Xóa thành công!"
-              : "Xóa thất bại"}
+              ? t("upload_status.delete_success")
+              : t("upload_status.delete_failed")}
           </span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
@@ -797,10 +799,10 @@ const MiniStatusBatch = ({
         )}
         <span className="font-semibold text-sm text-gray-700 truncate">
           {progress < 100
-            ? `Đang tải lên... ${progress}%`
+            ? t("upload_status.uploading", { progress })
             : fileStates.some((f) => f.status === "error")
-            ? "Có file lỗi"
-            : "Đã tải lên thành công!"}
+            ? t("upload_status.has_error")
+            : t("upload_status.upload_success")}
         </span>
       </div>
       {/* Progress Bar */}

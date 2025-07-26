@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 export default function FilePreviewModal({ file, fileUrl, onClose }) {
+  const t = useTranslations();
   const ext = file.name.split(".").pop().toLowerCase();
   const isText = ["txt", "md", "js", "json", "log", "csv"].includes(ext);
 
@@ -10,9 +12,9 @@ export default function FilePreviewModal({ file, fileUrl, onClose }) {
       fetch(fileUrl)
         .then((res) => res.text())
         .then(setTextContent)
-        .catch(() => setTextContent("Không thể xem trước file này."));
+        .catch(() => setTextContent(t("file.preview.cannot_preview")));
     }
-  }, [fileUrl, isText]);
+  }, [fileUrl, isText, t]);
 
   // Helper chuyển link Google Drive sang /preview nếu là /view
   function getEmbedUrl(url) {
@@ -29,7 +31,7 @@ export default function FilePreviewModal({ file, fileUrl, onClose }) {
         <button
           className="absolute top-2 right-4 text-2xl text-gray-400 hover:text-gray-700 z-10"
           onClick={onClose}
-          title="Đóng"
+          title={t("file.preview.close")}
         >
           ×
         </button>
@@ -48,14 +50,14 @@ export default function FilePreviewModal({ file, fileUrl, onClose }) {
           ) : (
             <div className="flex flex-col items-center gap-3 mt-6">
               <div className="text-gray-500">
-                Không xem trước được file này.
+                {t("file.preview.cannot_preview")}
               </div>
               <a
                 href={fileUrl}
                 download={file.name}
                 className="px-4 py-2 rounded bg-primary text-white font-semibold hover:bg-primary/90 transition"
               >
-                Tải về
+                {t("file.action.download")}
               </a>
             </div>
           )}

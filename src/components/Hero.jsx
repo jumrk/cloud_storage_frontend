@@ -39,18 +39,18 @@ function Hero() {
             </span>
             <span className="relative">
               <span className="bg-[#1cadd9]/20 absolute inset-0 -z-10 rounded-md h-2/3 top-1/3 w-full"></span>
-              <span className="text-[#1cadd9]">{t("hero_solution")}</span>
+              <span className="text-[#1cadd9]">{t("hero.solution")}</span>
             </span>
-            <span className="ml-2">{t("hero_storage")}</span>
+            <span className="ml-2">{t("hero.storage")}</span>
             <br />
             <span className="relative">
               <span className="bg-[#1cadd9]/10 absolute inset-0 -z-10 rounded-md h-2/3 top-1/3 w-full"></span>
-              <span className="text-[#1cadd9]">{t("hero_safe")}</span>
+              <span className="text-[#1cadd9]">{t("hero.safe")}</span>
             </span>
-            <span className="ml-2">{t("hero_and")}</span>
+            <span className="ml-2">{t("hero.and")}</span>
             <span className="relative">
               <span className="bg-[#1cadd9]/20 absolute inset-0 -z-10 rounded-md h-2/3 top-1/3 w-full"></span>
-              <span className="text-[#1cadd9]">{t("hero_fast")}</span>
+              <span className="text-[#1cadd9]">{t("hero.fast")}</span>
             </span>
           </h1>
         </ScrollReveal>
@@ -60,13 +60,13 @@ function Hero() {
               onClick={handleGetStarted}
               className="bg-[#1cadd9] cursor-pointer text-white px-6 py-3 rounded-md font-semibold shadow hover:bg-[#189bc2] transition"
             >
-              {t("hero_get_started")}
+              {t("hero.get_started")}
             </button>
             <button
               className="flex items-center gap-2 px-4 py-3 border border-[#1cadd9] text-[#1cadd9] rounded-md font-medium hover:bg-[#1cadd9]/10 transition"
               onClick={handleScrollToPlan}
             >
-              <FaPlay className="text-xs" /> {t("hero_view_pricing")}
+              <FaPlay className="text-xs" /> {t("hero.view_pricing")}
             </button>
           </div>
         </ScrollReveal>
@@ -79,7 +79,7 @@ function Hero() {
                 className="w-12 h-12 mb-1"
               />
               <span className="text-xl font-bold">20K+</span>
-              <span className="text-gray-500 text-sm ">{t("hero_users")}</span>
+              <span className="text-gray-500 text-sm ">{t("hero.users")}</span>
             </div>
             <div className="flex flex-col items-center">
               <Lottie
@@ -88,7 +88,7 @@ function Hero() {
                 className="w-12 h-12 mb-1"
               />
               <span className="text-xl font-bold">1M+</span>
-              <span className="text-gray-500 text-sm">{t("hero_files")}</span>
+              <span className="text-gray-500 text-sm">{t("hero.files")}</span>
             </div>
             <div className="flex flex-col items-center">
               <Lottie
@@ -98,7 +98,7 @@ function Hero() {
               />
               <span className="text-xl font-bold">1 PB</span>
               <span className="text-gray-500 text-sm">
-                {t("hero_capacity")}
+                {t("hero.capacity")}
               </span>
             </div>
           </div>
@@ -113,7 +113,7 @@ function Hero() {
             className="w-full max-w-xl drop-shadow-2xl"
           />
           <div className="bg-white border-l-2 py-4 border-gray-300 pl-6  text-gray-700 text-base">
-            {t("hero_desc")}
+            {t("hero.desc")}
           </div>
         </div>
       </ScrollReveal>

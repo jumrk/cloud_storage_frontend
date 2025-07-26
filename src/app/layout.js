@@ -1,13 +1,24 @@
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import { NextIntlClientProvider } from "next-intl";
-import { getLocale } from "next-intl/server";
-import Link from "next/link";
+import { cookies } from "next/headers";
+import en from "../../messages/en.json";
+import vi from "../../messages/vi.json";
 
 export default async function RootLayout({ children }) {
-  const locale = await getLocale();
-  // Xác định ngôn ngữ còn lại để chuyển đổi
-  const otherLocale = locale === "vi" ? "en" : "vi";
+  let locale = "vi";
+  try {
+    const cookieStore = await cookies();
+    const cookieLocale = cookieStore.get("NEXT_LOCALE")?.value;
+    if (cookieLocale && (cookieLocale === "vi" || cookieLocale === "en")) {
+      locale = cookieLocale;
+    }
+  } catch (error) {
+    console.log("Error reading locale from cookie:", error);
+  }
+
+  const messages = locale === "en" ? en : vi;
+
   return (
     <html lang={locale}>
       <head>
@@ -17,7 +28,7 @@ export default async function RootLayout({ children }) {
         />
       </head>
       <body>
-        <NextIntlClientProvider locale={locale}>
+        <NextIntlClientProvider locale={locale} messages={messages}>
           {children}
           <Toaster position="top-center" />
         </NextIntlClientProvider>

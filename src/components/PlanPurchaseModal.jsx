@@ -4,6 +4,7 @@ import axiosClient from "@/lib/axiosClient";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import { getCustomPlanPrice } from "@/utils/planUtils";
+import { useTranslations } from "next-intl";
 
 let slastCheckTimeout = null;
 
@@ -13,6 +14,7 @@ export default function PlanPurchaseModal({
   selectedPlan,
   onSubmit,
 }) {
+  const t = useTranslations();
   const [form, setForm] = useState({
     fullName: "",
     email: "",
@@ -138,28 +140,27 @@ export default function PlanPurchaseModal({
 
   const validate = () => {
     const newErrors = {};
-    if (!form.fullName.trim()) newErrors.fullName = "Vui lòng nhập họ và tên";
-    if (!form.email.trim()) newErrors.email = "Vui lòng nhập email";
+    if (!form.fullName.trim())
+      newErrors.fullName = t("modal.full_name_required");
+    if (!form.email.trim()) newErrors.email = t("modal.email_required");
     else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email))
-      newErrors.email = "Email không hợp lệ";
-    if (!form.phone.trim()) newErrors.phone = "Vui lòng nhập số điện thoại";
-    if (!form.slast.trim()) newErrors.slast = "Vui lòng nhập định danh cá nhân";
+      newErrors.email = t("modal.email_invalid");
+    if (!form.phone.trim()) newErrors.phone = t("modal.phone_required");
+    if (!form.slast.trim()) newErrors.slast = t("modal.slast_required");
     else if (!/^[a-zA-Z0-9_-]+$/.test(form.slast))
-      newErrors.slast = "Chỉ dùng chữ, số, dấu gạch ngang hoặc gạch dưới";
-    else if (slastExists)
-      newErrors.slast =
-        "Định danh này đã được sử dụng, hãy chọn định danh khác.";
+      newErrors.slast = t("modal.slast_invalid");
+    else if (slastExists) newErrors.slast = t("modal.slast_exists");
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const validateCustom = () => {
     if (!Number.isInteger(Number(custom.storage)) || custom.storage < 20) {
-      setCustomError("Dung lượng tối thiểu 20TB, số nguyên");
+      setCustomError(t("modal.storage_min_error"));
       return false;
     }
     if (!Number.isInteger(Number(custom.users)) || custom.users < 20) {
-      setCustomError("Số người dùng tối thiểu 20, số nguyên");
+      setCustomError(t("modal.users_min_error"));
       return false;
     }
     setCustomError("");
@@ -177,8 +178,8 @@ export default function PlanPurchaseModal({
     if (Number(val) < 20) {
       setCustomError(
         name === "storage"
-          ? "Dung lượng tối thiểu 20TB"
-          : "Số người dùng tối thiểu 20"
+          ? t("modal.storage_min_error")
+          : t("modal.users_min_error")
       );
     } else {
       setCustomError("");
@@ -188,7 +189,7 @@ export default function PlanPurchaseModal({
 
   // Build nội dung chuyển khoản: email - goi - Thang/Nam
   const content = `${form.email} - ${selectedPlan?.name} - ${
-    cycle === "year" ? "Nam" : "Thang"
+    cycle === "year" ? t("modal.year") : t("modal.month")
   }`;
   // Số tiền: lấy theo gói và chu kỳ
   const amount = getPrice();
@@ -248,7 +249,7 @@ export default function PlanPurchaseModal({
       if (emailRes.data.exists) {
         setErrors((prev) => ({
           ...prev,
-          email: "Email đã tồn tại trên hệ thống",
+          email: t("modal.email_exists"),
         }));
         setEmailExists(true);
         setShowPayment(false);
@@ -262,16 +263,19 @@ export default function PlanPurchaseModal({
       // 2. Nếu có mã giảm giá thì kiểm tra mã
       if (form.discountCode.trim()) {
         try {
-          const res = await axiosClient.post("/admin/discount-codes/validate", {
-            code: form.discountCode.trim(),
-          });
+          const res = await axiosClient.post(
+            "/api/admin/discount-codes/validate",
+            {
+              code: form.discountCode.trim(),
+            }
+          );
           if (res.data.valid) {
             setDiscountInfo({ valid: true, percent: res.data.percent });
           } else {
             setDiscountInfo({ valid: false, percent: 0 });
             setErrors((prev) => ({
               ...prev,
-              discountCode: res.data.message || "Mã giảm giá không hợp lệ",
+              discountCode: res.data.message || t("modal.discount_invalid"),
             }));
             setShowPayment(false);
             setEmailChecked(true);
@@ -282,7 +286,7 @@ export default function PlanPurchaseModal({
           setErrors((prev) => ({
             ...prev,
             discountCode:
-              err?.response?.data?.message || "Mã giảm giá không hợp lệ",
+              err?.response?.data?.message || t("modal.discount_invalid"),
           }));
           setShowPayment(false);
           setEmailChecked(true);
@@ -294,7 +298,7 @@ export default function PlanPurchaseModal({
       setShowPayment(true);
       setEmailChecked(true);
     } catch (err) {
-      setErrors({ ...errors, payment: "Lỗi kiểm tra email" });
+      setErrors({ ...errors, payment: t("modal.email_check_error") });
       setShowPayment(false);
       setEmailChecked(false);
       setDiscountInfo(null);
@@ -342,7 +346,7 @@ export default function PlanPurchaseModal({
       await axiosClient.post("/api/orders", orderBody);
       // Nếu có mã giảm giá, đánh dấu đã dùng
       if (form.discountCode.trim() && discountInfo && discountInfo.valid) {
-        await axiosClient.post("/admin/discount-codes/use", {
+        await axiosClient.post("/api/admin/discount-codes/use", {
           code: form.discountCode.trim(),
           email: form.email,
         });
@@ -355,7 +359,7 @@ export default function PlanPurchaseModal({
       } else {
         setErrors({
           ...errors,
-          payment: "Lỗi đặt hàng hoặc lấy phương thức thanh toán",
+          payment: t("modal.order_error"),
         });
       }
     } finally {
@@ -373,7 +377,7 @@ export default function PlanPurchaseModal({
         <button
           className="absolute top-4 right-6 text-gray-400 hover:text-gray-700 text-2xl z-10"
           onClick={onClose}
-          title="Đóng"
+          title={t("modal.close")}
         >
           ×
         </button>
@@ -381,7 +385,7 @@ export default function PlanPurchaseModal({
         <div className="md:w-1/2 w-full px-4 py-6 md:px-10 md:py-12 border-b md:border-b-0 md:border-r border-gray-100 flex flex-col justify-between gap-6 md:gap-8">
           <div>
             <div className="text-xl md:text-2xl font-bold mb-4 text-center md:text-left">
-              Thông tin đăng ký
+              {t("modal.registration_info")}
             </div>
             <form
               className="flex flex-col gap-3 md:gap-4"
@@ -389,13 +393,13 @@ export default function PlanPurchaseModal({
             >
               <div>
                 <label className="block text-base font-medium text-gray-700 mb-1">
-                  Họ và tên
+                  {t("modal.full_name")}
                 </label>
                 <input
                   type="text"
                   name="fullName"
                   className="border border-gray-300 rounded-lg px-4 py-3 w-full focus:outline-none focus:ring-2 focus:ring-blue-200 text-lg"
-                  placeholder="Nhập họ và tên"
+                  placeholder={t("modal.full_name_placeholder")}
                   value={form.fullName}
                   onChange={handleChange}
                   disabled={checkingEmail || loading || submitting}
@@ -408,19 +412,19 @@ export default function PlanPurchaseModal({
               </div>
               <div>
                 <label className="block text-base font-medium text-gray-700 mb-1">
-                  Email
+                  {t("modal.email")}
                 </label>
                 <input
                   type="email"
                   name="email"
                   className="border border-gray-300 rounded-lg px-4 py-3 w-full focus:outline-none focus:ring-2 focus:ring-blue-200 text-lg"
-                  placeholder="Nhập email đăng nhập"
+                  placeholder={t("modal.email_placeholder")}
                   value={form.email}
                   onChange={handleChange}
                   disabled={checkingEmail || loading || submitting}
                 />
                 <div className="text-xs text-yellow-600 mt-1">
-                  * Email dùng để đăng nhập, vui lòng nhập email chính chủ
+                  {t("modal.email_note")}
                 </div>
                 {errors.email && (
                   <div className="text-xs text-red-500 mt-1">
@@ -430,13 +434,13 @@ export default function PlanPurchaseModal({
               </div>
               <div>
                 <label className="block text-base font-medium text-gray-700 mb-1">
-                  Số điện thoại
+                  {t("modal.phone")}
                 </label>
                 <input
                   type="text"
                   name="phone"
                   className="border border-gray-300 rounded-lg px-4 py-3 w-full focus:outline-none focus:ring-2 focus:ring-blue-200 text-lg"
-                  placeholder="Nhập số điện thoại"
+                  placeholder={t("modal.phone_placeholder")}
                   value={form.phone}
                   onChange={handleChange}
                   disabled={checkingEmail || loading || submitting}
@@ -449,34 +453,28 @@ export default function PlanPurchaseModal({
               </div>
               <div>
                 <label className="block text-base font-medium text-gray-700 mb-1">
-                  Định danh cá nhân (plans)
+                  {t("modal.slast_label")}
                 </label>
                 <input
                   type="text"
                   name="slast"
                   className="border border-gray-300 rounded-lg px-4 py-3 w-full focus:outline-none focus:ring-2 focus:ring-blue-200 text-lg"
-                  placeholder="Nhập định danh cá nhân (ví dụ: tên viết liền, nickname, mã riêng...)"
+                  placeholder={t("modal.slast_placeholder")}
                   value={form.slast}
                   onChange={handleChange}
                   disabled={checkingEmail || loading || submitting}
                 />
                 <div className="text-xs text-gray-500 mt-1">
-                  Định danh này sẽ xuất hiện trên đường dẫn truy cập cá nhân của
-                  bạn (ví dụ:{" "}
-                  <b>
-                    cloudstorage.com/leader/<i>slast</i>/home
-                  </b>
-                  ). Mỗi người dùng phải có một định danh duy nhất, không trùng
-                  với người khác.
+                  {t("modal.slast_note")}
                 </div>
                 {slastChecking && (
                   <div className="text-xs text-blue-500 mt-1">
-                    Đang kiểm tra định danh...
+                    {t("modal.checking_slast")}
                   </div>
                 )}
                 {slastExists && !slastChecking && (
                   <div className="text-xs text-red-500 mt-1">
-                    Định danh này đã được sử dụng, hãy chọn định danh khác.
+                    {t("modal.slast_exists")}
                   </div>
                 )}
                 {errors.slast && (
@@ -487,13 +485,13 @@ export default function PlanPurchaseModal({
               </div>
               <div>
                 <label className="block text-base font-medium text-gray-700 mb-1">
-                  Mã giảm giá (nếu có)
+                  {t("modal.discount_code")}
                 </label>
                 <input
                   type="text"
                   name="discountCode"
                   className="border border-gray-300 rounded-lg px-4 py-3 w-full focus:outline-none focus:ring-2 focus:ring-blue-200 text-lg"
-                  placeholder="Nhập mã giảm giá..."
+                  placeholder={t("modal.discount_code_placeholder")}
                   value={form.discountCode}
                   onChange={handleChange}
                   disabled={checkingEmail || loading || submitting}
@@ -505,7 +503,9 @@ export default function PlanPurchaseModal({
                 )}
                 {discountInfo && discountInfo.valid && (
                   <div className="text-xs text-green-600 mt-1">
-                    Áp dụng giảm {discountInfo.percent}%
+                    {t("modal.discount_applied", {
+                      percent: discountInfo.percent,
+                    })}
                   </div>
                 )}
               </div>
@@ -521,7 +521,7 @@ export default function PlanPurchaseModal({
                   onClick={onClose}
                   disabled={checkingEmail || loading || submitting}
                 >
-                  Hủy
+                  {t("modal.cancel")}
                 </button>
                 <button
                   type="submit"
@@ -550,10 +550,10 @@ export default function PlanPurchaseModal({
                           d="M4 12a8 8 0 018-8v8z"
                         ></path>
                       </svg>
-                      Đang kiểm tra...
+                      {t("modal.checking")}
                     </>
                   ) : (
-                    "Kiểm tra"
+                    t("modal.check")
                   )}
                 </button>
               </div>
@@ -564,7 +564,7 @@ export default function PlanPurchaseModal({
         <div className="md:w-1/2 w-full px-4 py-6 md:px-10 md:py-12 flex flex-col justify-between gap-6 md:gap-8">
           <div>
             <div className="text-xl md:text-2xl font-bold mb-4 text-center md:text-left">
-              Thông tin thanh toán
+              {t("modal.payment_info")}
             </div>
             {selectedPlan?.isCustom && (
               <div className="mb-4">
@@ -579,7 +579,7 @@ export default function PlanPurchaseModal({
                     onClick={() => setCustom((c) => ({ ...c, cycle: "month" }))}
                     disabled={checkingEmail || loading || submitting}
                   >
-                    Thanh toán tháng
+                    {t("modal.pay_monthly")}
                   </button>
                   <button
                     type="button"
@@ -591,12 +591,12 @@ export default function PlanPurchaseModal({
                     onClick={() => setCustom((c) => ({ ...c, cycle: "year" }))}
                     disabled={checkingEmail || loading || submitting}
                   >
-                    Thanh toán năm
+                    {t("modal.pay_yearly")}
                   </button>
                 </div>
                 <div className="mb-2">
                   <label className="block text-gray-700 text-sm font-medium mb-1 flex items-center gap-1">
-                    Dung lượng (TB):
+                    {t("modal.storage_label")}:
                     <span className="relative group cursor-pointer">
                       <svg
                         width="16"
@@ -619,11 +619,7 @@ export default function PlanPurchaseModal({
                         </text>
                       </svg>
                       <span className="absolute left-6 top-1/2 -translate-y-1/2 z-20 hidden group-hover:block bg-gray-900 text-white text-xs rounded px-3 py-2 shadow-lg w-[220px]">
-                        Giá dung lượng: <b>240.000₫</b> cho 10TB đầu
-                        <br />
-                        <b>20.000₫</b> cho mỗi TB thêm
-                        <br />
-                        Dung lượng tối thiểu: 20TB
+                        {t("modal.storage_tooltip")}
                       </span>
                     </span>
                   </label>
@@ -640,7 +636,7 @@ export default function PlanPurchaseModal({
                 </div>
                 <div className="mb-2">
                   <label className="block text-gray-700 text-sm font-medium mb-1 flex items-center gap-1">
-                    Số người dùng:
+                    {t("modal.users_label")}:
                     <span className="relative group cursor-pointer">
                       <svg
                         width="16"
@@ -663,9 +659,7 @@ export default function PlanPurchaseModal({
                         </text>
                       </svg>
                       <span className="absolute left-6 top-1/2 -translate-y-1/2 z-20 hidden group-hover:block bg-gray-900 text-white text-xs rounded px-3 py-2 shadow-lg w-[220px]">
-                        Giá user: <b>10.000₫</b> / user / tháng
-                        <br />
-                        Số user tối thiểu: 20
+                        {t("modal.users_tooltip")}
                       </span>
                     </span>
                   </label>
@@ -698,7 +692,7 @@ export default function PlanPurchaseModal({
                   onClick={() => setCycle("month")}
                   disabled={checkingEmail || loading || submitting}
                 >
-                  Thanh toán tháng
+                  {t("modal.pay_monthly")}
                 </button>
                 <button
                   type="button"
@@ -710,12 +704,12 @@ export default function PlanPurchaseModal({
                   onClick={() => setCycle("year")}
                   disabled={checkingEmail || loading || submitting}
                 >
-                  Thanh toán năm
+                  {t("modal.pay_yearly")}
                 </button>
               </div>
             )}
             <div className="mb-3 text-lg text-gray-700">
-              Số tiền cần thanh toán:{" "}
+              {t("modal.amount_to_pay")}:{" "}
               <b className="text-2xl text-primary">
                 {showPayment &&
                 !checkingEmail &&
@@ -732,7 +726,7 @@ export default function PlanPurchaseModal({
             </div>
             <div className="w-full text-sm mb-2">
               <div className="mb-1">
-                <span className="font-semibold">Ngân hàng:</span>{" "}
+                <span className="font-semibold">{t("modal.bank")}:</span>{" "}
                 {showPayment && paymentMethod?.bankName ? (
                   paymentMethod.bankName
                 ) : (
@@ -740,7 +734,9 @@ export default function PlanPurchaseModal({
                 )}
               </div>
               <div className="mb-1">
-                <span className="font-semibold">Số tài khoản:</span>{" "}
+                <span className="font-semibold">
+                  {t("modal.account_number")}:
+                </span>{" "}
                 {showPayment && paymentMethod?.accountNumber ? (
                   paymentMethod.accountNumber
                 ) : (
@@ -748,7 +744,9 @@ export default function PlanPurchaseModal({
                 )}
               </div>
               <div className="mb-1">
-                <span className="font-semibold">Chủ tài khoản:</span>{" "}
+                <span className="font-semibold">
+                  {t("modal.account_name")}:
+                </span>{" "}
                 {showPayment && paymentMethod?.accountName ? (
                   paymentMethod.accountName
                 ) : (
@@ -756,7 +754,9 @@ export default function PlanPurchaseModal({
                 )}
               </div>
               <div className="mb-1">
-                <span className="font-semibold">Nội dung chuyển khoản:</span>{" "}
+                <span className="font-semibold">
+                  {t("modal.transfer_content")}:
+                </span>{" "}
                 {showPayment &&
                 !checkingEmail &&
                 !loading &&
@@ -770,10 +770,10 @@ export default function PlanPurchaseModal({
               </div>
             </div>
             <div className="mb-3 text-base text-gray-500 italic">
-              Vui lòng chuyển khoản đúng nội dung để hệ thống tự động xác nhận.
+              {t("modal.transfer_note")}
             </div>
             <div className="mb-3 text-base text-gray-700 font-medium">
-              Quét mã QR để thanh toán:
+              {t("modal.scan_qr")}:
             </div>
             <div className="flex justify-center">
               {qrImgUrl ? (
@@ -832,10 +832,10 @@ export default function PlanPurchaseModal({
                         d="M4 12a8 8 0 018-8v8z"
                       ></path>
                     </svg>
-                    Đang đăng ký...
+                    {t("modal.registering")}
                   </>
                 ) : (
-                  "Xác nhận thanh toán"
+                  t("modal.confirm_payment")
                 )}
               </button>
             </div>
@@ -847,16 +847,10 @@ export default function PlanPurchaseModal({
             <div className="p-6 w-full max-w-md flex flex-col items-center bg-white rounded-xl shadow-2xl">
               <div className="text-green-500 text-4xl mb-2">✔️</div>
               <h2 className="text-xl font-bold mb-2 text-center text-slate-800">
-                Đặt hàng thành công!
+                {t("modal.order_success")}
               </h2>
               <div className="text-gray-700 text-center mb-4">
-                Đơn hàng của bạn đã được ghi nhận và đang chờ duyệt.
-                <br />
-                Chúng tôi sẽ gửi thông tin tài khoản của bạn đến email mà bạn đã
-                cung cấp
-                <br />
-                Nếu trong vòng 10 phút mà bạn chưa nhận được phản hồi mail từ hệ
-                thống thì bạn vui lòng liên hệ CSKH.
+                {t("modal.order_success_desc")}
               </div>
               <button
                 className="mt-2 px-4 py-2 rounded bg-primary text-white shadow hover:bg-primary/90 transition-all text-base font-medium"
@@ -865,7 +859,7 @@ export default function PlanPurchaseModal({
                   if (onClose) onClose();
                 }}
               >
-                Đóng
+                {t("modal.close")}
               </button>
             </div>
           </div>
