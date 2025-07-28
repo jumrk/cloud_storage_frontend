@@ -53,14 +53,17 @@ const Loader = ({ size = "default", position = "fixed", hideText = false }) => {
         alt="Loading..."
         style={{
           ...sizeStyles,
-          animation: "spin 1.2s linear infinite",
+          animation: "flip 2s cubic-bezier(0.4, 0, 0.2, 1) infinite",
           display: "block",
         }}
       />
       <style>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
+        @keyframes flip {
+          0% { transform: rotateY(0deg); }
+          25% { transform: rotateY(90deg); }
+          50% { transform: rotateY(180deg); }
+          75% { transform: rotateY(270deg); }
+          100% { transform: rotateY(360deg); }
         }
       `}</style>
     </div>

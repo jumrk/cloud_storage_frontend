@@ -105,12 +105,15 @@ export default function ClientLayout({ children }) {
         unreadNotificationCount={unreadNotificationCount}
       />
       {/* Nút menu mobile */}
-      <button
-        className="fixed top-4 left-4 z-50 p-2 bg-white shadow rounded-full border border-gray-200 hover:bg-gray-100 md:hidden"
-        onClick={() => setSidebarOpen(true)}
-      >
-        <FaBars className="text-xl text-gray-700" />
-      </button>
+      {!sidebarOpen && (
+        <button
+          className="fixed top-4 left-4 z-50 p-2 bg-white shadow rounded-full border border-gray-200 hover:bg-gray-100 md:hidden"
+          onClick={() => setSidebarOpen(true)}
+        >
+          <FaBars className="text-xl text-gray-700" />
+        </button>
+      )}
+
       <main className="flex-1 overflow-auto">
         {pathname.includes("/chat") ? (
           <ChatLayout updateUnreadCount={updateUnreadCount} />

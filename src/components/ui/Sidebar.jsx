@@ -9,7 +9,6 @@ import {
   CiUser,
   CiBellOn,
   CiFileOn,
-  CiSettings,
   CiLogout,
   CiChat1,
 } from "react-icons/ci";
@@ -23,14 +22,12 @@ export default function Sidebar({
   isMobile = false,
   open = false,
   onClose,
-  role,
   unreadCount = 0,
   unreadNotificationCount = 0,
   menuButtonPosition = "fixed top-4 left-4 z-50", // thêm prop này
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [slast, setSlast] = useState("");
   const t = useTranslations();
 
@@ -44,14 +41,6 @@ export default function Sidebar({
       }
     }
   }, []);
-
-  useEffect(() => {
-    if (isMobile) {
-      setIsSidebarOpen(open);
-    } else {
-      setIsSidebarOpen(true);
-    }
-  }, [isMobile, open]);
 
   const handleLogout = async (e) => {
     e.preventDefault();
@@ -109,38 +98,22 @@ export default function Sidebar({
   return (
     <>
       {/* Overlay for mobile */}
-      {isMobile && isSidebarOpen && (
+      {isMobile && open && (
         <div
           className="fixed inset-0 bg-black/60 z-40 transition-all"
           onClick={onClose}
         />
       )}
-      {/* Nút menu mobile, chỉ hiện khi sidebar đóng */}
-      {isMobile && !isSidebarOpen && (
-        <button
-          className={`${menuButtonPosition} p-2 bg-white shadow rounded-full border border-gray-200 hover:bg-gray-100 md:hidden`}
-          onClick={() => setIsSidebarOpen(true)}
-          aria-label="Mở menu"
-        >
-          <FaBars className="text-xl text-gray-700" />
-        </button>
-      )}
       <nav
         className={`bg-white h-screen flex flex-col justify-between fixed top-0 left-0 z-50 transition-transform duration-300
-        ${
-          isMobile
-            ? isSidebarOpen
-              ? "translate-x-0"
-              : "-translate-x-full"
-            : "w-60"
-        }
-        w-60`}
+         ${isMobile ? (open ? "translate-x-0" : "-translate-x-full") : "w-60"}
+          w-60`}
         style={{ minWidth: 200 }}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-5 border-b border-gray-200">
           <div className="flex items-center gap-2">
-            <img src="/images/Logo_2.png" alt="Logo" className="h-7" />
+            <img src="/images/Logo_2.png" alt="Logo" className="h-10" />
           </div>
           {isMobile && (
             <button
@@ -158,7 +131,10 @@ export default function Sidebar({
               <li key={item.label} className="mb-1">
                 <Link
                   href={item.href}
-                  onClick={item.label === "Nhắn tin" ? unlockAudio : undefined}
+                  onClick={(e) => {
+                    if (item.label === "Nhắn tin") unlockAudio();
+                    if (isMobile && onClose) onClose();
+                  }}
                   className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all font-medium text-gray-700 hover:bg-gray-100 hover:text-primary relative
                     ${pathname === item.href ? "bg-gray-100 text-primary" : ""}
                   `}
