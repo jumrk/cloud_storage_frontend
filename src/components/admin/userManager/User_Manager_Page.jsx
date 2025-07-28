@@ -198,8 +198,8 @@ function UserCreateModal({ open, onClose, onCreated }) {
               <option value="">-- Chọn gói --</option>
               {plans.map((p) => (
                 <option key={p._id} value={p._id}>
-                  {p.name} ({p.priceMonth.toLocaleString()}₫/tháng,{" "}
-                  {p.priceYear.toLocaleString()}₫/năm)
+                  {p.name} ({(p.priceMonth || 0).toLocaleString()}₫/tháng,{" "}
+                  {(p.priceYear || 0).toLocaleString()}₫/năm)
                 </option>
               ))}
             </select>

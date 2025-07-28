@@ -383,7 +383,7 @@ export default function AdminPlansPage() {
                   </div>
                 )}
                 {/* Icon edit/xóa góc phải trên */}
-                <div className="absolute top-2 right-2 flex gap-1 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute top-2 right-2 flex gap-1 z-30 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
                     onClick={() => handleEditPlan(plan)}
                     className="p-1.5 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded-full transition-colors"
