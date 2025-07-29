@@ -19,6 +19,7 @@ import {
 import { FaBars } from "react-icons/fa";
 import { decodeTokenGetUser } from "@/lib/jwt";
 import { useRouter } from "next/navigation";
+import axiosClient from "@/lib/axiosClient";
 
 const boards = [
   { href: "/admin", label: "Dashboard", icon: <FiHome size={20} /> },
@@ -66,6 +67,7 @@ export default function AdminSidebar(props) {
   const [isMobile, setIsMobile] = useState(false);
   const [user, setUser] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false); // Thêm loading state
   const menuRef = useRef();
   const router = useRouter();
 
@@ -99,12 +101,24 @@ export default function AdminSidebar(props) {
   }, [menuOpen]);
 
   const handleLogout = async () => {
+    if (isLoggingOut) return; // Prevent multiple clicks
+
+    setIsLoggingOut(true);
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
-    } catch {}
-    localStorage.removeItem("token");
-    localStorage.clear();
-    router.push("/Login");
+      // Sử dụng axiosClient thay vì fetch
+      await axiosClient.post("/api/auth/logout");
+      console.log("Logout thành công");
+    } catch (error) {
+      console.error("Lỗi logout:", error);
+      // Vẫn tiếp tục logout local ngay cả khi API fail
+    } finally {
+      // Cleanup local storage
+      localStorage.removeItem("token");
+      localStorage.clear();
+
+      // Redirect về trang login
+      router.push("/Login");
+    }
   };
 
   // Responsive: sidebar open/close state (mobile)
