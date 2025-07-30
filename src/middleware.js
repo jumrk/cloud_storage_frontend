@@ -4,6 +4,8 @@ import { decodeTokenGetUser } from "./lib/jwt";
 export async function middleware(request) {
   // Lấy token từ cookie
   const token = request.cookies.get("token")?.value;
+
+  console.log("token data:", token);
   const locale = request.cookies.get("NEXT_LOCALE")?.value || "vi"; // fallback
   let role = null;
   let slast = null;
@@ -12,7 +14,6 @@ export async function middleware(request) {
     role = userData?.role;
     slast = userData?.slast;
   }
-  console.log("User data:", role);
 
   const url = request.nextUrl.clone();
   const path = url.pathname;
