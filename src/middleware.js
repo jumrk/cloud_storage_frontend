@@ -5,8 +5,17 @@ export async function middleware(request) {
   // Lấy token từ cookie
   const token = request.cookies.get("token")?.value;
 
+  console.log("=== MIDDLEWARE DEBUG ===");
+  console.log("URL:", request.url);
   console.log("token data:", token);
-  console.log("cookies:", request.cookies.getAll());
+  console.log("token type:", typeof token);
+  console.log("all cookies:", request.cookies.getAll());
+  console.log(
+    "cookie names:",
+    request.cookies.getAll().map((c) => c.name)
+  );
+  console.log("headers:", Object.fromEntries(request.headers.entries()));
+
   const locale = request.cookies.get("NEXT_LOCALE")?.value || "vi"; // fallback
   let role = null;
   let slast = null;
@@ -19,6 +28,8 @@ export async function middleware(request) {
     } catch (error) {
       console.error("Error decoding token:", error);
     }
+  } else {
+    console.log("No token found in cookies");
   }
 
   const url = request.nextUrl.clone();

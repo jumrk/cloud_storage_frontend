@@ -7,18 +7,8 @@ const axiosClient = axios.create({
 
 axiosClient.interceptors.request.use(
   (config) => {
-    // Ưu tiên token truyền vào config.headers.Authorization
-    // Nếu không có, thử lấy từ localStorage (nếu có window)
-    if (!config.headers.Authorization) {
-      let token = null;
-      if (typeof window !== "undefined") {
-        token = localStorage.getItem("token");
-      }
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    }
-    // Nếu không có token, vẫn gửi request bình thường
+    // Sử dụng cookie thay vì localStorage
+    // Cookie sẽ được gửi tự động với withCredentials: true
     return config;
   },
   (error) => Promise.reject(error)
