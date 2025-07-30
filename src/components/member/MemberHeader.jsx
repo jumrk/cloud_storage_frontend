@@ -23,7 +23,7 @@ export default function MemberHeader() {
 
   const handleLogout = async () => {
     try {
-      await axiosClient.post("/api/logout");
+      await axiosClient.post("/api/auth/logout");
     } catch {}
     localStorage.removeItem("token");
     localStorage.clear();
