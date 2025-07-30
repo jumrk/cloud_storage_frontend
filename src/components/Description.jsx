@@ -62,7 +62,7 @@ export default function Description() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-8 items-center">
           <div className="w-full">
             <ScrollReveal>
-              <ScrollParallaxLottie animationData={Upload} />
+              <ScrollParallaxLottie animationData={Share} />
             </ScrollReveal>
           </div>
 
@@ -70,13 +70,13 @@ export default function Description() {
             <ScrollReveal>
               <div className="flex flex-col justify-center text-center md:text-left">
                 <p className="text-[#01579B] font-bold text-sm md:text-lg uppercase tracking-wide">
-                  {t("description.sync")}
+                  {t("description.share")}
                 </p>
                 <h2 className="text-primary font-bold text-2xl md:text-4xl mt-2">
-                  {t("description.sync_title")}
+                  {t("description.share_title")}
                 </h2>
                 <p className="text-primary/80 text-sm md:text-lg mt-3 max-w-md mx-auto md:mx-0">
-                  {t("description.sync_desc")}
+                  {t("description.share_desc")}
                 </p>
               </div>
             </ScrollReveal>
@@ -86,7 +86,7 @@ export default function Description() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-8 items-center">
           <div className="w-full md:order-2">
             <ScrollReveal>
-              <ScrollParallaxLottie animationData={Share} />
+              <ScrollParallaxLottie animationData={Upload} />
             </ScrollReveal>
           </div>
 
@@ -95,13 +95,13 @@ export default function Description() {
               <div className="flex flex-col items-end justify-center text-center md:text-left md:order-1">
                 <div>
                   <p className="text-[#01579B] font-bold text-sm md:text-lg uppercase tracking-wide">
-                    {t("description.share")}
+                    {t("description.sync")}
                   </p>
                   <h2 className="text-primary font-bold text-2xl md:text-4xl mt-2">
-                    {t("description.share_title")}
+                    {t("description.sync_title")}
                   </h2>
                   <p className="text-primary/80 text-sm md:text-lg mt-3 max-w-md mx-auto md:mx-0">
-                    {t("description.share_desc")}
+                    {t("description.sync_desc")}
                   </p>
                 </div>
               </div>

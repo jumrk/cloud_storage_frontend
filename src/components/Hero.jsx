@@ -200,25 +200,30 @@ function Hero() {
       {/* Left: Text content */}
       <div className="flex-1 flex flex-col gap-6 max-w-2xl">
         <ScrollReveal direction="down">
-          <h1 className="text-3xl md:text-5xl font-bold text-black leading-tight flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center bg-[#1cadd9] rounded-full px-2 py-1 mr-2">
-              <FaLock className="text-white mr-1" />
-            </span>
-            <span className="relative">
-              <span className="bg-[#1cadd9]/20 absolute inset-0 -z-10 rounded-md h-2/3 top-1/3 w-full"></span>
-              <span className="text-[#1cadd9]">{t("hero.solution")}</span>
-            </span>
-            <span className="ml-2">{t("hero.storage")}</span>
-            <br />
-            <span className="relative">
-              <span className="bg-[#1cadd9]/10 absolute inset-0 -z-10 rounded-md h-2/3 top-1/3 w-full"></span>
-              <span className="text-[#1cadd9]">{t("hero.safe")}</span>
-            </span>
-            <span className="ml-2">{t("hero.and")}</span>
-            <span className="relative">
-              <span className="bg-[#1cadd9]/20 absolute inset-0 -z-10 rounded-md h-2/3 top-1/3 w-full"></span>
-              <TypingAnimation texts={fastTexts} speed={60} delay={3000} />
-            </span>
+          <h1 className="text-3xl md:text-5xl font-bold text-black leading-tight flex flex-col  gap-2">
+            <div>
+              <span className="inline-flex items-center bg-[#1cadd9] rounded-full px-2 py-1 mr-2">
+                <FaLock className="text-white mr-1" />
+              </span>
+              <span className="relative">
+                <span className="bg-[#1cadd9]/20 absolute inset-0 -z-10 rounded-md h-2/3 top-1/3 w-full"></span>
+                <span className="text-[#1cadd9]">{t("hero.solution")}</span>
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <span className="ml-2">{t("hero.storage")}</span>
+              <span className="relative">
+                <span className="bg-[#1cadd9]/10 absolute inset-0 -z-10 rounded-md h-2/3 top-1/3 w-full"></span>
+                <span className="text-[#1cadd9]">{t("hero.safe")}</span>
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <span className="ml-2">{t("hero.and")}</span>
+              <span className="relative">
+                <span className="bg-[#1cadd9]/20 absolute inset-0 -z-10 rounded-md h-2/3 top-1/3 w-full"></span>
+                <TypingAnimation texts={fastTexts} speed={60} delay={3000} />
+              </span>
+            </div>
           </h1>
         </ScrollReveal>
         <ScrollReveal direction="left">
