@@ -33,8 +33,9 @@ function useLoginForm() {
         setErrors({});
 
         const token = res.data.token;
-        // Không cần lưu vào localStorage nữa vì backend đã set cookie
-        localStorage.setItem("token", token);
+        if (token) {
+          localStorage.setItem("token", token);
+        }
         const { role, slast } = res.data.user;
         if (role === "admin") {
           router.push("/admin");

@@ -1,35 +1,17 @@
 import { NextResponse } from "next/server";
 import { decodeTokenGetUser } from "./lib/jwt";
 
-export async function middleware(request) {
-  // Lấy token từ cookie
+export function middleware(request) {
+  // Lấy token từ cookie (cho SSR) hoặc từ localStorage (cho client-side)
   const token = request.cookies.get("token")?.value;
-
-  console.log("=== MIDDLEWARE DEBUG ===");
-  console.log("URL:", request.url);
-  console.log("token data:", token);
-  console.log("token type:", typeof token);
-  console.log("all cookies:", request.cookies.getAll());
-  console.log(
-    "cookie names:",
-    request.cookies.getAll().map((c) => c.name)
-  );
-  console.log("headers:", Object.fromEntries(request.headers.entries()));
-
   const locale = request.cookies.get("NEXT_LOCALE")?.value || "vi"; // fallback
+
   let role = null;
   let slast = null;
   if (token) {
-    try {
-      const userData = await decodeTokenGetUser(token); // dùng await
-      console.log("decoded user data:", userData);
-      role = userData?.role;
-      slast = userData?.slast;
-    } catch (error) {
-      console.error("Error decoding token:", error);
-    }
-  } else {
-    console.log("No token found in cookies");
+    const userData = decodeTokenGetUser(token);
+    role = userData?.role;
+    slast = userData?.slast;
   }
 
   const url = request.nextUrl.clone();
@@ -54,8 +36,23 @@ export async function middleware(request) {
     path.startsWith("/_next") ||
     path.startsWith("/static") ||
     path.startsWith("/favicon.ico") ||
-    path.startsWith("/images")
+    path.startsWith("/images") ||
+    path.startsWith("/about") ||
+    path.startsWith("/contact") ||
+    path.startsWith("/faq") ||
+    path.startsWith("/privacy_policy") ||
+    path.startsWith("/terms_of_use") ||
+    path.startsWith("/cookie_policy")
   ) {
+    return response;
+  }
+
+  // Nếu không có token và không phải trang public, redirect to login
+  if (!token && !path.startsWith("/Login") && path !== "/") {
+    url.pathname = "/Login";
+    response = NextResponse.redirect(url);
+    response.cookies.set("NEXT_LOCALE", locale, { path: "/" });
+    response.headers.set("x-locale", locale);
     return response;
   }
 
@@ -81,7 +78,8 @@ export async function middleware(request) {
   if (
     role === "leader" &&
     !path.startsWith(`/${slast}`) &&
-    !path.startsWith("/")
+    !path.startsWith("/") &&
+    path !== "/"
   ) {
     url.pathname = `/${slast}/home`;
     response = NextResponse.redirect(url);
