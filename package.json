@@ -21,6 +21,7 @@
     "framer-motion": "^12.23.0",
     "fs-extra": "^11.3.0",
     "googleapis": "^150.0.1",
+    "jose": "^6.0.12",
     "jsonwebtoken": "^9.0.2",
     "lottie-react": "^2.4.1",
     "mongoose": "^8.16.2",

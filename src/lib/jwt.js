@@ -1,3 +1,4 @@
+import { jwtVerify } from "jose";
 import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
@@ -24,13 +25,13 @@ export async function getTokenUserId(req) {
   return userData.id;
 }
 
-export function decodeTokenGetUser(token) {
+export async function decodeTokenGetUser(token) {
   try {
-    // JWT: header.payload.signature
-    const payload = token.split(".")[1];
-    const decoded = JSON.parse(atob(payload));
-    return decoded || null;
-  } catch {
+    const secret = new TextEncoder().encode("cloud_storage");
+    const { payload } = await jwtVerify(token, secret);
+    return payload || null;
+  } catch (err) {
+    console.error("Decode JWT error:", err);
     return null;
   }
 }

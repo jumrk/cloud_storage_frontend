@@ -22,7 +22,12 @@ export default getRequestConfig(async ({ request }) => {
           locale = cookieLocale;
         }
       } catch (cookieError) {
-        console.log("Cookie read error:", cookieError);
+        // Trong trường hợp static rendering, cookies() sẽ throw error
+        // Chúng ta sẽ sử dụng locale mặc định
+        console.log(
+          "Cookie not available in static rendering, using default locale:",
+          locale
+        );
       }
     }
 

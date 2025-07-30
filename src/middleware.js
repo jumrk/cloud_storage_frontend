@@ -1,18 +1,18 @@
 import { NextResponse } from "next/server";
 import { decodeTokenGetUser } from "./lib/jwt";
 
-export function middleware(request) {
+export async function middleware(request) {
   // Lấy token từ cookie
   const token = request.cookies.get("token")?.value;
   const locale = request.cookies.get("NEXT_LOCALE")?.value || "vi"; // fallback
-
   let role = null;
   let slast = null;
   if (token) {
-    const userData = decodeTokenGetUser(token);
+    const userData = await decodeTokenGetUser(token); // dùng await
     role = userData?.role;
     slast = userData?.slast;
   }
+  console.log("User data:", role);
 
   const url = request.nextUrl.clone();
   const path = url.pathname;

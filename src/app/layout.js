@@ -14,7 +14,12 @@ export default async function RootLayout({ children }) {
       locale = cookieLocale;
     }
   } catch (error) {
-    console.log("Error reading locale from cookie:", error);
+    // Trong trường hợp static rendering, cookies() sẽ throw error
+    // Chúng ta sẽ sử dụng locale mặc định
+    console.log(
+      "Cookie not available in static rendering, using default locale:",
+      locale
+    );
   }
 
   const messages = locale === "en" ? en : vi;

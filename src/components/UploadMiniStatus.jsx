@@ -13,8 +13,8 @@ import toast from "react-hot-toast";
 import { useTranslations } from "next-intl";
 
 // Hàm chia file thành chunk
-const createFileChunks = (file, chunkSize = 100 * 1024 * 1024) => {
-  // 100MB default
+const createFileChunks = (file, chunkSize = 25 * 1024 * 1024) => {
+  // 25MB default
   const chunks = [];
   let start = 0;
   while (start < file.size) {
@@ -155,11 +155,14 @@ const MiniStatusBatch = ({
           console.log("[FE] Gửi emptyFolders:", emptyFolders);
         }
         // Thêm log gửi file chunk đầu tiên
-        console.log("[FE] Gửi file:", {
+        console.log("[FE] 🚀 Bắt đầu upload file:", {
           fileName: file.name,
+          fileSize: file.size,
           relativePath: fileState.relativePath,
           parentId,
-          headers: firstHeaders,
+          totalChunks: chunks.length,
+          chunkSize: chunks[0].size,
+          timestamp: new Date().toISOString(),
         });
         // Nếu đã bị hủy thì không upload nữa
         if (cancelledRef.current[fileIndex]) {
@@ -179,6 +182,17 @@ const MiniStatusBatch = ({
           toast.error(data.error || "Lỗi upload");
           throw new Error(data.error || "Lỗi upload");
         }
+
+        // Thêm log nhận response chunk đầu tiên
+        console.log("[FE] ✅ Nhận response chunk đầu tiên:", {
+          fileName: file.name,
+          chunkIndex: 0,
+          success: data.success,
+          uploadedChunks: data.uploadedChunks,
+          uploadId: data.uploadId,
+          timestamp: new Date().toISOString(),
+        });
+
         uploadedChunks = data.uploadedChunks || [0];
         setFileStates((prev) => {
           const next = prev.map((f, idx) =>
@@ -245,29 +259,14 @@ const MiniStatusBatch = ({
         }
 
         // Thêm log:
-        console.log("[FE] Gửi chunk:", {
+        console.log("[FE] 📤 Gửi chunk:", {
           fileName: file.name,
           chunkIndex: i,
+          chunkSize: chunk.size,
           relativePath: fileState.relativePath,
           parentId,
-          headers: {
-            "Content-Type": "application/octet-stream",
-            "X-Upload-Id": uploadId,
-            "X-Chunk-Index": i,
-            "X-Total-Chunks": chunks.length,
-            "X-File-Name": encodeURIComponent(file.name),
-            "X-Mime-Type": encodeURIComponent(
-              file.type || "application/octet-stream"
-            ),
-            "X-Parent-Id": encodeURIComponent(parentId || ""),
-            "X-Is-First-Chunk": "0",
-            "X-Is-Last-Chunk": i === chunks.length - 1 ? "1" : "0",
-            "X-File-Size": file.size,
-            "X-Relative-Path": encodeURIComponent(fileState.relativePath || ""),
-            "X-Batch-Id": encodeURIComponent(batchId || ""),
-            "X-Chunk-Start": chunk.start,
-            "X-Chunk-End": chunk.end - 1,
-          },
+          uploadId,
+          timestamp: new Date().toISOString(),
         });
         const headers = {
           "Content-Type": "application/octet-stream",
@@ -318,6 +317,17 @@ const MiniStatusBatch = ({
         if (response.status !== 200 || !data.success) {
           throw new Error(data.error || `Upload chunk ${i} thất bại`);
         }
+
+        // Thêm log nhận response từ BE
+        console.log("[FE] ✅ Nhận response chunk:", {
+          fileName: file.name,
+          chunkIndex: i,
+          success: data.success,
+          uploadedChunks: data.uploadedChunks,
+          fileId: data.fileId,
+          timestamp: new Date().toISOString(),
+        });
+
         uploadedChunks = data.uploadedChunks || [...uploadedChunks, i];
         const chunkProgress = Math.round(
           (uploadedChunks.length / chunks.length) * 100
@@ -339,7 +349,7 @@ const MiniStatusBatch = ({
         });
         if (isCompleted) {
           console.log(
-            `File ${file.name} uploaded successfully with ID: ${data.fileId}`
+            `[FE] 🎉 File ${file.name} uploaded successfully with ID: ${data.fileId}`
           );
         }
       } catch (error) {

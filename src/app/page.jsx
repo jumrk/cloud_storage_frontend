@@ -6,9 +6,11 @@ import React from "react";
 import Desription from "@/components/Description";
 import PlanList from "@/components/PlanList";
 import { useTranslations } from "next-intl";
+
 export const metadata = {
   title: "D2MBox",
 };
+
 export default function Home() {
   const t = useTranslations();
   return (
