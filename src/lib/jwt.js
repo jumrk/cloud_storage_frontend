@@ -27,7 +27,10 @@ export async function getTokenUserId(req) {
 
 export async function decodeTokenGetUser(token) {
   try {
-    const secret = new TextEncoder().encode("cloud_storage");
+    // Sử dụng cùng secret với backend
+    const secret = new TextEncoder().encode(
+      process.env.JWT_SECRET || "your-secret-key"
+    );
     const { payload } = await jwtVerify(token, secret);
     return payload || null;
   } catch (err) {

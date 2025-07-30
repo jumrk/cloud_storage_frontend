@@ -6,13 +6,19 @@ export async function middleware(request) {
   const token = request.cookies.get("token")?.value;
 
   console.log("token data:", token);
+  console.log("cookies:", request.cookies.getAll());
   const locale = request.cookies.get("NEXT_LOCALE")?.value || "vi"; // fallback
   let role = null;
   let slast = null;
   if (token) {
-    const userData = await decodeTokenGetUser(token); // dùng await
-    role = userData?.role;
-    slast = userData?.slast;
+    try {
+      const userData = await decodeTokenGetUser(token); // dùng await
+      console.log("decoded user data:", userData);
+      role = userData?.role;
+      slast = userData?.slast;
+    } catch (error) {
+      console.error("Error decoding token:", error);
+    }
   }
 
   const url = request.nextUrl.clone();
