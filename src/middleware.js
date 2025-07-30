@@ -4,7 +4,6 @@ import { decodeTokenGetUser } from "./lib/jwt";
 export function middleware(request) {
   // Lấy token từ cookie (cho SSR) hoặc từ localStorage (cho client-side)
   const token = request.cookies.get("token")?.value;
-  console.log("token:", token);
   const locale = request.cookies.get("NEXT_LOCALE")?.value || "vi"; // fallback
 
   let role = null;

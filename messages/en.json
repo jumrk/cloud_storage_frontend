@@ -4,13 +4,16 @@
     "storage": "STORAGE",
     "safe": "SAFE",
     "and": "AND",
-    "fast": "HIGH SPEED",
+    "fast1": "HIGH SPEED",
+    "fast2": "AI TECHNOLOGY",
     "get_started": "Get Started",
     "view_pricing": "View Pricing",
     "users": "Users",
     "files": "Files Uploaded",
     "capacity": "Storage Capacity",
-    "desc": "D2MBox is a powerful data storage platform, offering high-speed uploads/downloads with no storage limits. Flexible permission system helps teams and businesses manage efficiently, while ensuring absolute data safety with various sharing modes. Built on Google infrastructure, D2MBox provides an intuitive interface and convenient, easy-to-use file management tools."
+    "desc": "D2MBox is a powerful data storage platform, offering high-speed uploads/downloads with no storage limits. Flexible permission system helps teams and businesses manage efficiently, while ensuring absolute data safety with various sharing modes. Built on Google infrastructure, D2MBox provides an intuitive interface and convenient, easy-to-use file management tools.",
+    "desc_1": "Not just storage, D2MBox also integrates advanced AI tools: automatic video upload and processing, multi-language subtitle extraction – translation – synchronization, media content merging, global AI voice conversion,... All streamlined in an intuitive interface, running smoothly on all platforms.",
+    "desc_2": "Built on Google's powerful infrastructure and enhanced with AI technology, D2MBox is not just a storage place – but a smart data processing & operations center of the future."
   },
   "description": {
     "title": "SMART USER PERMISSIONS",
@@ -22,15 +25,15 @@
     "feature_3_desc": "Build a tree-structured permission model, each leader is a 'mini admin' of their own system.",
     "feature_4_title": "Full team control",
     "feature_4_desc": "You have full control over your team – like a separate system within a larger system.",
-    "sync": "Smart Sync & Storage",
-    "sync_title": "Fast uploads, secure storage",
-    "sync_desc": "With just a few clicks, you can upload any file from your device to the system. Data is stored securely, automatically synchronized, allowing you to access it anytime, anywhere.",
-    "share": "Flexible Sharing & Management",
-    "share_title": "Instant sharing",
-    "share_desc": "Send files to colleagues, friends, or workgroups in seconds. Easily customize access rights (view, edit, download), ensuring security and strict control.",
-    "ui": "Modern & Easy-to-Use Interface",
-    "ui_title": "Intuitive design, simple operations",
-    "ui_desc": "Optimized user experience: beautiful, neat, and easy to manage. Manage everything from files to users in just a few simple steps, saving operation time."
+    "sync": "OPTIMAL SYNC & STORAGE",
+    "sync_title": "Superior speed, absolute security",
+    "sync_desc": "With just a few simple steps, you can easily upload any file from your device to the system. All data is securely stored, instantly synchronized and ready to access anytime, anywhere – fast, convenient and with maximum security.",
+    "share": "SMART & FLEXIBLE AI TOOLS",
+    "share_title": "Comprehensive support, handle media content in just a few steps",
+    "share_desc": "Integrating a powerful AI toolkit makes working with video and language easier than ever: From downloading movies, joining videos, getting and adjusting subtitles, to automatic multilingual translation and AI voiceover. Everything is fast, accurate, and optimized for post-production, media, or cross-platform learning.",
+    "ui": "MODERN & EASY TO MASTER INTERFACE",
+    "ui_title": "Intuitive, user-friendly – works in a snap",
+    "ui_desc": "The interface is designed to be minimalistic yet sophisticated, making it easy for users to get acquainted and operate right from the first use. Every management process – from file organization to user control – becomes seamless, saving time and improving work efficiency."
   },
   "plans": {
     "title": "SERVICE PLANS",
@@ -62,11 +65,10 @@
   },
   "cta": {
     "title": "Grow your team's work with",
-    "desc": "Bring your team or company to the D2MBox platform – where secure data storage meets efficient work management. Whether you're a small startup or a medium-sized business, D2MBox offers flexible storage and powerful collaboration tools: Create tasks, assign jobs, and communicate directly on the web. Leaders can easily create and assign accounts for members or collaborators, helping work run smoothly, transparently, and organized.",
+    "desc": "D2MBox is a smart storage and collaboration platform that helps teams and businesses operate efficiently, securely and flexibly. Whether you are a small startup or a growing company, D2MBox provides a secure storage space combined with a powerful authorization system, task creation, work division and direct exchange right on the web. In addition, the platform also integrates a versatile AI Toolkit that supports movie downloading, video merging, subtitle extraction and translation, multilingual voiceover - all helping you shorten processing time and improve work efficiency. Easy management, smooth operation, transparency and professionalism - all ready to help your team accelerate.",
     "btn": "Learn more"
   },
   "footer": {
-    "tagline": "The Privacy Company",
     "description": "Cloud computing encryption service for the community",
     "copyright": "© D2MBox 2025 All rights reserved",
     "follow_us": "Follow D2MBox",
@@ -78,6 +80,81 @@
     "about": "About D2MBox",
     "support": "Contact/Support",
     "faq": "FAQ"
+  },
+  "about": {
+    "hero": {
+      "title": "Explore mission and core values",
+      "subtitle": "D2MBox is not only a storage platform, but also a comprehensive solution for secure, flexible and efficient data sharing and management. With the mission of accompanying modern businesses and individuals, D2MBox brings a smooth experience, optimizes work and connects smart collaboration in the digital age.",
+      "cta": "Get Started"
+    },
+    "values": {
+      "security": {
+        "title": "Absolute Security",
+        "desc": "Encrypted data, multi-layer protection, absolute safety commitment."
+      },
+      "storage": {
+        "title": "Flexible Storage",
+        "desc": "Google Drive integration, unlimited expansion, multi-platform sync."
+      },
+      "team": {
+        "title": "Smart Team Management",
+        "desc": "Tree-structured permissions, leaders manage members independently, internal security."
+      },
+      "speed": {
+        "title": "Outstanding Speed",
+        "desc": "Fast upload/download, smooth operations, optimized for businesses."
+      }
+    },
+    "partner": {
+      "title": "D2MBox – A reliable companion at work",
+      "feature_1": "Unlimited file & folder storage & sharing",
+      "feature_2": "Detailed permissions, secure access control",
+      "feature_3": "Smooth experience on all devices",
+      "feature_4": "Real-time chat & notifications, 24/7 support",
+      "feature_5": "Powerful AI tools"
+    },
+    "stats": {
+      "uptime": {
+        "value": "99.99%",
+        "label": "System Uptime"
+      },
+      "storage": {
+        "value": "1PB+",
+        "label": "Storage Capacity"
+      },
+      "users": {
+        "value": "10,000+",
+        "label": "Trusted Users"
+      }
+    },
+    "goals": {
+      "title": "D2MBox Goals & Commitments",
+      "item_1": "Providing flexible, highly secure storage platform, meeting the needs of individuals and businesses",
+      "item_2": "Ensure absolute privacy, detailed access control by authorization",
+      "item_3": "Accompanying businesses on the journey of effective and modern digital transformation",
+      "item_4": "Integrated smart AI Toolkit supports video processing, subtitles, translation and multilingual voiceover",
+      "item_5": "Dedicated, professional 24/7 customer service – always available when you need it"
+    },
+    "vision": {
+      "title": "Development orientation of D2MBox",
+      "integration": {
+        "title": "Comprehensive integration expansion",
+        "desc": "Flexible connectivity with cloud platforms, APIs, and enterprise management systems. D2MBox aims to become a digital data coordination center - where all processes, tools, and platforms are intelligently synchronized for large-scale enterprises."
+      },
+      "ai": {
+        "title": "AI & Intelligent Automation",
+        "desc": "Integrate advanced AI tools to automate data management, retrieval, and security processes. From language translation, subtitling, voice transcription, to video content analysis – everything becomes fast, accurate, and resource-efficient."
+      },
+      "platform": {
+        "title": "Seamless cross-platform experience",
+        "desc": "D2MBox is designed to work seamlessly on any device – from web browsers, mobile apps, desktops to IoT systems. Wherever you work, your data and tools are always at your fingertips."
+      }
+    },
+    "cta": {
+      "title": "Ready to experience D2MBox?",
+      "subtitle": "Register an account now to receive offers and explore all our amazing features!",
+      "button": "Experience Now"
+    }
   },
   "header": {
     "switch_language": "Switch language",

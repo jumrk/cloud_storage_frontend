@@ -12,9 +12,6 @@ function Footer() {
             <div className="flex items-center gap-2 mb-2">
               <img src="/images/Logo_2.png" alt="D2MBox" className="w-40 " />
             </div>
-            <div className="text-white font-semibold text-base ">
-              {t("footer.tagline")}
-            </div>
             <div className="text-gray-400 text-sm ">
               {t("footer.description")}
             </div>

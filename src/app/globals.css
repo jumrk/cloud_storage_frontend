@@ -8,15 +8,86 @@
 @theme {
   --color-primary: #1e293b;
 }
+
 input[type="date"]::-webkit-calendar-picker-indicator {
   opacity: 0;
   cursor: pointer;
   z-index: 10;
 }
+
 .scrollbar-hide {
   -ms-overflow-style: none; /* IE and Edge */
   scrollbar-width: none; /* Firefox */
 }
+
 .scrollbar-hide::-webkit-scrollbar {
   display: none; /* Chrome, Safari, Opera */
+}
+
+/* Custom typing animation styles */
+.typing-cursor {
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Smooth text transition */
+.text-transition {
+  transition: all 0.3s ease-in-out;
+}
+
+/* Typing animation container */
+.typing-container {
+  display: inline-block;
+  position: relative;
+  min-height: 1.2em;
+  line-height: 1.2;
+  vertical-align: top;
+}
+
+/* Fixed height for typing animation to prevent layout jumping */
+.typing-fixed-height {
+  height: 1.2em;
+  overflow: hidden;
+  display: inline-block;
+  vertical-align: top;
+  white-space: nowrap;
+  position: relative;
+}
+
+/* Ensure text stays within bounds */
+.typing-text {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Optional: Add a subtle glow effect */
+.typing-glow {
+  text-shadow: 0 0 10px rgba(28, 173, 217, 0.3);
+}
+
+/* Responsive adjustments for different screen sizes */
+@media (max-width: 768px) {
+  .typing-fixed-height {
+    height: 1.1em;
+    min-height: 1.1em;
+  }
+}
+
+@media (min-width: 1024px) {
+  .typing-fixed-height {
+    height: 1.3em;
+    min-height: 1.3em;
+  }
 }

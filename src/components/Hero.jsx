@@ -1,14 +1,178 @@
 "use client";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import ScrollReveal from "./ui/ScrollReveal";
 import { useRouter } from "next/navigation";
-import { FaLock, FaPlay } from "react-icons/fa";
+import { FaLock, FaPlay, FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import Lottie from "lottie-react";
 import metaverseAnimation from "@/assets/animation/metaverse.json";
 import userAnimation from "@/assets/animation/user.json";
 import folderAnimation from "@/assets/animation/folder.json";
 import storageAnimation from "@/assets/animation/storage.json";
 import { useTranslations } from "next-intl";
+
+// Typing Animation Component
+// Features:
+// - Smooth typing and deleting animation
+// - Blinking cursor effect
+// - Fade transition between different texts
+// - Configurable speed and delay
+// - Optimized performance with memoization
+const TypingAnimation = ({ texts, speed = 100, delay = 3000 }) => {
+  const [currentTextIndex, setCurrentTextIndex] = useState(0);
+  const [currentCharIndex, setCurrentCharIndex] = useState(0);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [displayText, setDisplayText] = useState("");
+  const [showCursor, setShowCursor] = useState(true);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isStarted, setIsStarted] = useState(false);
+
+  // Start the animation after a short delay
+  useEffect(() => {
+    const startTimeout = setTimeout(() => {
+      setIsStarted(true);
+    }, 500);
+    return () => clearTimeout(startTimeout);
+  }, []);
+
+  // Blinking cursor effect
+  useEffect(() => {
+    const cursorInterval = setInterval(() => {
+      setShowCursor((prev) => !prev);
+    }, 500);
+    return () => clearInterval(cursorInterval);
+  }, []);
+
+  // Typing animation effect
+  useEffect(() => {
+    if (!isStarted) return;
+
+    const currentText = texts[currentTextIndex];
+
+    if (!isDeleting) {
+      // Typing effect
+      if (currentCharIndex < currentText.length) {
+        const timeout = setTimeout(() => {
+          setDisplayText(currentText.slice(0, currentCharIndex + 1));
+          setCurrentCharIndex(currentCharIndex + 1);
+        }, speed);
+        return () => clearTimeout(timeout);
+      } else {
+        // Wait before starting to delete
+        const timeout = setTimeout(() => {
+          setIsDeleting(true);
+        }, delay);
+        return () => clearTimeout(timeout);
+      }
+    } else {
+      // Deleting effect
+      if (currentCharIndex > 0) {
+        const timeout = setTimeout(() => {
+          setDisplayText(currentText.slice(0, currentCharIndex - 1));
+          setCurrentCharIndex(currentCharIndex - 1);
+        }, speed / 2);
+        return () => clearTimeout(timeout);
+      } else {
+        // Move to next text with fade transition
+        setIsTransitioning(true);
+        setTimeout(() => {
+          setIsDeleting(false);
+          setCurrentTextIndex((prev) => (prev + 1) % texts.length);
+          setIsTransitioning(false);
+        }, 200);
+      }
+    }
+  }, [
+    currentTextIndex,
+    currentCharIndex,
+    isDeleting,
+    texts,
+    speed,
+    delay,
+    isStarted,
+  ]);
+
+  // Memoize the display text to prevent unnecessary re-renders
+  const memoizedDisplayText = React.useMemo(() => displayText, [displayText]);
+
+  return (
+    <span
+      className={`text-[#1cadd9] text-transition typing-container typing-glow typing-fixed-height ${
+        isTransitioning ? "opacity-50" : "opacity-100"
+      }`}
+    >
+      <span className="typing-text">{memoizedDisplayText}</span>
+      <span
+        className={`typing-cursor transition-opacity duration-75 ${
+          showCursor ? "opacity-100" : "opacity-0"
+        }`}
+      >
+        |
+      </span>
+    </span>
+  );
+};
+
+// Description Slider Component
+const DescriptionSlider = ({ t }) => {
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  const descriptions = [t("hero.desc"), t("hero.desc_1"), t("hero.desc_2")];
+
+  const nextSlide = () => {
+    if (isTransitioning) return;
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setCurrentSlide((prev) => (prev + 1) % descriptions.length);
+      setIsTransitioning(false);
+    }, 300);
+  };
+
+  // Auto-advance slides every 5 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      nextSlide();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [isTransitioning]);
+
+  return (
+    <div className="relative">
+      <div className="bg-white border-l-2 py-4 border-gray-300 pl-6 text-gray-700 text-base min-h-[190px] flex items-center">
+        <div
+          className={`transition-opacity duration-300 ${
+            isTransitioning ? "opacity-0" : "opacity-100"
+          }`}
+        >
+          {descriptions[currentSlide]}
+        </div>
+      </div>
+
+      {/* Dots indicator */}
+      <div className="flex justify-center mt-4 gap-2">
+        {descriptions.map((_, index) => (
+          <button
+            key={index}
+            onClick={() => {
+              if (!isTransitioning && index !== currentSlide) {
+                setIsTransitioning(true);
+                setTimeout(() => {
+                  setCurrentSlide(index);
+                  setIsTransitioning(false);
+                }, 300);
+              }
+            }}
+            className={`w-2 h-2 rounded-full transition-all duration-300 ${
+              index === currentSlide
+                ? "bg-[#1cadd9] w-6"
+                : "bg-gray-300 hover:bg-gray-400"
+            }`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
 
 function Hero() {
   const t = useTranslations();
@@ -28,6 +192,9 @@ function Hero() {
         ?.scrollIntoView({ behavior: "smooth" });
     }
   };
+
+  const fastTexts = [t("hero.fast1"), t("hero.fast2")];
+
   return (
     <div className="w-full min-h-[60vh] flex flex-col md:flex-row items-center justify-between md:px-14 gap-8">
       {/* Left: Text content */}
@@ -50,7 +217,7 @@ function Hero() {
             <span className="ml-2">{t("hero.and")}</span>
             <span className="relative">
               <span className="bg-[#1cadd9]/20 absolute inset-0 -z-10 rounded-md h-2/3 top-1/3 w-full"></span>
-              <span className="text-[#1cadd9]">{t("hero.fast")}</span>
+              <TypingAnimation texts={fastTexts} speed={60} delay={3000} />
             </span>
           </h1>
         </ScrollReveal>
@@ -112,9 +279,7 @@ function Hero() {
             loop={true}
             className="w-full max-w-xl drop-shadow-2xl"
           />
-          <div className="bg-white border-l-2 py-4 border-gray-300 pl-6  text-gray-700 text-base">
-            {t("hero.desc")}
-          </div>
+          <DescriptionSlider t={t} />
         </div>
       </ScrollReveal>
     </div>

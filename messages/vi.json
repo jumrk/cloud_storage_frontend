@@ -4,13 +4,16 @@
     "storage": "LƯU TRỮ",
     "safe": "AN TOÀN",
     "and": "VÀ",
-    "fast": "TỐC ĐỘ CAO",
+    "fast1": "TỐC ĐỘ CAO",
+    "fast2": "CÔNG NGHỆ AI",
     "get_started": "Bắt đầu",
     "view_pricing": "Xem giá",
     "users": "Người dùng",
     "files": "Tệp đã tải lên",
     "capacity": "Dung lượng lưu trữ",
-    "desc": "D2MBox là một nền tảng lưu trữ dữ liệu mạnh mẽ, cung cấp tốc độ tải lên/tải xuống cao mà không giới hạn dung lượng lưu trữ. Hệ thống phân quyền linh hoạt giúp các nhóm và doanh nghiệp quản lý hiệu quả, đồng thời đảm bảo an toàn dữ liệu tuyệt đối với nhiều chế độ chia sẻ. Được xây dựng trên cơ sở hạ tầng Google, D2MBox cung cấp giao diện trực quan và các công cụ quản lý tệp tiện lợi, dễ sử dụng."
+    "desc": "D2MBox là một nền tảng lưu trữ dữ liệu mạnh mẽ, cung cấp tốc độ tải lên/tải xuống cao mà không giới hạn dung lượng lưu trữ. Hệ thống phân quyền linh hoạt giúp các nhóm và doanh nghiệp quản lý hiệu quả, đồng thời đảm bảo an toàn dữ liệu tuyệt đối với nhiều chế độ chia sẻ. Được xây dựng trên cơ sở hạ tầng Google, D2MBox cung cấp giao diện trực quan và các công cụ quản lý tệp tiện lợi, dễ sử dụng.",
+    "desc_1": "Không chỉ dừng lại ở lưu trữ, D2MBox còn tích hợp bộ công cụ AI cao cấp: tự động tải và xử lý video, tách – dịch – đồng bộ phụ đề đa ngôn ngữ, ghép nội dung media, chuyển đổi giọng nói AI toàn cầu,... Tất cả được tinh gọn trong một giao diện trực quan, hoạt động mượt mà trên mọi nền tảng.",
+    "desc_2": "Được xây dựng trên hạ tầng mạnh mẽ của Google và nâng tầm bằng công nghệ AI, D2MBox không chỉ là nơi lưu trữ – mà là trung tâm xử lý & vận hành dữ liệu thông minh của tương lai."
   },
   "description": {
     "title": "PHÂN QUYỀN NGƯỜI DÙNG THÔNG MINH",
@@ -22,15 +25,15 @@
     "feature_3_desc": "Xây dựng mô hình phân quyền dạng cây, mỗi trưởng nhóm là một 'quản trị viên nhỏ' của hệ thống riêng.",
     "feature_4_title": "Kiểm soát toàn diện nhóm",
     "feature_4_desc": "Bạn có toàn quyền kiểm soát nhóm của mình – như một hệ thống riêng biệt trong hệ thống lớn hơn.",
-    "sync": "Đồng bộ & Lưu trữ thông minh",
-    "sync_title": "Tải lên nhanh, lưu trữ an toàn",
-    "sync_desc": "Chỉ với vài cú nhấp chuột, bạn có thể tải bất kỳ tệp nào từ thiết bị lên hệ thống. Dữ liệu được lưu trữ an toàn, tự động đồng bộ, cho phép truy cập mọi lúc, mọi nơi.",
-    "share": "Chia sẻ & Quản lý linh hoạt",
-    "share_title": "Chia sẻ tức thì",
-    "share_desc": "Gửi tệp cho đồng nghiệp, bạn bè hoặc nhóm làm việc trong vài giây. Dễ dàng tùy chỉnh quyền truy cập (xem, chỉnh sửa, tải xuống), đảm bảo an toàn và kiểm soát chặt chẽ.",
-    "ui": "Giao diện hiện đại & Dễ sử dụng",
-    "ui_title": "Thiết kế trực quan, thao tác đơn giản",
-    "ui_desc": "Trải nghiệm người dùng được tối ưu hóa: đẹp, gọn gàng và dễ quản lý. Quản lý mọi thứ từ tệp đến người dùng chỉ trong vài bước đơn giản, tiết kiệm thời gian thao tác."
+    "sync": "ĐỒNG BỘ & LƯU TRỮ TỐI ƯU",
+    "sync_title": "Tốc độ vượt trội, bảo mật tuyệt đối",
+    "sync_desc": "Chỉ với vài thao tác đơn giản, bạn có thể dễ dàng tải bất kỳ tệp nào từ thiết bị lên hệ thống. Mọi dữ liệu đều được lưu trữ an toàn, đồng bộ tức thời và sẵn sàng truy cập mọi lúc, mọi nơi – nhanh chóng, tiện lợi và bảo mật tối đa.",
+    "share": "CÔNG CỤ AI THÔNG MINH & LINH HOẠT",
+    "share_title": "Hỗ trợ toàn diện, xử lý nội dung media chỉ trong vài bước",
+    "share_desc": "Tích hợp bộ công cụ AI mạnh mẽ giúp bạn làm việc với video và ngôn ngữ dễ dàng hơn bao giờ hết: Từ tải phim, nối video, lấy và chỉnh phụ đề, đến dịch tự động đa ngôn ngữ và chuyển giọng nói bằng AI. Mọi thao tác đều nhanh chóng, chính xác và tối ưu cho công việc hậu kỳ, truyền thông hay học tập đa nền tảng.",
+    "ui": "GIAO DIỆN HIỆN ĐẠI & DỄ LÀM CHỦ",
+    "ui_title": "Trực quan, thân thiện – thao tác chỉ trong tích tắc",
+    "ui_desc": "Giao diện được thiết kế tối giản nhưng tinh tế, giúp người dùng dễ dàng làm quen và thao tác ngay từ lần đầu sử dụng. Mọi quy trình quản lý – từ tổ chức tệp đến kiểm soát người dùng – đều trở nên liền mạch, tiết kiệm thời gian và nâng cao hiệu suất công việc."
   },
   "plans": {
     "title": "GÓI DỊCH VỤ",
@@ -62,7 +65,7 @@
   },
   "cta": {
     "title": "Phát triển công việc nhóm của bạn với",
-    "desc": "Đưa nhóm hoặc công ty của bạn đến với nền tảng D2MBox – nơi lưu trữ dữ liệu an toàn kết hợp với quản lý công việc hiệu quả. Dù bạn là một startup nhỏ hay doanh nghiệp vừa, D2MBox cung cấp dung lượng lưu trữ linh hoạt và các công cụ cộng tác mạnh mẽ: Tạo nhiệm vụ, phân công công việc và giao tiếp trực tiếp trên web. Người lãnh đạo có thể dễ dàng tạo và phân quyền tài khoản cho các thành viên hoặc cộng tác viên, giúp công việc diễn ra suôn sẻ, minh bạch và có tổ chức.",
+    "desc": "D2MBox là nền tảng lưu trữ và cộng tác thông minh, giúp đội nhóm và doanh nghiệp vận hành hiệu quả, bảo mật và linh hoạt. Dù bạn là một startup nhỏ hay công ty đang phát triển, D2MBox mang đến không gian lưu trữ an toàn kết hợp hệ thống phân quyền mạnh mẽ, tạo nhiệm vụ, phân chia công việc và trao đổi trực tiếp ngay trên nền web. Bên cạnh đó, nền tảng còn tích hợp bộ Tool AI đa năng hỗ trợ tải phim, nối video, trích xuất và dịch phụ đề, chuyển giọng nói đa ngôn ngữ – tất cả giúp bạn rút ngắn thời gian xử lý và nâng cao hiệu quả công việc. Quản lý dễ dàng, vận hành mượt mà, minh bạch và chuyên nghiệp – tất cả đều sẵn sàng để nhóm của bạn tăng tốc.",
     "btn": "Tìm hiểu thêm"
   },
   "footer": {
@@ -985,6 +988,81 @@
       "confirm_delete_message": "Bạn có chắc chắn muốn xóa {count} mục đã chọn?",
       "confirm_delete_warning": "Hành động này không thể hoàn tác!",
       "delete": "Xóa"
+    }
+  },
+  "about": {
+    "hero": {
+      "title": "Khám phá sứ mệnh và giá trị cốt lõi của",
+      "subtitle": "D2MBox không chỉ là nền tảng lưu trữ, mà còn là giải pháp toàn diện cho chia sẻ và quản lý dữ liệu an toàn, linh hoạt và hiệu quả. Với sứ mệnh đồng hành cùng doanh nghiệp và cá nhân hiện đại, D2MBox mang đến trải nghiệm mượt mà, tối ưu hoá công việc và kết nối cộng tác thông minh trong kỷ nguyên số.",
+      "cta": "Bắt đầu ngay"
+    },
+    "values": {
+      "security": {
+        "title": "Bảo mật tuyệt đối",
+        "desc": "Dữ liệu mã hóa, bảo vệ nhiều lớp, cam kết an toàn tuyệt đối."
+      },
+      "storage": {
+        "title": "Lưu trữ linh hoạt",
+        "desc": "Tích hợp Google Drive, mở rộng không giới hạn, đồng bộ đa nền tảng."
+      },
+      "team": {
+        "title": "Quản lý nhóm thông minh",
+        "desc": "Phân quyền dạng cây, leader tự quản lý thành viên, bảo mật nội bộ."
+      },
+      "speed": {
+        "title": "Tốc độ vượt trội",
+        "desc": "Upload/download nhanh, thao tác mượt mà, tối ưu cho doanh nghiệp."
+      }
+    },
+    "partner": {
+      "title": "D2MBox – Người bạn đồng hành tin cậy trong công việc số",
+      "feature_1": "Lưu trữ & chia sẻ file, folder không giới hạn",
+      "feature_2": "Phân quyền chi tiết, kiểm soát truy cập an toàn",
+      "feature_3": "Trải nghiệm mượt mà trên mọi thiết bị",
+      "feature_4": "Chat & thông báo realtime, hỗ trợ 24/7",
+      "feature_5": "Công cụ AI mạnh mẽ"
+    },
+    "stats": {
+      "uptime": {
+        "value": "99.99%",
+        "label": "Uptime hệ thống"
+      },
+      "storage": {
+        "value": "1PB+",
+        "label": "Dung lượng lưu trữ"
+      },
+      "users": {
+        "value": "10,000+",
+        "label": "Người dùng tin tưởng"
+      }
+    },
+    "goals": {
+      "title": "Mục tiêu & cam kết của D2MBox",
+      "item_1": "Cung cấp nền tảng lưu trữ linh hoạt, bảo mật cao, đáp ứng nhu cầu từ cá nhân đến doanh nghiệp",
+      "item_2": "Đảm bảo quyền riêng tư tuyệt đối, kiểm soát truy cập chi tiết theo phân quyền",
+      "item_3": "Đồng hành cùng doanh nghiệp trong hành trình chuyển đổi số hiệu quả, hiện đại",
+      "item_4": "Tích hợp bộ Tool AI thông minh hỗ trợ xử lý video, phụ đề, dịch và chuyển giọng nói đa ngôn ngữ",
+      "item_5": "Dịch vụ chăm sóc khách hàng tận tâm, chuyên nghiệp 24/7 – luôn sẵn sàng khi bạn cần"
+    },
+    "vision": {
+      "title": "Định hướng phát triển của D2MBox",
+      "integration": {
+        "title": "Mở rộng tích hợp toàn diện",
+        "desc": "Kết nối linh hoạt với các nền tảng cloud, API, và hệ thống quản trị doanh nghiệp. D2MBox hướng tới trở thành trung tâm điều phối dữ liệu số – nơi mọi quy trình, công cụ và nền tảng được đồng bộ hoá thông minh cho doanh nghiệp quy mô lớn."
+      },
+      "ai": {
+        "title": "AI & Tự động hóa thông minh",
+        "desc": "Tích hợp các công cụ AI tiên tiến giúp tự động hoá quy trình quản lý, tra cứu và bảo mật dữ liệu. Từ dịch ngôn ngữ, tạo phụ đề, chuyển đổi giọng nói đến phân tích nội dung video – mọi thao tác đều trở nên nhanh chóng, chính xác và tiết kiệm nguồn lực."
+      },
+      "platform": {
+        "title": "Trải nghiệm đa nền tảng liền mạch",
+        "desc": "D2MBox được thiết kế để hoạt động trơn tru trên mọi thiết bị – từ trình duyệt web, ứng dụng di động, máy tính để bàn đến các hệ thống IoT. Dù bạn đang làm việc ở đâu, dữ liệu và công cụ của bạn luôn trong tầm tay."
+      }
+    },
+    "cta": {
+      "title": "Sẵn sàng trải nghiệm D2MBox?",
+      "subtitle": "Đăng ký tài khoản ngay để nhận ưu đãi và khám phá mọi tính năng tuyệt vời của chúng tôi!",
+      "button": "Trải nghiệm ngay"
     }
   }
 }
