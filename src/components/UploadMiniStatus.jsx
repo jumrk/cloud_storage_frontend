@@ -13,7 +13,7 @@ import toast from "react-hot-toast";
 import { useTranslations } from "next-intl";
 
 // Hàm chia file thành chunk
-const createFileChunks = (file, chunkSize = 25 * 1024 * 1024) => {
+const createFileChunks = (file, chunkSize = 100 * 1024 * 1024) => {
   // 25MB default
   const chunks = [];
   let start = 0;
