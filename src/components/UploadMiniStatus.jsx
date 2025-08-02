@@ -19,25 +19,29 @@ const calculateOptimalChunkSize = (fileSize) => {
   if (fileSize < 1 * 1024 * 1024) {
     return Math.max(1, Math.floor(fileSize / 2)); // Chia đôi file, tối thiểu 1 byte
   }
-  // File nhỏ (1MB - 10MB): chunk 1MB
+  // File nhỏ (1MB - 10MB): chunk 2MB
   else if (fileSize < 10 * 1024 * 1024) {
-    return 1 * 1024 * 1024; // 1MB
+    return 2 * 1024 * 1024; // 2MB
   }
-  // File trung bình (10MB - 100MB): chunk 5MB
+  // File trung bình (10MB - 100MB): chunk 10MB
   else if (fileSize < 100 * 1024 * 1024) {
-    return 5 * 1024 * 1024; // 5MB
-  }
-  // File lớn (100MB - 1GB): chunk 10MB
-  else if (fileSize < 1024 * 1024 * 1024) {
     return 10 * 1024 * 1024; // 10MB
   }
-  // File rất lớn (1GB - 10GB): chunk 25MB
-  else if (fileSize < 10 * 1024 * 1024 * 1024) {
+  // File lớn (100MB - 1GB): chunk 25MB
+  else if (fileSize < 1024 * 1024 * 1024) {
     return 25 * 1024 * 1024; // 25MB
   }
-  // File cực lớn (> 10GB): chunk 50MB
-  else {
+  // File rất lớn (1GB - 10GB): chunk 50MB
+  else if (fileSize < 10 * 1024 * 1024 * 1024) {
     return 50 * 1024 * 1024; // 50MB
+  }
+  // File cực lớn (10GB - 50GB): chunk 100MB
+  else if (fileSize < 50 * 1024 * 1024 * 1024) {
+    return 100 * 1024 * 1024; // 100MB
+  }
+  // File siêu lớn (> 50GB): chunk 200MB
+  else {
+    return 200 * 1024 * 1024; // 200MB
   }
 };
 
@@ -725,10 +729,10 @@ const MiniStatusBatch = ({
             timestamp: new Date().toISOString(),
           });
 
-          // Chờ 1 giây trước khi upload file tiếp theo để tránh xung đột
+          // Chờ 0.5 giây trước khi upload file tiếp theo để tăng tốc độ
           if (i < fileStates.length - 1) {
-            console.log(`[FE] ⏳ Chờ 1s trước khi upload file tiếp theo...`);
-            await new Promise((resolve) => setTimeout(resolve, 1000));
+            console.log(`[FE] ⏳ Chờ 0.5s trước khi upload file tiếp theo...`);
+            await new Promise((resolve) => setTimeout(resolve, 500));
           }
         } catch (error) {
           console.error(`[FE] ❌ Lỗi upload file ${i}:`, {
@@ -785,12 +789,12 @@ const MiniStatusBatch = ({
             timestamp: new Date().toISOString(),
           });
 
-          // Chờ 1 giây trước khi upload file tiếp theo để tránh xung đột
+          // Chờ 0.5 giây trước khi upload file tiếp theo để tăng tốc độ
           if (i < fileStates.length - 1) {
             console.log(
-              `[FE] ⏳ Chờ 1s trước khi upload file tiếp theo trong folder...`
+              `[FE] ⏳ Chờ 0.5s trước khi upload file tiếp theo trong folder...`
             );
-            await new Promise((resolve) => setTimeout(resolve, 1000));
+            await new Promise((resolve) => setTimeout(resolve, 500));
           }
         } catch (error) {
           console.error(`[FE] ❌ Lỗi upload file ${i} trong folder:`, {
