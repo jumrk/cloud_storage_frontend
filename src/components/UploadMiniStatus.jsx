@@ -12,13 +12,44 @@ import axiosClient from "@/lib/axiosClient";
 import toast from "react-hot-toast";
 import { useTranslations } from "next-intl";
 
-// Hàm chia file thành chunk
-const createFileChunks = (file, chunkSize = 100 * 1024 * 1024) => {
-  // 25MB default
+// Hàm tính toán chunk size thông minh dựa trên file size
+// Đảm bảo file nào cũng có ít nhất 2 chunks
+const calculateOptimalChunkSize = (fileSize) => {
+  // File rất nhỏ (< 1MB): chia thành 2 chunks bằng nhau
+  if (fileSize < 1 * 1024 * 1024) {
+    return Math.max(1, Math.floor(fileSize / 2)); // Chia đôi file, tối thiểu 1 byte
+  }
+  // File nhỏ (1MB - 10MB): chunk 1MB
+  else if (fileSize < 10 * 1024 * 1024) {
+    return 1 * 1024 * 1024; // 1MB
+  }
+  // File trung bình (10MB - 100MB): chunk 5MB
+  else if (fileSize < 100 * 1024 * 1024) {
+    return 5 * 1024 * 1024; // 5MB
+  }
+  // File lớn (100MB - 1GB): chunk 10MB
+  else if (fileSize < 1024 * 1024 * 1024) {
+    return 10 * 1024 * 1024; // 10MB
+  }
+  // File rất lớn (1GB - 10GB): chunk 25MB
+  else if (fileSize < 10 * 1024 * 1024 * 1024) {
+    return 25 * 1024 * 1024; // 25MB
+  }
+  // File cực lớn (> 10GB): chunk 50MB
+  else {
+    return 50 * 1024 * 1024; // 50MB
+  }
+};
+
+// Hàm chia file thành chunk với size thông minh
+// Đảm bảo file nào cũng có ít nhất 2 chunks
+const createFileChunks = (file) => {
+  const optimalChunkSize = calculateOptimalChunkSize(file.size);
   const chunks = [];
   let start = 0;
+
   while (start < file.size) {
-    const end = Math.min(start + chunkSize, file.size);
+    const end = Math.min(start + optimalChunkSize, file.size);
     chunks.push({
       start,
       end,
@@ -26,6 +57,32 @@ const createFileChunks = (file, chunkSize = 100 * 1024 * 1024) => {
     });
     start = end;
   }
+
+  // Đảm bảo file có ít nhất 2 chunks
+  if (chunks.length === 1) {
+    const halfSize = Math.floor(file.size / 2);
+    chunks[0] = {
+      start: 0,
+      end: halfSize,
+      size: halfSize,
+    };
+    chunks.push({
+      start: halfSize,
+      end: file.size,
+      size: file.size - halfSize,
+    });
+  }
+
+  console.log(
+    `[FE] 📊 File ${file.name} (${(file.size / 1024 / 1024).toFixed(
+      2
+    )}MB) được chia thành ${chunks.length} chunks, mỗi chunk ${(
+      optimalChunkSize /
+      1024 /
+      1024
+    ).toFixed(2)}MB`
+  );
+
   return chunks;
 };
 
@@ -74,20 +131,28 @@ const MiniStatusBatch = ({
   // Tính progress tổng thể dựa trên status của các file
   const calculateOverallProgress = (currentFileStates) => {
     if (!currentFileStates.length) return 0;
-    let totalChunks = 0;
-    let uploadedChunks = 0;
+
+    let totalProgress = 0;
+    let totalFiles = currentFileStates.length;
+    const progressPerFile = 100 / totalFiles; // 33.33% cho mỗi file
+
     currentFileStates.forEach((f) => {
-      if (f.chunks && f.chunks.length > 0) {
-        totalChunks += f.chunks.length;
-        uploadedChunks += f.uploadedChunks?.length || 0;
+      if (f.status === "success") {
+        totalProgress += progressPerFile; // File hoàn thành = 33.33%
+      } else if (f.status === "uploading" && f.chunks && f.chunks.length > 0) {
+        // File đang upload, tính theo chunks đã upload
+        const fileProgress = (f.uploadedChunks?.length || 0) / f.chunks.length;
+        totalProgress += fileProgress * progressPerFile; // Thêm phần trăm hoàn thành
+      } else if (f.status === "error" || f.status === "cancelled") {
+        // File lỗi hoặc bị hủy = 0%
+        totalProgress += 0;
       } else {
-        // Nếu file nhỏ, coi như 1 chunk
-        totalChunks += 1;
-        uploadedChunks += f.status === "success" ? 1 : 0;
+        // File chưa bắt đầu = 0%
+        totalProgress += 0;
       }
     });
-    if (totalChunks === 0) return 0;
-    return Math.round((uploadedChunks / totalChunks) * 100);
+
+    return Math.round(totalProgress);
   };
   const [isVisible, setIsVisible] = useState(true);
   const [status, setStatus] = useState("pending"); // for create_folder
@@ -96,6 +161,7 @@ const MiniStatusBatch = ({
   const uploadAbortController = useRef(null);
   const cancelledRef = useRef({});
   const abortControllersRef = useRef({}); // Thêm ref để lưu AbortController cho từng file
+  const isUploadingRef = useRef(false); // Thêm flag để ngăn chặn upload nhiều lần
   console.log("nè nè " + fileStates.file);
   // Hàm upload file bằng chunked upload
   const uploadFileWithChunks = async (fileState, fileIndex) => {
@@ -123,7 +189,9 @@ const MiniStatusBatch = ({
           chunks[0].end
         );
         // Gửi chunk đầu tiên dạng binary, metadata qua headers
-        uploadId = `${batchId}-${fileIndex}-${Date.now()}`;
+        uploadId = `${batchId}-${fileIndex}-${Date.now()}-${Math.random()
+          .toString(36)
+          .substr(2, 9)}`;
         const firstHeaders = {
           "Content-Type": "application/octet-stream",
           "X-Upload-Id": encodeURIComponent(uploadId),
@@ -140,7 +208,7 @@ const MiniStatusBatch = ({
           "X-Relative-Path": encodeURIComponent(fileState.relativePath || ""),
           "X-Batch-Id": encodeURIComponent(batchId || ""),
           "X-Chunk-Start": chunks[0].start,
-          "X-Chunk-End": chunks[0].end - 1,
+          "X-Chunk-End": chunks[0].end,
         };
         if (
           isFolder &&
@@ -284,7 +352,7 @@ const MiniStatusBatch = ({
           "X-Relative-Path": encodeURIComponent(fileState.relativePath || ""),
           "X-Batch-Id": encodeURIComponent(batchId || ""),
           "X-Chunk-Start": chunk.start,
-          "X-Chunk-End": chunk.end - 1,
+          "X-Chunk-End": chunk.end,
         };
         // Nếu đã bị hủy thì không upload nữa
         if (cancelledRef.current[fileIndex]) {
@@ -332,7 +400,8 @@ const MiniStatusBatch = ({
         const chunkProgress = Math.round(
           (uploadedChunks.length / chunks.length) * 100
         );
-        const isCompleted = i === chunks.length - 1 && data.fileId;
+        const isCompleted =
+          i === chunks.length - 1 && data.tempFileStatus === "completed";
         setFileStates((prev) => {
           const next = prev.map((f, idx) =>
             idx === fileIndex
@@ -483,12 +552,14 @@ const MiniStatusBatch = ({
   };
 
   useEffect(() => {
-    if (hasUploaded.current) return;
+    if (hasUploaded.current || isUploadingRef.current) return;
     hasUploaded.current = true;
+    isUploadingRef.current = true;
 
     // Error boundary cho toàn bộ upload process
     const handleError = (error) => {
       console.error("Upload error:", error);
+      isUploadingRef.current = false; // Reset flag khi có lỗi
       setFileStates((prev) =>
         prev.map((f) => ({ ...f, status: "error", error: error.message }))
       );
@@ -636,9 +707,33 @@ const MiniStatusBatch = ({
             );
             continue;
           }
+
+          console.log(`[FE] 🚀 Bắt đầu upload file ${i}:`, {
+            fileName: file.name,
+            fileSize: file.size,
+            batchId,
+            timestamp: new Date().toISOString(),
+          });
+
           await uploadFileWithChunks(fileStates[i], i);
+
+          console.log(`[FE] ✅ Hoàn thành upload file ${i}:`, {
+            fileName: file.name,
+            status: fileStates[i]?.status,
+            timestamp: new Date().toISOString(),
+          });
+
+          // Chờ 1 giây trước khi upload file tiếp theo để tránh xung đột
+          if (i < fileStates.length - 1) {
+            console.log(`[FE] ⏳ Chờ 1s trước khi upload file tiếp theo...`);
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+          }
         } catch (error) {
-          console.error(`Error uploading file ${i}:`, error);
+          console.error(`[FE] ❌ Lỗi upload file ${i}:`, {
+            fileName: fileStates[i]?.file?.name,
+            error: error.message,
+            timestamp: new Date().toISOString(),
+          });
           // Tiếp tục với file tiếp theo nếu có lỗi
         }
 
@@ -648,20 +743,31 @@ const MiniStatusBatch = ({
 
       // Kiểm tra xem có file nào thành công không
       const successfulFiles = fileStates.filter(
-        (f) => f.status === "success"
+        (f) => f.status === "success" // Chỉ tính file có status = "success"
       ).length;
       const hasErrors = fileStates.some((f) => f.status === "error");
 
-      setTimeout(() => {
-        setIsVisible(false);
-        if (onComplete)
-          onComplete({
-            success: successfulFiles > 0,
-            totalFiles: fileStates.length,
-            successfulFiles,
-            hasErrors,
-          });
-      }, 2000);
+      // Chỉ ẩn UI khi TẤT CẢ files đã hoàn thành
+      const allFilesCompleted = fileStates.every(
+        (f) =>
+          f.status === "success" ||
+          f.status === "error" ||
+          f.status === "cancelled"
+      );
+
+      if (allFilesCompleted) {
+        setTimeout(() => {
+          isUploadingRef.current = false; // Reset flag khi hoàn thành
+          setIsVisible(false);
+          if (onComplete)
+            onComplete({
+              success: successfulFiles > 0,
+              totalFiles: fileStates.length,
+              successfulFiles,
+              hasErrors,
+            });
+        }, 2000);
+      }
     };
 
     const uploadBatchFolder = async () => {
@@ -686,30 +792,68 @@ const MiniStatusBatch = ({
             );
             continue;
           }
+
+          console.log(`[FE] 🚀 Bắt đầu upload file ${i} trong folder:`, {
+            fileName: file.name,
+            fileSize: file.size,
+            batchId,
+            timestamp: new Date().toISOString(),
+          });
+
           await uploadFileWithChunks(fileStates[i], i);
+
+          console.log(`[FE] ✅ Hoàn thành upload file ${i} trong folder:`, {
+            fileName: file.name,
+            status: fileStates[i]?.status,
+            timestamp: new Date().toISOString(),
+          });
+
+          // Chờ 1 giây trước khi upload file tiếp theo để tránh xung đột
+          if (i < fileStates.length - 1) {
+            console.log(
+              `[FE] ⏳ Chờ 1s trước khi upload file tiếp theo trong folder...`
+            );
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+          }
         } catch (error) {
-          console.error(`Error uploading file ${i}:`, error);
+          console.error(`[FE] ❌ Lỗi upload file ${i} trong folder:`, {
+            fileName: fileStates[i]?.file?.name,
+            error: error.message,
+            timestamp: new Date().toISOString(),
+          });
           // Tiếp tục với file tiếp theo nếu có lỗi
         }
       }
 
       // Kiểm tra xem có file nào thành công không
       const successfulFiles = fileStates.filter(
-        (f) => f.status === "success"
+        (f) => f.status === "success" // Chỉ tính file có status = "success"
       ).length;
       const hasErrors = fileStates.some((f) => f.status === "error");
 
       setProgress(calculateOverallProgress(fileStates));
-      setTimeout(() => {
-        setIsVisible(false);
-        if (onComplete)
-          onComplete({
-            success: successfulFiles > 0,
-            totalFiles: fileStates.length,
-            successfulFiles,
-            hasErrors,
-          });
-      }, 2000);
+
+      // Chỉ ẩn UI khi TẤT CẢ files đã hoàn thành
+      const allFilesCompleted = fileStates.every(
+        (f) =>
+          f.status === "success" ||
+          f.status === "error" ||
+          f.status === "cancelled"
+      );
+
+      if (allFilesCompleted) {
+        setTimeout(() => {
+          isUploadingRef.current = false; // Reset flag khi hoàn thành
+          setIsVisible(false);
+          if (onComplete)
+            onComplete({
+              success: successfulFiles > 0,
+              totalFiles: fileStates.length,
+              successfulFiles,
+              hasErrors,
+            });
+        }, 2000);
+      }
     };
 
     if (isFolder) {
