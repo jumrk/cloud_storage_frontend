@@ -162,6 +162,7 @@ const MiniStatusBatch = ({
   const cancelledRef = useRef({});
   const abortControllersRef = useRef({}); // Thêm ref để lưu AbortController cho từng file
   const isUploadingRef = useRef(false); // Thêm flag để ngăn chặn upload nhiều lần
+  const hasCompletedRef = useRef(false); // Thêm flag để tránh gọi onComplete nhiều lần
   console.log("nè nè " + fileStates.file);
   // Hàm upload file bằng chunked upload
   const uploadFileWithChunks = async (fileState, fileIndex) => {
@@ -555,6 +556,7 @@ const MiniStatusBatch = ({
     if (hasUploaded.current || isUploadingRef.current) return;
     hasUploaded.current = true;
     isUploadingRef.current = true;
+    hasCompletedRef.current = false; // Reset flag khi bắt đầu upload mới
 
     // Error boundary cho toàn bộ upload process
     const handleError = (error) => {
@@ -741,33 +743,8 @@ const MiniStatusBatch = ({
         setProgress(calculateOverallProgress(fileStates));
       }
 
-      // Kiểm tra xem có file nào thành công không
-      const successfulFiles = fileStates.filter(
-        (f) => f.status === "success" // Chỉ tính file có status = "success"
-      ).length;
-      const hasErrors = fileStates.some((f) => f.status === "error");
-
-      // Chỉ ẩn UI khi TẤT CẢ files đã hoàn thành
-      const allFilesCompleted = fileStates.every(
-        (f) =>
-          f.status === "success" ||
-          f.status === "error" ||
-          f.status === "cancelled"
-      );
-
-      if (allFilesCompleted) {
-        setTimeout(() => {
-          isUploadingRef.current = false; // Reset flag khi hoàn thành
-          setIsVisible(false);
-          if (onComplete)
-            onComplete({
-              success: successfulFiles > 0,
-              totalFiles: fileStates.length,
-              successfulFiles,
-              hasErrors,
-            });
-        }, 2000);
-      }
+      // Logic ẩn UI đã được chuyển sang useEffect để theo dõi thay đổi của fileStates
+      console.log("[FE] 📊 Upload batch files hoàn thành, chờ useEffect xử lý");
     };
 
     const uploadBatchFolder = async () => {
@@ -833,27 +810,10 @@ const MiniStatusBatch = ({
 
       setProgress(calculateOverallProgress(fileStates));
 
-      // Chỉ ẩn UI khi TẤT CẢ files đã hoàn thành
-      const allFilesCompleted = fileStates.every(
-        (f) =>
-          f.status === "success" ||
-          f.status === "error" ||
-          f.status === "cancelled"
+      // Logic ẩn UI đã được chuyển sang useEffect để theo dõi thay đổi của fileStates
+      console.log(
+        "[FE] 📊 Upload batch folder hoàn thành, chờ useEffect xử lý"
       );
-
-      if (allFilesCompleted) {
-        setTimeout(() => {
-          isUploadingRef.current = false; // Reset flag khi hoàn thành
-          setIsVisible(false);
-          if (onComplete)
-            onComplete({
-              success: successfulFiles > 0,
-              totalFiles: fileStates.length,
-              successfulFiles,
-              hasErrors,
-            });
-        }, 2000);
-      }
     };
 
     if (isFolder) {
@@ -866,6 +826,57 @@ const MiniStatusBatch = ({
 
   // Thêm event listener để cảnh báo khi user rời khỏi trang
   // XÓA toàn bộ useEffect thêm event listener beforeunload và visibilitychange
+
+  // Thêm useEffect để theo dõi thay đổi của fileStates và ẩn UI khi hoàn thành
+  useEffect(() => {
+    // Chỉ kiểm tra khi có files và không phải các batchType đặc biệt
+    if (
+      files.length === 0 ||
+      batchType === "delete" ||
+      batchType === "move" ||
+      batchType === "create_folder"
+    ) {
+      return;
+    }
+
+    // Kiểm tra xem tất cả files đã hoàn thành chưa
+    const allFilesCompleted = fileStates.every(
+      (f) =>
+        f.status === "success" ||
+        f.status === "error" ||
+        f.status === "cancelled"
+    );
+
+    if (
+      allFilesCompleted &&
+      fileStates.length > 0 &&
+      !hasCompletedRef.current
+    ) {
+      console.log("[FE] 🎉 Tất cả files đã hoàn thành, ẩn UI sau 2s");
+
+      // Đánh dấu đã hoàn thành để tránh gọi onComplete nhiều lần
+      hasCompletedRef.current = true;
+
+      // Tính số file thành công
+      const successfulFiles = fileStates.filter(
+        (f) => f.status === "success"
+      ).length;
+      const hasErrors = fileStates.some((f) => f.status === "error");
+
+      setTimeout(() => {
+        isUploadingRef.current = false; // Reset flag khi hoàn thành
+        setIsVisible(false);
+        if (onComplete) {
+          onComplete({
+            success: successfulFiles > 0,
+            totalFiles: fileStates.length,
+            successfulFiles,
+            hasErrors,
+          });
+        }
+      }, 2000);
+    }
+  }, [fileStates, files.length, batchType, onComplete]);
 
   if (!isVisible) return null;
 
