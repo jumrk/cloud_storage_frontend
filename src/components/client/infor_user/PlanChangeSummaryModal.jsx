@@ -328,8 +328,8 @@ export default function PlanChangeSummaryModal({
   )}&accountName=${encodeURIComponent(paymentAccountName)}`;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/30 backdrop-blur-[6px]">
-      <div className="bg-white rounded-3xl shadow-2xl p-0 w-full max-w-5xl min-h-[520px] relative flex flex-col md:flex-row overflow-hidden border border-gray-200">
+    <div className="fixed inset-0 z-50 flex items-start md:items-center h-full overflow-auto justify-center bg-black/30 backdrop-blur-[6px]">
+      <div className="bg-white rounded-3xl shadow-2xl p-0 w-full max-w-5xl min-h-[520px] relative flex flex-col md:flex-row border border-gray-200">
         <button
           className="absolute top-4 right-6 text-gray-400 hover:text-gray-700 text-2xl z-10"
           onClick={onClose}
@@ -338,7 +338,7 @@ export default function PlanChangeSummaryModal({
           ×
         </button>
         {/* Bên trái: Thông tin user + mã giảm giá + chọn loại gói */}
-        <div className="md:w-1/2 w-full p-10 border-b md:border-b-0 md:border-r border-gray-100 flex flex-col justify-between gap-8">
+        <div className="md:w-1/2 w-full p-2 md:p-10 border-b md:border-b-0 md:border-r border-gray-100 flex flex-col justify-between gap-8">
           <div>
             <div className="text-2xl font-bold mb-4">
               {t("plan_change_summary.owner_info_title")}
@@ -618,7 +618,7 @@ export default function PlanChangeSummaryModal({
           </div>
         </div>
         {/* Bên phải: Thông tin thanh toán + QR */}
-        <div className="md:w-1/2 w-full p-10 flex flex-col justify-between gap-8">
+        <div className="md:w-1/2 w-full p-2 md:p-10 flex flex-col justify-between gap-8">
           {allowChange && (
             <>
               <div>

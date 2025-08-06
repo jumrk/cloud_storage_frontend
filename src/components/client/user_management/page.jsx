@@ -254,8 +254,7 @@ function User_Management_Page() {
       </div>
       {/* Thanh công cụ */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-        <div></div>
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="grid md:flex items-center gap-2 w-full sm:w-auto ">
           <div className="relative w-full sm:w-64">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
               <FiSearch />
@@ -270,7 +269,7 @@ function User_Management_Page() {
           </div>
           {/* Remove filter dropdown from toolbar */}
           <button
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-black hover:bg-gray-800 text-white font-semibold text-sm shadow-sm"
+            className="flex items-center gap-2 px-4 py-4 md:py-2 rounded-lg bg-black hover:bg-gray-800 text-white font-semibold text-sm shadow-sm"
             onClick={handleOpenModal}
           >
             <FiPlus className="text-lg" /> {t("user_management.add_user")}
@@ -279,8 +278,8 @@ function User_Management_Page() {
       </div>
       {/* Modal tạo member */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-          <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl relative border border-gray-200">
+        <div className="fixed inset-0  z-50 flex items-center px-3 justify-center bg-black/30">
+          <div className="bg-white rounded-3xl p-6  shadow-2xl relative border border-gray-200">
             <h2 className="text-xl font-bold mb-4 text-center">
               {t("user_management.add_new")}
             </h2>
@@ -394,7 +393,7 @@ function User_Management_Page() {
       )}
       {/* Modal chỉnh sửa member */}
       {editModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+        <div className="fixed inset-0 z-50 flex items-center px-3 justify-center bg-black/30">
           <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl relative">
             <h2 className="text-lg font-bold mb-4">
               {t("user_management.edit_title")}

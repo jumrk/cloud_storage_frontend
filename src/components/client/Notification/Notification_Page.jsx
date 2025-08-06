@@ -136,7 +136,7 @@ function Notification_Page({ onUnreadChange }) {
   return (
     <div className="w-full max-w-3xl mx-auto bg-white p-8 mt-8 border border-gray-100">
       {/* Tiêu đề & mô tả + nút đánh dấu đã đọc tất cả */}
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 grid md:flex gap-3 items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 mb-1">
             {t("notification.title")}

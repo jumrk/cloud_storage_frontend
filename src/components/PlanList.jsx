@@ -147,7 +147,7 @@ export default function PlanList() {
             return (
               <div
                 key={plan._id || idx}
-                className={`relative bg-white rounded-2xl shadow p-7 flex flex-col min-w-[240px] max-w-xs min-h-[420px] mx-auto md:mx-0 transition group
+                className={`relative bg-white rounded-2xl shadow p-7 flex flex-col w-[90%] md:max-w-xs min-h-[420px] mx-auto md:mx-0 transition group
                   ${
                     plan.featured
                       ? "border-l-2 border-r-2 border-b-2 border-[#1cadd9] border-t-0 rounded-b-2xl"

@@ -10,13 +10,6 @@ import folderAnimation from "@/assets/animation/folder.json";
 import storageAnimation from "@/assets/animation/storage.json";
 import { useTranslations } from "next-intl";
 
-// Typing Animation Component
-// Features:
-// - Smooth typing and deleting animation
-// - Blinking cursor effect
-// - Fade transition between different texts
-// - Configurable speed and delay
-// - Optimized performance with memoization
 const TypingAnimation = ({ texts, speed = 100, delay = 3000 }) => {
   const [currentTextIndex, setCurrentTextIndex] = useState(0);
   const [currentCharIndex, setCurrentCharIndex] = useState(0);
@@ -138,7 +131,7 @@ const DescriptionSlider = ({ t }) => {
 
   return (
     <div className="relative">
-      <div className="bg-white border-l-2 py-4 border-gray-300 pl-6 text-gray-700 text-base min-h-[190px] flex items-center">
+      <div className="bg-white border-l-2 py-4 border-gray-300 pl-6 text-gray-700 text-base min-h-[300px] md:min-h-[190px] flex items-center">
         <div
           className={`transition-opacity duration-300 ${
             isTransitioning ? "opacity-0" : "opacity-100"

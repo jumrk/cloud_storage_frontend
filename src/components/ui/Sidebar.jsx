@@ -14,7 +14,6 @@ import {
 } from "react-icons/ci";
 import toast from "react-hot-toast";
 import { decodeTokenGetUser } from "@/lib/jwt";
-import { FaBars } from "react-icons/fa";
 import axiosClient from "@/lib/axiosClient";
 import { useTranslations } from "next-intl";
 
@@ -24,7 +23,6 @@ export default function Sidebar({
   onClose,
   unreadCount = 0,
   unreadNotificationCount = 0,
-  menuButtonPosition = "fixed top-4 left-4 z-50", // thêm prop này
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -165,7 +163,7 @@ export default function Sidebar({
           })}
         </ul>
         {/* Đăng xuất */}
-        <div className="px-4 pb-6">
+        <div className="px-4 pb-12 md:pb-6">
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all font-medium text-gray-700 hover:bg-gray-100 hover:text-primary"

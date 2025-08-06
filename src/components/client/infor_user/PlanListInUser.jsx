@@ -29,13 +29,6 @@ export default function PlanListInUser({
   const t = useTranslations();
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
-  // State cho custom plan
-  const [custom, setCustom] = useState({
-    storage: 20,
-    users: 20,
-    cycle: "month", // "month" | "year"
-  });
-  const [customError, setCustomError] = useState("");
 
   useEffect(() => {
     const fetchPlans = async () => {
@@ -58,38 +51,6 @@ export default function PlanListInUser({
     fetchPlans();
   }, []);
 
-  // Tính giá động cho custom plan
-  const customPlanPrice = getCustomPlanPrice(custom.storage, custom.users);
-  const customPrice =
-    custom.cycle === "year" ? customPlanPrice.year : customPlanPrice.month;
-
-  // Tìm plan hiện tại
-  const currentPlanIdx = plans.findIndex((p) => p.name === currentPlanName);
-
-  // Validate custom input
-  const validateCustom = () => {
-    if (!Number.isInteger(Number(custom.storage)) || custom.storage < 20) {
-      setCustomError(t("plans.custom_storage_error"));
-      return false;
-    }
-    if (!Number.isInteger(Number(custom.users)) || custom.users < 20) {
-      setCustomError(t("plans.custom_users_error"));
-      return false;
-    }
-    setCustomError("");
-    return true;
-  };
-
-  const handleCustomChange = (e) => {
-    setCustom({
-      ...custom,
-      [e.target.name]: e.target.value.replace(/[^0-9]/g, ""),
-    });
-  };
-  const handleCustomCycle = (e) => {
-    setCustom({ ...custom, cycle: e.target.value });
-  };
-
   // Tính số ngày còn lại của gói cũ
   const now = new Date();
   let daysLeft = 0;
@@ -97,66 +58,17 @@ export default function PlanListInUser({
     const end = new Date(user.planEndDate);
     daysLeft = Math.max(0, Math.ceil((end - now) / (1000 * 60 * 60 * 24)));
   }
-
-  const handleChooseCustom = (plan) => {
-    if (!validateCustom()) return;
-    if (onChoose) {
-      // Xác định actionType đúng khi chọn custom
-      let actionType = "upgrade";
-      const oldType = user?.planType || "month";
-      const newType = custom.cycle || "month";
-      const userIsYear = oldType === "year";
-      const customIsMonth = newType === "month";
-      // Tính giá động của gói cũ và custom
-      const userCustomPlanPrice =
-        user?.plan?.isCustom ||
-        user?.plan?.name?.toLowerCase().includes("tùy chọn")
-          ? getCustomPlanPrice(
-              (user.maxStorage || 0) / 1024 ** 4,
-              user.maxUser || 0
-            )
-          : {
-              month: Number(user?.plan?.priceMonth || 0),
-              year: Number(user?.plan?.priceYear || 0),
-            };
-      const customPlanPrice = getCustomPlanPrice(custom.storage, custom.users);
-      if (daysLeft <= 0) {
-        actionType = "register";
-      } else if (
-        userIsYear &&
-        customIsMonth &&
-        customPlanPrice.month < userCustomPlanPrice.year / 12
-      ) {
-        actionType = "downgrade";
-      }
-      onChoose(
-        {
-          ...plan,
-          isCustom: true,
-          customStorage: Number(custom.storage),
-          customUsers: Number(custom.users),
-          customPriceMonth: customPlanPrice.month,
-          customPriceYear: customPlanPrice.year,
-          priceMonth: customPlanPrice.month,
-          priceYear: customPlanPrice.year,
-        },
-        actionType
-      );
-    }
-  };
-
   return (
     <div className="mt-10">
       <div className="font-bold text-lg mb-4">
         {t("plan_list_in_user.title")}
       </div>
-      {/* Custom plan card giống các plan khác, không có input */}
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-6 px-2 sm:px-0">
           {Array.from({ length: 4 }).map((_, idx) => (
             <div
               key={idx}
-              className="bg-white border-2 border-[#1cadd9] rounded-xl shadow p-6 flex flex-col min-w-[220px] max-w-xs mx-auto md:mx-0 relative"
+              className="bg-white border-2 border-[#1cadd9] rounded-xl shadow p-6 flex flex-col w-[90%] md:max-w-xs mx-auto md:mx-0 relative"
             >
               <div className="flex items-center justify-center mb-2">
                 <Skeleton circle width={32} height={32} className="mr-2" />
@@ -212,7 +124,7 @@ export default function PlanListInUser({
             return (
               <div
                 key={plan._id || idx}
-                className={`relative bg-white rounded-2xl shadow p-7 flex flex-col min-w-[240px] max-w-xs mx-auto md:mx-0 transition group
+                className={`relative bg-white rounded-2xl shadow p-7 flex flex-col w-[90%] md:max-w-xs mx-auto md:mx-0 transition group
                   ${
                     plan.featured
                       ? "border-l-2 border-r-2 border-b-2 border-[#1cadd9] border-t-0 rounded-b-2xl"

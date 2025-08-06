@@ -10,7 +10,11 @@ function Footer() {
           {/* Cột trái: Logo + Info + Social */}
           <div className="md:w-1/3 flex flex-col items-center md:items-start gap-4 mb-6 md:mb-0">
             <div className="flex items-center gap-2 mb-2">
-              <img src="/images/Logo_2.png" alt="D2MBox" className="w-40 " />
+              <img
+                src="/images/Logo_white.png"
+                alt="D2MBox"
+                className="w-40 "
+              />
             </div>
             <div className="text-gray-400 text-sm ">
               {t("footer.description")}
@@ -110,7 +114,7 @@ function Footer() {
             </div>
           </div>
           {/* Cột phải: các link page */}
-          <div className=" flex flex-col md:flex-row gap-8 md:gap-12 justify-between items-center md:items-start">
+          <div className=" flex flex-col md:flex-row gap-8 md:gap-12 justify-center items-center md:items-start">
             <div>
               <div className="text-white font-semibold text-sm mb-3">
                 D2MBox

@@ -206,7 +206,7 @@ export default function Infor_component() {
   }
 
   return (
-    <div className="w-full mx-auto bg-white p-8 mt-8 border border-gray-100">
+    <div className="w-full mx-auto bg-white p-2 md:p-8 mt-8 border border-gray-100">
       {/* Cảnh báo sắp hết hạn gói */}
       {daysLeft !== null && daysLeft <= 2 && daysLeft > 0 && (
         <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4 rounded">
