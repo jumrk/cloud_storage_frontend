@@ -42,7 +42,8 @@ export function middleware(request) {
     path.startsWith("/faq") ||
     path.startsWith("/privacy_policy") ||
     path.startsWith("/terms_of_use") ||
-    path.startsWith("/cookie_policy")
+    path.startsWith("/cookie_policy") ||
+    path.startsWith("/share")
   ) {
     return response;
   }
