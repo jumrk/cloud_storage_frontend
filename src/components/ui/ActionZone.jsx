@@ -28,8 +28,6 @@ export default function ActionZone({
   onDelete,
   onShare,
   onGrantPermission,
-  showMoveModal,
-  setShowMoveModal,
   canGrantPermission = true, // thêm prop này, default true
 }) {
   const [copiedShareMobile, setCopiedShareMobile] = React.useState(false);

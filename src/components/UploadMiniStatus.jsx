@@ -1,52 +1,24 @@
 import React, { useEffect, useState, useRef } from "react";
 import Loader from "@/components/ui/Loader";
-import {
-  FiCheck,
-  FiX,
-  FiUpload,
-  FiClock,
-  FiPause,
-  FiPlay,
-} from "react-icons/fi";
+import { FiCheck, FiX, FiUpload, FiClock } from "react-icons/fi";
 import axiosClient from "@/lib/axiosClient";
 import toast from "react-hot-toast";
 import { useTranslations } from "next-intl";
 
-// Hàm tính toán chunk size thông minh dựa trên file size
+/* ===========================
+   Chunk sizing (giữ logic cũ)
+=========================== */
 // Đảm bảo file nào cũng có ít nhất 2 chunks
 const calculateOptimalChunkSize = (fileSize) => {
-  // File rất nhỏ (< 1MB): chia thành 2 chunks bằng nhau
-  if (fileSize < 1 * 1024 * 1024) {
-    return Math.max(1, Math.floor(fileSize / 2)); // Chia đôi file, tối thiểu 1 byte
-  }
-  // File nhỏ (1MB - 10MB): chunk 2MB
-  else if (fileSize < 10 * 1024 * 1024) {
-    return 2 * 1024 * 1024; // 2MB
-  }
-  // File trung bình (10MB - 100MB): chunk 10MB
-  else if (fileSize < 100 * 1024 * 1024) {
-    return 10 * 1024 * 1024; // 10MB
-  }
-  // File lớn (100MB - 1GB): chunk 25MB
-  else if (fileSize < 1024 * 1024 * 1024) {
-    return 25 * 1024 * 1024; // 25MB
-  }
-  // File rất lớn (1GB - 10GB): chunk 50MB
-  else if (fileSize < 10 * 1024 * 1024 * 1024) {
-    return 50 * 1024 * 1024; // 50MB
-  }
-  // File cực lớn (10GB - 50GB): chunk 100MB
-  else if (fileSize < 50 * 1024 * 1024 * 1024) {
-    return 100 * 1024 * 1024; // 100MB
-  }
-  // File siêu lớn (> 50GB): chunk 200MB
-  else {
-    return 200 * 1024 * 1024; // 200MB
-  }
+  if (fileSize < 1 * 1024 * 1024) return Math.max(1, Math.floor(fileSize / 2));
+  if (fileSize < 10 * 1024 * 1024) return 2 * 1024 * 1024;
+  if (fileSize < 100 * 1024 * 1024) return 10 * 1024 * 1024;
+  if (fileSize < 1024 * 1024 * 1024) return 25 * 1024 * 1024;
+  if (fileSize < 10 * 1024 * 1024 * 1024) return 50 * 1024 * 1024;
+  if (fileSize < 50 * 1024 * 1024 * 1024) return 100 * 1024 * 1024;
+  return 200 * 1024 * 1024;
 };
-
-// Hàm chia file thành chunk với size thông minh
-// Đảm bảo file nào cũng có ít nhất 2 chunks
+const CLOSE_ON_PROCESSING = true;
 const createFileChunks = (file) => {
   const optimalChunkSize = calculateOptimalChunkSize(file.size);
   const chunks = [];
@@ -54,53 +26,35 @@ const createFileChunks = (file) => {
 
   while (start < file.size) {
     const end = Math.min(start + optimalChunkSize, file.size);
-    chunks.push({
-      start,
-      end,
-      size: end - start,
-    });
+    chunks.push({ start, end, size: end - start });
     start = end;
   }
 
-  // Đảm bảo file có ít nhất 2 chunks
   if (chunks.length === 1) {
-    const halfSize = Math.floor(file.size / 2);
-    chunks[0] = {
-      start: 0,
-      end: halfSize,
-      size: halfSize,
-    };
-    chunks.push({
-      start: halfSize,
-      end: file.size,
-      size: file.size - halfSize,
-    });
+    const half = Math.floor(file.size / 2);
+    chunks[0] = { start: 0, end: half, size: half };
+    chunks.push({ start: half, end: file.size, size: file.size - half });
   }
 
   console.log(
-    `[FE] 📊 File ${file.name} (${(file.size / 1024 / 1024).toFixed(
-      2
-    )}MB) được chia thành ${chunks.length} chunks, mỗi chunk ${(
-      optimalChunkSize /
-      1024 /
-      1024
-    ).toFixed(2)}MB`
+    `[FE] 📊 ${file.name} ${(file.size / 1024 / 1024).toFixed(2)}MB → ${
+      chunks.length
+    } chunks (~${(optimalChunkSize / 1024 / 1024).toFixed(2)}MB/chunk)`
   );
-
   return chunks;
 };
 
-// Hàm đọc chunk từ file
-const readFileChunk = (file, start, end) => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => resolve(e.target.result);
-    reader.onerror = reject;
-    reader.readAsArrayBuffer(file.slice(start, end));
+const readFileChunk = (file, start, end) =>
+  new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = (e) => resolve(e.target.result);
+    r.onerror = reject;
+    r.readAsArrayBuffer(file.slice(start, end));
   });
-};
 
-// MiniStatus cho 1 batch (files hoặc folders hoặc create_folder)
+/* ===========================
+   MiniStatus cho 1 batch
+=========================== */
 const MiniStatusBatch = ({
   files = [],
   isFolder,
@@ -116,66 +70,130 @@ const MiniStatusBatch = ({
   useChunkedUpload = false,
 }) => {
   const t = useTranslations();
+
   const [fileStates, setFileStates] = useState(
     files.map((f) => ({
       file: f.file,
       name: f.name,
       relativePath: isFolder ? f.relativePath : undefined,
       icon: "/images/icon/png.png",
-      status: "pending",
-      progress: 0,
+      status: "pending", // pending | uploading | processing | success | error | cancelled
+      progress: 0, // % hiển thị cho UI mỗi file (assembled progress → 0..100)
       chunks: [],
-      uploadedChunks: [],
       uploadId: null,
       error: null,
     }))
   );
   const [progress, setProgress] = useState(0);
-
-  // Tính progress tổng thể dựa trên status của các file
-  const calculateOverallProgress = (currentFileStates) => {
-    if (!currentFileStates.length) return 0;
-
-    let totalProgress = 0;
-    let totalFiles = currentFileStates.length;
-    const progressPerFile = 100 / totalFiles; // 33.33% cho mỗi file
-
-    currentFileStates.forEach((f) => {
-      if (f.status === "success") {
-        totalProgress += progressPerFile; // File hoàn thành = 33.33%
-      } else if (f.status === "uploading" && f.chunks && f.chunks.length > 0) {
-        // File đang upload, tính theo chunks đã upload
-        const fileProgress = (f.uploadedChunks?.length || 0) / f.chunks.length;
-        totalProgress += fileProgress * progressPerFile; // Thêm phần trăm hoàn thành
-      } else if (f.status === "error" || f.status === "cancelled") {
-        // File lỗi hoặc bị hủy = 0%
-        totalProgress += 0;
-      } else {
-        // File chưa bắt đầu = 0%
-        totalProgress += 0;
-      }
-    });
-
-    return Math.round(totalProgress);
-  };
   const [isVisible, setIsVisible] = useState(true);
-  const [status, setStatus] = useState("pending"); // for create_folder
-  const [result, setResult] = useState(null); // for create_folder
+  const [status, setStatus] = useState("pending"); // cho các flow đặc biệt
+  const [result, setResult] = useState(null);
+
+  // Refs quản lý vòng đời upload
   const hasUploaded = useRef(false);
   const uploadAbortController = useRef(null);
   const cancelledRef = useRef({});
-  const abortControllersRef = useRef({}); // Thêm ref để lưu AbortController cho từng file
-  const isUploadingRef = useRef(false); // Thêm flag để ngăn chặn upload nhiều lần
-  const hasCompletedRef = useRef(false); // Thêm flag để tránh gọi onComplete nhiều lần
-  console.log("nè nè " + fileStates.file);
-  // Hàm upload file bằng chunked upload
+  const abortControllersRef = useRef({}); // Abort cho từng file
+  const isUploadingRef = useRef(false);
+  const hasCompletedRef = useRef(false);
+
+  // Pollers & cache status Drive
+  const statusPollersRef = useRef({}); // fileIndex -> setInterval id
+  // Dọn mọi poller khi component unmount
+  useEffect(() => {
+    return () => {
+      Object.values(statusPollersRef.current || {}).forEach((id) =>
+        clearInterval(id)
+      );
+      statusPollersRef.current = {};
+    };
+  }, []);
+  const lastStatusRef = useRef({}); // fileIndex -> { assembledBytes, driveBytes, ... }
+
+  /* ===========================
+     Overall progress (theo % mỗi file)
+  =========================== */
+  const calculateOverallProgress = (current) => {
+    if (!current.length) return 0;
+    const sum = current.reduce((acc, f) => acc + (Number(f.progress) || 0), 0);
+    return Math.round(sum / current.length);
+  };
+
+  /* ===========================
+     Poll /status tới khi Drive xong
+  =========================== */
+  const pollStatusUntilDone = (uploadId, fileIndex, fileSize) => {
+    if (statusPollersRef.current[fileIndex]) {
+      clearInterval(statusPollersRef.current[fileIndex]);
+      delete statusPollersRef.current[fileIndex];
+    }
+
+    const tick = async () => {
+      try {
+        const res = await axiosClient.get("/api/upload/status", {
+          params: { uploadId },
+        });
+        const data = res.data;
+        if (!data?.success) return;
+
+        // Lưu cache để UI có thể show “Đang đẩy lên Drive: x%”
+        lastStatusRef.current[fileIndex] = {
+          assembledBytes: data.contiguousWatermark,
+          driveBytes: data.nextDriveOffset,
+          assembledPct: data.assembledPct,
+          drivePct: data.drivePct,
+          state: data.state,
+        };
+
+        // Drive chưa xong → giữ trạng thái processing
+        if (
+          Number(data.nextDriveOffset) < Number(fileSize) &&
+          data.state !== "COMPLETED"
+        ) {
+          setFileStates((prev) =>
+            prev.map((f, idx) =>
+              idx === fileIndex ? { ...f, status: "processing" } : f
+            )
+          );
+          return;
+        }
+
+        // Drive xong
+        clearInterval(statusPollersRef.current[fileIndex]);
+        delete statusPollersRef.current[fileIndex];
+
+        setFileStates((prev) =>
+          prev.map((f, idx) =>
+            idx === fileIndex ? { ...f, status: "success", progress: 100 } : f
+          )
+        );
+        setProgress((p) =>
+          calculateOverallProgress(
+            fileStates.map((f, i) =>
+              i === fileIndex ? { ...f, progress: 100, status: "success" } : f
+            )
+          )
+        );
+      } catch (e) {
+        console.log("[FE] status poll error:", e?.message);
+      }
+    };
+
+    tick();
+    statusPollersRef.current[fileIndex] = setInterval(tick, 1500);
+  };
+
+  /* ===========================
+     Upload 1 file bằng chunked upload
+  =========================== */
   const uploadFileWithChunks = async (fileState, fileIndex) => {
     const file = fileState.file;
     const chunks = createFileChunks(file);
 
-    // Tạo AbortController cho file này
+    // Tạo Abort cho file
     abortControllersRef.current[fileIndex] = new AbortController();
 
+    // Khởi tạo state file
     setFileStates((prev) =>
       prev.map((f, idx) =>
         idx === fileIndex ? { ...f, chunks, status: "uploading" } : f
@@ -183,20 +201,19 @@ const MiniStatusBatch = ({
     );
 
     let uploadId = fileState.uploadId;
-    let uploadedChunks = fileState.uploadedChunks;
 
-    // Nếu chưa có uploadId, tạo session mới bằng chunk đầu tiên
+    // Chunk đầu tiên → tạo session
     if (!uploadId) {
       try {
-        const firstChunk = await readFileChunk(
+        const firstChunkBuf = await readFileChunk(
           file,
           chunks[0].start,
           chunks[0].end
         );
-        // Gửi chunk đầu tiên dạng binary, metadata qua headers
         uploadId = `${batchId}-${fileIndex}-${Date.now()}-${Math.random()
           .toString(36)
-          .substr(2, 9)}`;
+          .slice(2, 11)}`;
+
         const firstHeaders = {
           "Content-Type": "application/octet-stream",
           "X-Upload-Id": encodeURIComponent(uploadId),
@@ -215,29 +232,13 @@ const MiniStatusBatch = ({
           "X-Chunk-Start": chunks[0].start,
           "X-Chunk-End": chunks[0].end,
         };
-        if (
-          isFolder &&
-          fileIndex === 0 &&
-          emptyFolders &&
-          emptyFolders.length > 0
-        ) {
+
+        if (isFolder && fileIndex === 0 && emptyFolders?.length > 0) {
           firstHeaders["X-Empty-Folders"] = encodeURIComponent(
             JSON.stringify(emptyFolders)
           );
-          // Thêm log:
-          console.log("[FE] Gửi emptyFolders:", emptyFolders);
         }
-        // Thêm log gửi file chunk đầu tiên
-        console.log("[FE] 🚀 Bắt đầu upload file:", {
-          fileName: file.name,
-          fileSize: file.size,
-          relativePath: fileState.relativePath,
-          parentId,
-          totalChunks: chunks.length,
-          chunkSize: chunks[0].size,
-          timestamp: new Date().toISOString(),
-        });
-        // Nếu đã bị hủy thì không upload nữa
+
         if (cancelledRef.current[fileIndex]) {
           setFileStates((prev) =>
             prev.map((f, idx) =>
@@ -246,82 +247,37 @@ const MiniStatusBatch = ({
           );
           return;
         }
-        const response = await axiosClient.post("/api/upload", firstChunk, {
+
+        const resp = await axiosClient.post("/api/upload", firstChunkBuf, {
           headers: firstHeaders,
-          signal: abortControllersRef.current[fileIndex]?.signal, // Thêm signal để có thể abort
+          signal: abortControllersRef.current[fileIndex]?.signal,
         });
-        const data = response.data;
-        if (response.status !== 200 || !data.success) {
+        const data = resp.data;
+        if (resp.status !== 200 || !data.success) {
           toast.error(data.error || "Lỗi upload");
           throw new Error(data.error || "Lỗi upload");
         }
 
-        // Thêm log nhận response chunk đầu tiên
-        console.log("[FE] ✅ Nhận response chunk đầu tiên:", {
-          fileName: file.name,
-          chunkIndex: 0,
-          success: data.success,
-          uploadedChunks: data.uploadedChunks,
-          uploadId: data.uploadId,
-          timestamp: new Date().toISOString(),
-        });
+        // Cập nhật progress theo assembledBytes
+        const assembledBytes = Number(data.assembledBytes || 0);
+        const pct = Math.max(
+          0,
+          Math.min(100, Math.round((assembledBytes / file.size) * 100))
+        );
 
-        uploadedChunks = data.uploadedChunks || [0];
         setFileStates((prev) => {
           const next = prev.map((f, idx) =>
-            idx === fileIndex ? { ...f, uploadId, uploadedChunks } : f
+            idx === fileIndex
+              ? { ...f, uploadId, progress: pct, status: "uploading" }
+              : f
           );
           setProgress(calculateOverallProgress(next));
           return next;
         });
       } catch (error) {
-        // Kiểm tra nếu lỗi do abort
-        if (error.name === "AbortError" || error.message.includes("aborted")) {
-          console.log(`[FE] Upload aborted for file ${fileIndex}`);
-          setFileStates((prev) =>
-            prev.map((f, idx) =>
-              idx === fileIndex ? { ...f, status: "cancelled" } : f
-            )
-          );
-          return;
-        }
-        // Lấy message từ axios error object
-        const errorMsg =
-          error?.response?.data?.error ||
-          error?.message ||
-          "Lỗi không xác định";
-        toast.error(errorMsg);
-        setFileStates((prev) =>
-          prev.map((f, idx) =>
-            idx === fileIndex ? { ...f, status: "error", error: errorMsg } : f
-          )
-        );
-        return;
-      }
-    }
-
-    // Upload các chunk còn lại
-    for (let i = 1; i < chunks.length; i++) {
-      if (uploadedChunks.includes(i)) continue;
-      if (
-        cancelledRef.current[fileIndex] ||
-        fileStates[fileIndex]?.status === "cancelled"
-      ) {
-        setFileStates((prev) =>
-          prev.map((f, idx) =>
-            idx === fileIndex ? { ...f, status: "cancelled" } : f
-          )
-        );
-        return;
-      }
-      try {
-        const chunk = chunks[i];
-        const chunkData = await readFileChunk(file, chunk.start, chunk.end);
-
-        // Kiểm tra flag cancelled ngay sau await
         if (
-          cancelledRef.current[fileIndex] ||
-          fileStates[fileIndex]?.status === "cancelled"
+          error.name === "AbortError" ||
+          String(error.message).includes("aborted")
         ) {
           setFileStates((prev) =>
             prev.map((f, idx) =>
@@ -330,17 +286,43 @@ const MiniStatusBatch = ({
           );
           return;
         }
+        const msg =
+          error?.response?.data?.error ||
+          error?.message ||
+          "Lỗi không xác định";
+        toast.error(msg);
+        setFileStates((prev) =>
+          prev.map((f, idx) =>
+            idx === fileIndex ? { ...f, status: "error", error: msg } : f
+          )
+        );
+        return;
+      }
+    }
 
-        // Thêm log:
-        console.log("[FE] 📤 Gửi chunk:", {
-          fileName: file.name,
-          chunkIndex: i,
-          chunkSize: chunk.size,
-          relativePath: fileState.relativePath,
-          parentId,
-          uploadId,
-          timestamp: new Date().toISOString(),
-        });
+    // Các chunk tiếp theo
+    for (let i = 1; i < chunks.length; i++) {
+      if (cancelledRef.current[fileIndex]) {
+        setFileStates((prev) =>
+          prev.map((f, idx) =>
+            idx === fileIndex ? { ...f, status: "cancelled" } : f
+          )
+        );
+        return;
+      }
+      try {
+        const ch = chunks[i];
+        const buf = await readFileChunk(file, ch.start, ch.end);
+
+        if (cancelledRef.current[fileIndex]) {
+          setFileStates((prev) =>
+            prev.map((f, idx) =>
+              idx === fileIndex ? { ...f, status: "cancelled" } : f
+            )
+          );
+          return;
+        }
+
         const headers = {
           "Content-Type": "application/octet-stream",
           "X-Upload-Id": uploadId,
@@ -356,27 +338,50 @@ const MiniStatusBatch = ({
           "X-File-Size": file.size,
           "X-Relative-Path": encodeURIComponent(fileState.relativePath || ""),
           "X-Batch-Id": encodeURIComponent(batchId || ""),
-          "X-Chunk-Start": chunk.start,
-          "X-Chunk-End": chunk.end,
+          "X-Chunk-Start": ch.start,
+          "X-Chunk-End": ch.end,
         };
-        // Nếu đã bị hủy thì không upload nữa
-        if (cancelledRef.current[fileIndex]) {
-          setFileStates((prev) =>
-            prev.map((f, idx) =>
-              idx === fileIndex ? { ...f, status: "cancelled" } : f
-            )
-          );
-          return;
-        }
-        const response = await axiosClient.post("/api/upload", chunkData, {
+
+        const resp = await axiosClient.post("/api/upload", buf, {
           headers,
-          signal: abortControllersRef.current[fileIndex]?.signal, // Thêm signal để có thể abort
+          signal: abortControllersRef.current[fileIndex]?.signal,
+        });
+        const data = resp.data;
+        if (resp.status !== 200 || !data.success) {
+          throw new Error(data.error || `Upload chunk ${i} thất bại`);
+        }
+
+        const assembledBytes = Number(data.assembledBytes || 0);
+        const pct = Math.max(
+          0,
+          Math.min(100, Math.round((assembledBytes / file.size) * 100))
+        );
+        const isLast = i === chunks.length - 1;
+
+        setFileStates((prev) => {
+          const next = prev.map((f, idx) =>
+            idx === fileIndex
+              ? {
+                  ...f,
+                  progress: pct,
+                  status: isLast ? "processing" : "uploading",
+                }
+              : f
+          );
+          setProgress(calculateOverallProgress(next));
+          return next;
         });
 
-        // Kiểm tra flag cancelled ngay sau await
+        if (isLast) {
+          // Nếu muốn đóng UI sớm, KHÔNG poll Drive
+          if (!CLOSE_ON_PROCESSING) {
+            pollStatusUntilDone(uploadId, fileIndex, file.size);
+          }
+        }
+      } catch (error) {
         if (
-          cancelledRef.current[fileIndex] ||
-          fileStates[fileIndex]?.status === "cancelled"
+          error.name === "AbortError" ||
+          String(error.message).includes("aborted")
         ) {
           setFileStates((prev) =>
             prev.map((f, idx) =>
@@ -386,65 +391,12 @@ const MiniStatusBatch = ({
           return;
         }
 
-        const data = response.data;
-        if (response.status !== 200 || !data.success) {
-          throw new Error(data.error || `Upload chunk ${i} thất bại`);
-        }
-
-        // Thêm log nhận response từ BE
-        console.log("[FE] ✅ Nhận response chunk:", {
-          fileName: file.name,
-          chunkIndex: i,
-          success: data.success,
-          uploadedChunks: data.uploadedChunks,
-          fileId: data.fileId,
-          timestamp: new Date().toISOString(),
-        });
-
-        uploadedChunks = data.uploadedChunks || [...uploadedChunks, i];
-        const chunkProgress = Math.round(
-          (uploadedChunks.length / chunks.length) * 100
-        );
-        const isCompleted =
-          i === chunks.length - 1 && data.tempFileStatus === "completed";
-        setFileStates((prev) => {
-          const next = prev.map((f, idx) =>
-            idx === fileIndex
-              ? {
-                  ...f,
-                  uploadedChunks,
-                  progress: chunkProgress,
-                  status: isCompleted ? "success" : "uploading",
-                }
-              : f
-          );
-          setProgress(calculateOverallProgress(next));
-          return next;
-        });
-        if (isCompleted) {
-          console.log(
-            `[FE] 🎉 File ${file.name} uploaded successfully with ID: ${data.fileId}`
-          );
-        }
-      } catch (error) {
-        // Kiểm tra nếu lỗi do abort
-        if (error.name === "AbortError" || error.message.includes("aborted")) {
-          console.log(`[FE] Upload aborted for file ${fileIndex}, chunk ${i}`);
-          setFileStates((prev) =>
-            prev.map((f, idx) =>
-              idx === fileIndex ? { ...f, status: "cancelled" } : f
-            )
-          );
-          return;
-        }
-        // Kiểm tra lỗi 499 Client Closed Request hoặc lỗi hủy
         const statusCode = error?.response?.status;
         const msg =
           error?.response?.data?.error ||
           error?.response?.data?.message ||
           error?.message;
 
-        // Nếu là lỗi 499 hoặc lỗi liên quan đến hủy/session
         if (
           statusCode === 499 ||
           (msg &&
@@ -464,7 +416,6 @@ const MiniStatusBatch = ({
           return;
         }
 
-        // Nếu là lỗi khác, mới set error
         setFileStates((prev) =>
           prev.map((f, idx) =>
             idx === fileIndex
@@ -477,13 +428,18 @@ const MiniStatusBatch = ({
     }
   };
 
-  // Hàm cancel upload
+  /* ===========================
+     Cancel upload
+  =========================== */
   const cancelUpload = async (fileIndex) => {
-    cancelledRef.current[fileIndex] = true; // Đánh dấu đã hủy
+    cancelledRef.current[fileIndex] = true;
 
-    // Abort request HTTP đang gửi ngay lập tức
+    if (statusPollersRef.current[fileIndex]) {
+      clearInterval(statusPollersRef.current[fileIndex]);
+      delete statusPollersRef.current[fileIndex];
+    }
+
     if (abortControllersRef.current[fileIndex]) {
-      console.log(`[FE] Aborting upload for file ${fileIndex}`);
       abortControllersRef.current[fileIndex].abort();
     }
 
@@ -493,44 +449,33 @@ const MiniStatusBatch = ({
         const response = await axiosClient.post("/api/upload/cancel", {
           uploadId: fileState.uploadId,
         });
-        // Kiểm tra trường success và message
         const data = response.data;
-        if (data?.success || (data?.message && data.message.includes("hủy"))) {
+        // Dù BE trả sao, coi như đã hủy (best-effort)
+        if (data?.success || response.status === 200) {
           setFileStates((prev) =>
             prev.map((f, idx) =>
               idx === fileIndex ? { ...f, status: "cancelled" } : f
             )
           );
-          return;
-        }
-        // Nếu không phải success, vẫn set cancelled nếu message đúng
-        if (response.status === 200) {
+        } else {
           setFileStates((prev) =>
             prev.map((f, idx) =>
-              idx === fileIndex ? { ...f, status: "cancelled" } : f
+              idx === fileIndex
+                ? {
+                    ...f,
+                    status: "error",
+                    error: data?.error || "Hủy upload thất bại",
+                  }
+                : f
             )
           );
-          return;
         }
-        // Nếu thực sự lỗi, mới set error
-        setFileStates((prev) =>
-          prev.map((f, idx) =>
-            idx === fileIndex
-              ? {
-                  ...f,
-                  status: "error",
-                  error: data?.error || "Hủy upload thất bại",
-                }
-              : f
-          )
-        );
       } catch (error) {
-        // Nếu lỗi nhưng message có chữ "hủy thành công" thì vẫn set cancelled
         const msg =
           error?.response?.data?.message ||
           error?.response?.data?.error ||
           error?.message;
-        if (msg && msg.includes("hủy")) {
+        if (String(msg).includes("hủy")) {
           setFileStates((prev) =>
             prev.map((f, idx) =>
               idx === fileIndex ? { ...f, status: "cancelled" } : f
@@ -547,7 +492,6 @@ const MiniStatusBatch = ({
         }
       }
     } else {
-      // Nếu chưa có uploadId, chỉ cần set cancelled
       setFileStates((prev) =>
         prev.map((f, idx) =>
           idx === fileIndex ? { ...f, status: "cancelled" } : f
@@ -556,16 +500,18 @@ const MiniStatusBatch = ({
     }
   };
 
+  /* ===========================
+     useEffect khởi chạy upload
+  =========================== */
   useEffect(() => {
     if (hasUploaded.current || isUploadingRef.current) return;
     hasUploaded.current = true;
     isUploadingRef.current = true;
-    hasCompletedRef.current = false; // Reset flag khi bắt đầu upload mới
+    hasCompletedRef.current = false;
 
-    // Error boundary cho toàn bộ upload process
     const handleError = (error) => {
       console.error("Upload error:", error);
-      isUploadingRef.current = false; // Reset flag khi có lỗi
+      isUploadingRef.current = false;
       setFileStates((prev) =>
         prev.map((f) => ({ ...f, status: "error", error: error.message }))
       );
@@ -574,86 +520,70 @@ const MiniStatusBatch = ({
 
     // DELETE FLOW
     if (batchType === "delete") {
-      const deleteItemsToSend = Array.isArray(moveItems) ? moveItems : [];
-      const deleteAsync = async () => {
+      const items = Array.isArray(moveItems) ? moveItems : [];
+      (async () => {
         setStatus("pending");
         setProgress(30);
         try {
-          const res = await axiosClient.post("/api/upload/delete", {
-            items: deleteItemsToSend,
-          });
+          const res = await axiosClient.post("/api/upload/delete", { items });
           const json = res.data;
-          if (res.status === 200 && json.success) {
-            setStatus("success");
-            setProgress(100);
-            setTimeout(() => {
+          setStatus(json.success ? "success" : "error");
+          setProgress(100);
+          setTimeout(
+            () => {
               setIsVisible(false);
-              if (onComplete) onComplete(json);
-            }, 1500);
-          } else {
-            setStatus("error");
-            setProgress(100);
-            setTimeout(() => {
-              setIsVisible(false);
-              if (onComplete) onComplete(json);
-            }, 2000);
-          }
+              onComplete?.(json);
+            },
+            json.success ? 1500 : 2000
+          );
         } catch (err) {
           setStatus("error");
           setProgress(100);
           setTimeout(() => {
             setIsVisible(false);
-            if (onComplete) onComplete({ error: err.message });
+            onComplete?.({ error: err.message });
           }, 2000);
         }
-      };
-      deleteAsync();
+      })();
       return;
     }
 
     // MOVE FLOW
     if (batchType === "move") {
-      const moveItemsToSend = Array.isArray(moveItems) ? moveItems : [];
-      const moveItemsAsync = async () => {
+      const items = Array.isArray(moveItems) ? moveItems : [];
+      (async () => {
         setStatus("pending");
         setProgress(30);
         try {
           const res = await axiosClient.post("/api/upload/move", {
-            items: moveItemsToSend,
+            items,
             targetFolderId: moveTargetFolderId,
           });
           const json = res.data;
-          if (res.status === 200 && json.success) {
-            setStatus("success");
-            setProgress(100);
-            setTimeout(() => {
+          setStatus(json.success ? "success" : "error");
+          setProgress(100);
+          setTimeout(
+            () => {
               setIsVisible(false);
-              if (onComplete) onComplete(json);
-            }, 1500);
-          } else {
-            setStatus("error");
-            setProgress(100);
-            setTimeout(() => {
-              setIsVisible(false);
-              if (onComplete) onComplete(json);
-            }, 2000);
-          }
+              onComplete?.(json);
+            },
+            json.success ? 1500 : 2000
+          );
         } catch (err) {
           setStatus("error");
           setProgress(100);
           setTimeout(() => {
             setIsVisible(false);
-            if (onComplete) onComplete({ error: err.message });
+            onComplete?.({ error: err.message });
           }, 2000);
         }
-      };
-      moveItemsAsync();
+      })();
       return;
     }
 
     // CREATE FOLDER FLOW
     if (batchType === "create_folder") {
-      const createFolder = async () => {
+      (async () => {
         setStatus("pending");
         setProgress(30);
         try {
@@ -662,178 +592,76 @@ const MiniStatusBatch = ({
             parentId,
           });
           const json = res.data;
-          if (res.status === 200 && json.success && json.folder) {
-            setStatus("success");
-            setResult(json);
-            setProgress(100);
-            setTimeout(() => {
+          setStatus(json.success && json.folder ? "success" : "error");
+          setResult(json);
+          setProgress(100);
+          setTimeout(
+            () => {
               setIsVisible(false);
-              if (onComplete) onComplete(json);
-            }, 1500);
-          } else {
-            setStatus("error");
-            setResult(json);
-            setProgress(100);
-            setTimeout(() => {
-              setIsVisible(false);
-              if (onComplete) onComplete(json);
-            }, 2000);
-          }
+              onComplete?.(json);
+            },
+            json.success && json.folder ? 1500 : 2000
+          );
         } catch (err) {
           setStatus("error");
           setResult({ error: err.message });
           setProgress(100);
           setTimeout(() => {
             setIsVisible(false);
-            if (onComplete) onComplete({ error: err.message });
+            onComplete?.({ error: err.message });
           }, 2000);
         }
-      };
-      createFolder();
+      })();
       return;
     }
 
-    // UPLOAD FLOW - Sử dụng chunked upload hoặc normal upload
-    const uploadBatchFiles = async () => {
-      for (let i = 0; i < fileStates.length; i++) {
-        try {
-          const file = fileStates[i].file;
-          if (!file || file.size === 0) {
-            console.error(`File ${i} is invalid or empty`);
+    // UPLOAD FLOW
+    (async () => {
+      try {
+        for (let i = 0; i < fileStates.length; i++) {
+          const f = fileStates[i].file;
+          if (!f || f.size === 0) {
             setFileStates((prev) =>
-              prev.map((f, idx) =>
+              prev.map((ff, idx) =>
                 idx === i
                   ? {
-                      ...f,
+                      ...ff,
                       status: "error",
                       error: "File không hợp lệ hoặc rỗng",
                     }
-                  : f
+                  : ff
               )
             );
             continue;
           }
 
-          console.log(`[FE] 🚀 Bắt đầu upload file ${i}:`, {
-            fileName: file.name,
-            fileSize: file.size,
+          console.log(`[FE] 🚀 Upload file ${i}:`, {
+            name: f.name,
+            size: f.size,
             batchId,
-            timestamp: new Date().toISOString(),
           });
 
           await uploadFileWithChunks(fileStates[i], i);
 
-          console.log(`[FE] ✅ Hoàn thành upload file ${i}:`, {
-            fileName: file.name,
-            status: fileStates[i]?.status,
-            timestamp: new Date().toISOString(),
-          });
-
-          // Chờ 0.5 giây trước khi upload file tiếp theo để tăng tốc độ
+          // Nghỉ 500ms giữa các file
           if (i < fileStates.length - 1) {
-            console.log(`[FE] ⏳ Chờ 0.5s trước khi upload file tiếp theo...`);
-            await new Promise((resolve) => setTimeout(resolve, 500));
+            await new Promise((r) => setTimeout(r, 500));
           }
-        } catch (error) {
-          console.error(`[FE] ❌ Lỗi upload file ${i}:`, {
-            fileName: fileStates[i]?.file?.name,
-            error: error.message,
-            timestamp: new Date().toISOString(),
-          });
-          // Tiếp tục với file tiếp theo nếu có lỗi
+
+          // Cập nhật overall
+          setProgress((p) => calculateOverallProgress(fileStates));
         }
-
-        // Cập nhật progress tổng thể
-        setProgress(calculateOverallProgress(fileStates));
+      } catch (e) {
+        handleError(e);
       }
-
-      // Logic ẩn UI đã được chuyển sang useEffect để theo dõi thay đổi của fileStates
-      console.log("[FE] 📊 Upload batch files hoàn thành, chờ useEffect xử lý");
-    };
-
-    const uploadBatchFolder = async () => {
-      setFileStates((prev) => prev.map((f) => ({ ...f, status: "uploading" })));
-
-      // Upload folder bằng chunked upload
-      for (let i = 0; i < fileStates.length; i++) {
-        try {
-          const file = fileStates[i].file;
-          if (!file || file.size === 0) {
-            console.error(`File ${i} is invalid or empty`);
-            setFileStates((prev) =>
-              prev.map((f, idx) =>
-                idx === i
-                  ? {
-                      ...f,
-                      status: "error",
-                      error: "File không hợp lệ hoặc rỗng",
-                    }
-                  : f
-              )
-            );
-            continue;
-          }
-
-          console.log(`[FE] 🚀 Bắt đầu upload file ${i} trong folder:`, {
-            fileName: file.name,
-            fileSize: file.size,
-            batchId,
-            timestamp: new Date().toISOString(),
-          });
-
-          await uploadFileWithChunks(fileStates[i], i);
-
-          console.log(`[FE] ✅ Hoàn thành upload file ${i} trong folder:`, {
-            fileName: file.name,
-            status: fileStates[i]?.status,
-            timestamp: new Date().toISOString(),
-          });
-
-          // Chờ 0.5 giây trước khi upload file tiếp theo để tăng tốc độ
-          if (i < fileStates.length - 1) {
-            console.log(
-              `[FE] ⏳ Chờ 0.5s trước khi upload file tiếp theo trong folder...`
-            );
-            await new Promise((resolve) => setTimeout(resolve, 500));
-          }
-        } catch (error) {
-          console.error(`[FE] ❌ Lỗi upload file ${i} trong folder:`, {
-            fileName: fileStates[i]?.file?.name,
-            error: error.message,
-            timestamp: new Date().toISOString(),
-          });
-          // Tiếp tục với file tiếp theo nếu có lỗi
-        }
-      }
-
-      // Kiểm tra xem có file nào thành công không
-      const successfulFiles = fileStates.filter(
-        (f) => f.status === "success" // Chỉ tính file có status = "success"
-      ).length;
-      const hasErrors = fileStates.some((f) => f.status === "error");
-
-      setProgress(calculateOverallProgress(fileStates));
-
-      // Logic ẩn UI đã được chuyển sang useEffect để theo dõi thay đổi của fileStates
-      console.log(
-        "[FE] 📊 Upload batch folder hoàn thành, chờ useEffect xử lý"
-      );
-    };
-
-    if (isFolder) {
-      uploadBatchFolder();
-    } else {
-      uploadBatchFiles();
-    }
-    // eslint-disable-next-line
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [batchId]);
 
-  // Thêm event listener để cảnh báo khi user rời khỏi trang
-  // XÓA toàn bộ useEffect thêm event listener beforeunload và visibilitychange
-
-  // Thêm useEffect để theo dõi thay đổi của fileStates và ẩn UI khi hoàn thành
+  /* ===========================
+     Ẩn UI khi mọi file kết thúc
+  =========================== */
   useEffect(() => {
-    // Chỉ kiểm tra khi có files và không phải các batchType đặc biệt
     if (
       files.length === 0 ||
       batchType === "delete" ||
@@ -842,49 +670,42 @@ const MiniStatusBatch = ({
     ) {
       return;
     }
-
-    // Kiểm tra xem tất cả files đã hoàn thành chưa
-    const allFilesCompleted = fileStates.every(
-      (f) =>
-        f.status === "success" ||
-        f.status === "error" ||
-        f.status === "cancelled"
-    );
-
-    if (
-      allFilesCompleted &&
-      fileStates.length > 0 &&
-      !hasCompletedRef.current
-    ) {
-      console.log("[FE] 🎉 Tất cả files đã hoàn thành, ẩn UI sau 2s");
-
-      // Đánh dấu đã hoàn thành để tránh gọi onComplete nhiều lần
+    const isDoneStatus = (s) =>
+      s === "success" ||
+      s === "error" ||
+      s === "cancelled" ||
+      (CLOSE_ON_PROCESSING && s === "processing"); // ✅ cho phép đóng khi processing
+    const allDone = fileStates.every((f) => isDoneStatus(f.status));
+    if (allDone && fileStates.length > 0 && !hasCompletedRef.current) {
       hasCompletedRef.current = true;
 
-      // Tính số file thành công
       const successfulFiles = fileStates.filter(
         (f) => f.status === "success"
       ).length;
       const hasErrors = fileStates.some((f) => f.status === "error");
-
+      const processingFiles = fileStates.filter(
+        (f) => f.status === "processing"
+      ).length;
       setTimeout(() => {
-        isUploadingRef.current = false; // Reset flag khi hoàn thành
+        isUploadingRef.current = false;
         setIsVisible(false);
-        if (onComplete) {
-          onComplete({
-            success: successfulFiles > 0,
-            totalFiles: fileStates.length,
-            successfulFiles,
-            hasErrors,
-          });
-        }
+        onComplete?.({
+          success: successfulFiles > 0,
+          totalFiles: fileStates.length,
+          successfulFiles,
+          hasErrors,
+          processingFiles, // số file đang đẩy Drive nền
+          finalizing: processingFiles > 0, // gợi ý caller có thể reload sau
+        });
       }, 2000);
     }
   }, [fileStates, files.length, batchType, onComplete]);
 
   if (!isVisible) return null;
 
-  // Render for move
+  /* ===========================
+     Render các flow đặc biệt
+  =========================== */
   if (batchType === "move") {
     return (
       <div
@@ -920,33 +741,30 @@ const MiniStatusBatch = ({
           />
         </div>
         <div className="flex flex-col gap-1 mt-2 max-h-32 overflow-y-auto">
-          {moveItems &&
-            moveItems.length > 0 &&
-            moveItems.map((item, idx) => (
-              <div key={idx} className="flex w-full items-center gap-2 text-xs">
-                <img
-                  src={
-                    item.type === "folder"
-                      ? "/images/icon/folder.png"
-                      : "/images/icon/png.png"
-                  }
-                  alt="icon"
-                  className="w-4 h-4 object-contain flex-shrink-0"
-                />
-                <span
-                  className="flex-1 truncate overflow-hidden min-w-0 file-name-fixed-width text-blue-700 font-semibold"
-                  title={item.name || item.id}
-                >
-                  {item.name || item.id}
-                </span>
-              </div>
-            ))}
+          {moveItems?.map((item, idx) => (
+            <div key={idx} className="flex w-full items-center gap-2 text-xs">
+              <img
+                src={
+                  item.type === "folder"
+                    ? "/images/icon/folder.png"
+                    : "/images/icon/png.png"
+                }
+                alt="icon"
+                className="w-4 h-4 object-contain flex-shrink-0"
+              />
+              <span
+                className="flex-1 truncate overflow-hidden min-w-0 file-name-fixed-width text-blue-700 font-semibold"
+                title={item.name || item.id}
+              >
+                {item.name || item.id}
+              </span>
+            </div>
+          ))}
         </div>
       </div>
     );
   }
 
-  // Render for create_folder
   if (batchType === "create_folder") {
     return (
       <div
@@ -1000,7 +818,6 @@ const MiniStatusBatch = ({
     );
   }
 
-  // Render for delete
   if (batchType === "delete") {
     return (
       <div
@@ -1036,32 +853,33 @@ const MiniStatusBatch = ({
           />
         </div>
         <div className="flex flex-col gap-1 mt-2 max-h-32 overflow-y-auto">
-          {moveItems &&
-            moveItems.length > 0 &&
-            moveItems.map((item, idx) => (
-              <div key={idx} className="flex w-full items-center gap-2 text-xs">
-                <img
-                  src={
-                    item.type === "folder"
-                      ? "/images/icon/folder.png"
-                      : "/images/icon/png.png"
-                  }
-                  alt="icon"
-                  className="w-4 h-4 object-contain flex-shrink-0"
-                />
-                <span
-                  className="flex-1 truncate overflow-hidden min-w-0 file-name-fixed-width text-red-700 font-semibold"
-                  title={item.name || item.id}
-                >
-                  {item.name || item.id}
-                </span>
-              </div>
-            ))}
+          {moveItems?.map((item, idx) => (
+            <div key={idx} className="flex w-full items-center gap-2 text-xs">
+              <img
+                src={
+                  item.type === "folder"
+                    ? "/images/icon/folder.png"
+                    : "/images/icon/png.png"
+                }
+                alt="icon"
+                className="w-4 h-4 object-contain flex-shrink-0"
+              />
+              <span
+                className="flex-1 truncate overflow-hidden min-w-0 file-name-fixed-width text-red-700 font-semibold"
+                title={item.name || item.id}
+              >
+                {item.name || item.id}
+              </span>
+            </div>
+          ))}
         </div>
       </div>
     );
   }
 
+  /* ===========================
+     Render upload mặc định
+  =========================== */
   return (
     <div
       className="fixed bottom-6 right-6 bg-white rounded-lg shadow-lg p-4 flex flex-col gap-3 max-w-[340px] w-full border border-gray-200 z-[9999]"
@@ -1084,13 +902,15 @@ const MiniStatusBatch = ({
             : t("upload_status.upload_success")}
         </span>
       </div>
-      {/* Progress Bar */}
+
+      {/* Progress Bar tổng */}
       <div className="w-full bg-gray-200 rounded-full h-2">
         <div
           className="bg-blue-500 h-2 rounded-full transition-all duration-300"
           style={{ width: `${progress}%` }}
         />
       </div>
+
       {/* Files List */}
       <div className="flex flex-col gap-2 max-h-48 overflow-y-auto">
         {isFolder ? (
@@ -1114,103 +934,104 @@ const MiniStatusBatch = ({
             </div>
           </div>
         ) : (
-          fileStates.map((file, idx) => (
-            <div key={idx} className="flex flex-col gap-0.5 w-full">
-              <div className="flex w-full items-center gap-2 text-xs">
-                <img
-                  src={file.icon}
-                  alt="icon"
-                  className="w-4 h-4 object-contain flex-shrink-0"
-                />
-                <span
-                  className={
-                    "flex-1 truncate overflow-hidden min-w-0 file-name-fixed-width" +
-                    (file.status === "success"
-                      ? " text-green-600"
-                      : file.status === "error"
-                      ? " text-red-600"
-                      : file.status === "uploading"
-                      ? " text-blue-600"
-                      : " text-gray-500")
-                  }
-                  title={file.name}
-                >
-                  {file.name}
-                </span>
-                <div className="flex-shrink-0 flex items-center gap-1">
-                  {file.chunks && file.chunks.length > 0 && (
+          fileStates.map((f, idx) => {
+            const drivePct = lastStatusRef.current[idx]?.drivePct ?? null;
+            return (
+              <div key={idx} className="flex flex-col gap-0.5 w-full">
+                <div className="flex w-full items-center gap-2 text-xs">
+                  <img
+                    src={f.icon}
+                    alt="icon"
+                    className="w-4 h-4 object-contain flex-shrink-0"
+                  />
+                  <span
+                    className={
+                      "flex-1 truncate overflow-hidden min-w-0 file-name-fixed-width" +
+                      (f.status === "success"
+                        ? " text-green-600"
+                        : f.status === "error"
+                        ? " text-red-600"
+                        : f.status === "uploading"
+                        ? " text-blue-600"
+                        : f.status === "processing"
+                        ? " text-yellow-600"
+                        : " text-gray-500")
+                    }
+                    title={f.name}
+                  >
+                    {f.name}
+                    {f.status === "processing" && drivePct != null && (
+                      <span className="ml-2 text-gray-500">
+                        (Drive {drivePct}%)
+                      </span>
+                    )}
+                  </span>
+
+                  <div className="flex-shrink-0 flex items-center gap-1">
                     <CircularProgress
-                      percent={
-                        file.chunks.length > 0
-                          ? Math.round(
-                              ((file.uploadedChunks?.length || 0) /
-                                file.chunks.length) *
-                                100
-                            )
-                          : 0
-                      }
+                      percent={f.progress || 0}
                       size={18}
                       stroke={3}
                     />
-                  )}
-                  {file.status === "success" ? (
-                    <FiCheck className="text-green-500" size={14} />
-                  ) : file.status === "error" ? (
-                    <FiX className="text-red-500" size={14} />
-                  ) : file.status === "uploading" ? (
-                    <FiUpload
-                      className="text-blue-500 animate-pulse"
-                      size={14}
-                    />
-                  ) : (
-                    <FiClock className="text-gray-400" size={14} />
-                  )}
+                    {f.status === "success" ? (
+                      <FiCheck className="text-green-500" size={14} />
+                    ) : f.status === "error" ? (
+                      <FiX className="text-red-500" size={14} />
+                    ) : f.status === "uploading" ? (
+                      <FiUpload
+                        className="text-blue-500 animate-pulse"
+                        size={14}
+                      />
+                    ) : f.status === "processing" ? (
+                      <FiClock className="text-yellow-500" size={14} />
+                    ) : (
+                      <FiClock className="text-gray-400" size={14} />
+                    )}
 
-                  {/* Action buttons for paused/error files */}
-                  {file.status === "error" && (
-                    <button
-                      onClick={() => uploadFileWithChunks(fileStates[idx], idx)}
-                      className="text-blue-500 hover:text-blue-700"
-                      title="Retry upload"
-                    >
-                      <FiUpload size={12} />
-                    </button>
-                  )}
-                  {(file.status === "uploading" ||
-                    file.status === "paused") && (
-                    <button
-                      onClick={() => cancelUpload(idx)}
-                      className="text-red-500 hover:text-red-700"
-                      title="Cancel upload"
-                    >
-                      <FiX size={12} />
-                    </button>
-                  )}
+                    {(f.status === "uploading" ||
+                      f.status === "processing") && (
+                      <button
+                        onClick={() => cancelUpload(idx)}
+                        className="text-red-500 hover:text-red-700"
+                        title="Cancel upload"
+                      >
+                        <FiX size={12} />
+                      </button>
+                    )}
+                    {f.status === "error" && (
+                      <button
+                        onClick={() =>
+                          uploadFileWithChunks(fileStates[idx], idx)
+                        }
+                        className="text-blue-500 hover:text-blue-700"
+                        title="Retry upload"
+                      >
+                        <FiUpload size={12} />
+                      </button>
+                    )}
+                  </div>
                 </div>
+                {f.status === "error" && f.error && (
+                  <div className="text-xs text-red-500 ml-6">{f.error}</div>
+                )}
               </div>
-              {file.status === "error" && file.error && (
-                <div className="text-xs text-red-500 ml-6">{file.error}</div>
-              )}
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>
   );
 };
 
-// Circular progress component
+/* ===========================
+   Circular progress
+=========================== */
 function CircularProgress({ percent = 0, size = 24, stroke = 3 }) {
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const offset = c - (percent / 100) * c;
   return (
-    <svg
-      width={size}
-      height={size}
-      className="inline-block align-middle"
-      style={{ verticalAlign: "middle" }}
-    >
+    <svg width={size} height={size} className="inline-block align-middle">
       <circle
         cx={size / 2}
         cy={size / 2}
@@ -1235,7 +1056,9 @@ function CircularProgress({ percent = 0, size = 24, stroke = 3 }) {
   );
 }
 
-// Component chính
+/* ===========================
+   Component chính
+=========================== */
 const UploadMiniStatus = ({
   files = [],
   folders = [],

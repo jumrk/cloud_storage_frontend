@@ -131,22 +131,30 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId }) => {
 
   const handleFilesOrFolder = (files) => {
     setSelectedFiles((prev) => {
-      const newFiles = files.filter((file) => {
-        const relPath =
-          file._relativePath || file.webkitRelativePath || file.name;
-        // Chỉ cho phép file lẻ hoặc file nằm trong folder gốc
-        return relPath.split("/").filter(Boolean).length <= 2;
-      });
+      // Chuẩn hoá và loại trùng theo (path + size + lastModified)
+      const seen = new Set(
+        prev.map((p) => `${p.path}__${p.file.size}__${p.file.lastModified}`)
+      );
 
-      return [
-        ...prev,
-        ...newFiles.map((file) => ({
+      const toAdd = [];
+      for (const file of files) {
+        const relPathRaw =
+          file._relativePath || file.webkitRelativePath || file.name;
+        const relPath = relPathRaw.replace(/\\/g, "/").replace(/^\.?\/*/, ""); // normalize
+
+        const key = `${relPath}__${file.size}__${file.lastModified}`;
+        if (seen.has(key)) continue; // bỏ trùng
+
+        toAdd.push({
           name: file.name,
           file,
-          isPublic: false, // Mặc định là riêng tư
-          path: file._relativePath || file.webkitRelativePath || file.name,
-        })),
-      ];
+          isPublic: false,
+          path: relPath, // giữ nguyên full relativePath bất kể sâu bao nhiêu
+        });
+        seen.add(key);
+      }
+
+      return [...prev, ...toAdd];
     });
   };
 

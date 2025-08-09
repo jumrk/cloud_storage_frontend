@@ -431,7 +431,6 @@ export default function YourFolder() {
   }, []);
 
   const [currentFolderId, setCurrentFolderId] = useState(null); // null = root
-  const [breadcrumb, setBreadcrumb] = useState([]); // [{id, name}]
 
   // Build visible data for current folder
   const visibleFolders = data.filter(
@@ -672,28 +671,89 @@ export default function YourFolder() {
   const [previewUrl, setPreviewUrl] = useState("");
 
   const handlePreview = async (file) => {
-    // Gọi API lấy url file từ Google Drive nếu cần
-    // Giả sử file.url đã có sẵn, nếu không thì fetch ở đây
     setPreviewFile(file);
     setPreviewUrl(file.url || "");
   };
 
-  // Xử lý tải xuống file/folder
-  const handleDownload = (items) => {
+  function getPreferredDownloadUrl(item) {
+    if (item?.tempDownloadUrl && item?.tempFileStatus === "completed") {
+      return item.tempDownloadUrl; // /api/download/temp/:uploadId
+    }
+    if (item?.driveUrl || item?.url) {
+      // link xem/tải của Google Drive
+      const url = item.driveUrl || item.url;
+      const m = url.match(/\/d\/([\w-]+)\//);
+      return m ? `https://drive.google.com/uc?export=download&id=${m[1]}` : url;
+    }
+    if (item?._id) return `/api/download/file/${item._id}`; // BE tự quyết định
+    return null;
+  }
+
+  function isTempApi(url) {
+    // tải qua API nội bộ -> dùng axios lấy blob
+    return (
+      typeof url === "string" &&
+      (url.startsWith("/api/download/temp/") ||
+        url.startsWith("/api/download/file/"))
+    );
+  }
+
+  // Tải xuống 1 hoặc nhiều item
+  async function handleDownload(items) {
     if (!Array.isArray(items)) items = [items];
-    items.forEach((item) => {
-      if (item.type === "file" && item.url) {
-        const downloadUrl = getGoogleDriveDownloadUrl(item.url);
-        const a = document.createElement("a");
-        a.href = downloadUrl;
-        a.download = item.name || item.originalName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+
+    for (const item of items) {
+      const rawUrl = getPreferredDownloadUrl(item);
+      if (!rawUrl) {
+        console.warn("Không có URL tải xuống cho item:", item);
+        continue;
       }
-    });
-    toast.success(t("file.toast.download_success"));
-  };
+
+      // Nếu là API nội bộ -> lấy blob rồi save (tránh CORS, đảm bảo tên file)
+      if (isTempApi(rawUrl)) {
+        try {
+          const url = rawUrl.startsWith("http")
+            ? rawUrl
+            : `${process.env.NEXT_PUBLIC_API_BASE || ""}${rawUrl}`;
+
+          const res = await axiosClient.get(url, {
+            responseType: "blob",
+            // tránh axios cố parse JSON
+            transformResponse: [(data) => data],
+          });
+
+          // Lấy tên file: ưu tiên header Content-Disposition, sau đó tới name/originalName
+          const cd = res.headers?.["content-disposition"] || "";
+          const m = /filename\*?=UTF-8''([^;]+)|filename="?([^"]+)"?/i.exec(cd);
+          const headerName = decodeURIComponent(m?.[1] || m?.[2] || "");
+          const fileName =
+            headerName || item?.name || item?.originalName || "download";
+
+          const objectUrl = URL.createObjectURL(res.data);
+          const a = document.createElement("a");
+          a.href = objectUrl;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(objectUrl);
+        } catch (err) {
+          console.error("Download (temp/api) failed:", err);
+        }
+        continue;
+      }
+
+      // Nếu là Google Drive/public URL -> mở thẳng bằng <a> (tránh CORS/4096 cookie)
+      const a = document.createElement("a");
+      a.href = rawUrl;
+      a.rel = "noopener";
+      a.target = "_blank"; // phòng trường hợp Drive cần confirm virus scan
+      a.download = item?.name || item?.originalName || ""; // trình duyệt có thể bỏ qua với cross-origin
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+  }
 
   return (
     <div className="flex w-full min-h-screen bg-[#f7f8fa] relative">
