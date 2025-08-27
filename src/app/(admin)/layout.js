@@ -10,7 +10,6 @@ import { usePathname } from "next/navigation";
 import useSocket from "@/lib/useSocket";
 
 export default function AdminLayout({ children }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const router = useRouter();
 
   // Lấy số tin nhắn chưa đọc từ localStorage hoặc state nếu có

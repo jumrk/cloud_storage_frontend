@@ -1,10 +1,6 @@
 import React from "react";
 import { getFileIcon } from "@/utils/getFileIcon";
 import { FiEdit2, FiCheck, FiX, FiShare2, FiLock } from "react-icons/fi";
-import { splitFileName } from "@/utils/driveUtils";
-import { useState } from "react";
-import EmptyState from "@/components/ui/EmptyState";
-// import DragPreview from "@/components/client/home/DragPreview";
 
 function renderDragPreviewHTML(draggedItems) {
   if (!draggedItems || draggedItems.length === 0) return "";
@@ -33,14 +29,6 @@ function renderDragPreviewHTML(draggedItems) {
       </span>
     </div>
   `;
-}
-
-function formatSize(size) {
-  if (!size || isNaN(size)) return "-";
-  if (size < 1024) return size + " B";
-  if (size < 1024 * 1024) return (size / 1024).toFixed(1) + " KB";
-  if (size < 1024 * 1024 * 1024) return (size / 1024 / 1024).toFixed(1) + " MB";
-  return (size / 1024 / 1024 / 1024).toFixed(1) + " GB";
 }
 
 // Tiện ích xóa drag preview
@@ -268,14 +256,23 @@ function Card_file({
                 <span className="text-xs text-gray-500 select-none">
                   {splitFileName(data.name).ext}
                 </span>
-                <button onClick={confirmEdit} className="ml-1 text-green-600">
-                  {/* {loading ? (
-                    <span className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin inline-block"></span>
-                  ) : ( */}
+                <button
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    confirmEdit();
+                  }}
+                  className="ml-1  text-green-600"
+                >
                   <FiCheck size={16} />
-                  {/* )} */}
                 </button>
-                <button onClick={cancelEdit} className="ml-1 text-gray-400">
+
+                <button
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    cancelEdit();
+                  }}
+                  className="ml-1 text-gray-400"
+                >
                   <FiX size={16} />
                 </button>
               </div>
@@ -294,10 +291,23 @@ function Card_file({
                   className="bg-white px-2 py-1 text-black rounded border border-gray-300 w-full max-w-[120px] text-sm"
                   style={{ minWidth: 0 }}
                 />
-                <button onClick={confirmEdit} className="ml-1 text-green-600">
+                <button
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    confirmEdit();
+                  }}
+                  className="ml-1 cursor-pointer text-green-600"
+                >
                   <FiCheck size={16} />
                 </button>
-                <button onClick={cancelEdit} className="ml-1 text-gray-400">
+
+                <button
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    cancelEdit();
+                  }}
+                  className="ml-1 text-gray-400"
+                >
                   <FiX size={16} />
                 </button>
               </>

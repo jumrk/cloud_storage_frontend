@@ -12,6 +12,7 @@ import {
   CiLogout,
   CiChat1,
 } from "react-icons/ci";
+import { PiToolboxThin } from "react-icons/pi";
 import toast from "react-hot-toast";
 import { decodeTokenGetUser } from "@/lib/jwt";
 import axiosClient from "@/lib/axiosClient";
@@ -27,6 +28,7 @@ export default function Sidebar({
   const pathname = usePathname();
   const router = useRouter();
   const [slast, setSlast] = useState("");
+  const [email, setEmail] = useState("");
   const t = useTranslations();
 
   useEffect(() => {
@@ -35,7 +37,7 @@ export default function Sidebar({
       if (token) {
         const user = decodeTokenGetUser(token);
         setSlast(user?.slast || "");
-        console.log(slast);
+        setEmail(user?.email || "");
       }
     }
   }, []);
@@ -58,7 +60,6 @@ export default function Sidebar({
     }
   }
 
-  // Sidebar menu items
   const menu = [
     {
       label: t("sidebar.home"),
@@ -69,6 +70,12 @@ export default function Sidebar({
       label: t("sidebar.file_management"),
       icon: <CiFolderOn className="text-2xl" />,
       href: `/${slast}/file_management`,
+    },
+    {
+      label: t("sidebar.tool"),
+      icon: <PiToolboxThin className="text-2xl" />,
+      href: `/${slast}/tools/download`,
+      restricted: true,
     },
     {
       label: t("sidebar.user_management"),
@@ -93,9 +100,10 @@ export default function Sidebar({
     },
   ];
 
+  const allowedEmails = ["jumrk03@gmail.com", "dammevietdt@gmail.com"];
+
   return (
     <>
-      {/* Overlay for mobile */}
       {isMobile && open && (
         <div
           className="fixed inset-0 bg-black/60 z-40 transition-all"
@@ -108,7 +116,6 @@ export default function Sidebar({
           w-60`}
         style={{ minWidth: 200 }}
       >
-        {/* Header */}
         <div className="flex items-center justify-between px-4 py-5 border-b border-gray-200">
           <div className="flex items-center gap-2">
             <img src="/images/Logo_2.png" alt="Logo" className="h-10" />
@@ -122,47 +129,48 @@ export default function Sidebar({
             </button>
           )}
         </div>
-        {/* Menu */}
+
         <ul className="flex-1 px-4 py-6 space-y-2">
-          {menu.map((item, idx) => {
-            return (
-              <li key={item.label} className="mb-1">
-                <Link
-                  href={item.href}
-                  onClick={(e) => {
-                    if (item.label === "Nhắn tin") unlockAudio();
-                    if (isMobile && onClose) onClose();
-                  }}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all font-medium text-gray-700 hover:bg-gray-100 hover:text-primary relative
-                    ${pathname === item.href ? "bg-gray-100 text-primary" : ""}
-                  `}
-                >
-                  {item.icon}
-                  <span>{item.label}</span>
-                  {item.label === "Nhắn tin" && unreadCount > 0 && (
-                    <span className="ml-2 bg-[#1cadd9] text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-[22px] text-center">
-                      {unreadCount}
+          {menu.map((item) => (
+            <li key={item.label} className="mb-1">
+              <Link
+                href={item.href}
+                onClick={(e) => {
+                  if (item.label === "Nhắn tin") unlockAudio();
+                  if (item.restricted && !allowedEmails.includes(email)) {
+                    e.preventDefault();
+                    toast("Đang thử nghiệm");
+                    return;
+                  }
+                  if (isMobile && onClose) onClose();
+                }}
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all font-medium text-gray-700 hover:bg-gray-100 hover:text-primary relative
+                  ${pathname === item.href ? "bg-gray-100 text-primary" : ""}`}
+              >
+                {item.icon}
+                <span>{item.label}</span>
+                {item.label === "Nhắn tin" && unreadCount > 0 && (
+                  <span className="ml-2 bg-[#1cadd9] text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-[22px] text-center">
+                    {unreadCount}
+                  </span>
+                )}
+                {item.label === "Thông báo" && unreadNotificationCount > 0 && (
+                  <span className="ml-2 bg-[#1cadd9] text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-[22px] text-center">
+                    {unreadNotificationCount}
+                  </span>
+                )}
+                {item.badge &&
+                  item.label !== "Nhắn tin" &&
+                  item.label !== "Thông báo" && (
+                    <span className="ml-auto bg-[#1cadd9] text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                      {item.badge}
                     </span>
                   )}
-                  {item.label === "Thông báo" &&
-                    unreadNotificationCount > 0 && (
-                      <span className="ml-2 bg-[#1cadd9] text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-[22px] text-center">
-                        {unreadNotificationCount}
-                      </span>
-                    )}
-                  {item.badge &&
-                    item.label !== "Nhắn tin" &&
-                    item.label !== "Thông báo" && (
-                      <span className="ml-auto bg-[#1cadd9] text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                        {item.badge}
-                      </span>
-                    )}
-                </Link>
-              </li>
-            );
-          })}
+              </Link>
+            </li>
+          ))}
         </ul>
-        {/* Đăng xuất */}
+
         <div className="px-4 pb-12 md:pb-6">
           <button
             onClick={handleLogout}

@@ -13,7 +13,7 @@
     "capacity": "Storage Capacity",
     "desc": "D2MBox is a powerful data storage platform, offering high-speed uploads/downloads with no storage limits. Flexible permission system helps teams and businesses manage efficiently, while ensuring absolute data safety with various sharing modes. Built on Google infrastructure, D2MBox provides an intuitive interface and convenient, easy-to-use file management tools.",
     "desc_1": "Not just storage, D2MBox also integrates advanced AI tools: automatic video upload and processing, multi-language subtitle extraction – translation – synchronization, media content merging, global AI voice conversion,... All streamlined in an intuitive interface, running smoothly on all platforms.",
-    "desc_2": "Built on Google's powerful infrastructure and enhanced with AI technology, D2MBox is not just a storage place – but a smart data processing & operations center of the future."
+    "desc_2": "Built on Google's powerful infrastructure and enhanced with AI tecsidebarhnology, D2MBox is not just a storage place – but a smart data processing & operations center of the future."
   },
   "description": {
     "title": "SMART USER PERMISSIONS",
@@ -1014,6 +1014,7 @@
     "logout_success": "Logout successful!",
     "home": "Home",
     "file_management": "File management",
+    "tool": "Tool",
     "user_management": "User management",
     "notification": "Notifications",
     "account_info": "Account info",

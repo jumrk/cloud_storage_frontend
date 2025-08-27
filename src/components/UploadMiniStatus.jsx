@@ -5,10 +5,6 @@ import axiosClient from "@/lib/axiosClient";
 import toast from "react-hot-toast";
 import { useTranslations } from "next-intl";
 
-/* ===========================
-   Chunk sizing (giữ logic cũ)
-=========================== */
-// Đảm bảo file nào cũng có ít nhất 2 chunks
 const calculateOptimalChunkSize = (fileSize) => {
   if (fileSize < 1 * 1024 * 1024) return Math.max(1, Math.floor(fileSize / 2));
   if (fileSize < 10 * 1024 * 1024) return 2 * 1024 * 1024;
@@ -30,17 +26,6 @@ const createFileChunks = (file) => {
     start = end;
   }
 
-  if (chunks.length === 1) {
-    const half = Math.floor(file.size / 2);
-    chunks[0] = { start: 0, end: half, size: half };
-    chunks.push({ start: half, end: file.size, size: file.size - half });
-  }
-
-  console.log(
-    `[FE] 📊 ${file.name} ${(file.size / 1024 / 1024).toFixed(2)}MB → ${
-      chunks.length
-    } chunks (~${(optimalChunkSize / 1024 / 1024).toFixed(2)}MB/chunk)`
-  );
   return chunks;
 };
 
@@ -51,10 +36,6 @@ const readFileChunk = (file, start, end) =>
     r.onerror = reject;
     r.readAsArrayBuffer(file.slice(start, end));
   });
-
-/* ===========================
-   MiniStatus cho 1 batch
-=========================== */
 const MiniStatusBatch = ({
   files = [],
   isFolder,
@@ -77,8 +58,8 @@ const MiniStatusBatch = ({
       name: f.name,
       relativePath: isFolder ? f.relativePath : undefined,
       icon: "/images/icon/png.png",
-      status: "pending", // pending | uploading | processing | success | error | cancelled
-      progress: 0, // % hiển thị cho UI mỗi file (assembled progress → 0..100)
+      status: "pending",
+      progress: 0,
       chunks: [],
       uploadId: null,
       error: null,
@@ -86,20 +67,16 @@ const MiniStatusBatch = ({
   );
   const [progress, setProgress] = useState(0);
   const [isVisible, setIsVisible] = useState(true);
-  const [status, setStatus] = useState("pending"); // cho các flow đặc biệt
+  const [status, setStatus] = useState("pending");
   const [result, setResult] = useState(null);
 
-  // Refs quản lý vòng đời upload
   const hasUploaded = useRef(false);
-  const uploadAbortController = useRef(null);
   const cancelledRef = useRef({});
-  const abortControllersRef = useRef({}); // Abort cho từng file
+  const abortControllersRef = useRef({});
   const isUploadingRef = useRef(false);
   const hasCompletedRef = useRef(false);
 
-  // Pollers & cache status Drive
-  const statusPollersRef = useRef({}); // fileIndex -> setInterval id
-  // Dọn mọi poller khi component unmount
+  const statusPollersRef = useRef({});
   useEffect(() => {
     return () => {
       Object.values(statusPollersRef.current || {}).forEach((id) =>
@@ -108,20 +85,13 @@ const MiniStatusBatch = ({
       statusPollersRef.current = {};
     };
   }, []);
-  const lastStatusRef = useRef({}); // fileIndex -> { assembledBytes, driveBytes, ... }
+  const lastStatusRef = useRef({});
 
-  /* ===========================
-     Overall progress (theo % mỗi file)
-  =========================== */
   const calculateOverallProgress = (current) => {
     if (!current.length) return 0;
     const sum = current.reduce((acc, f) => acc + (Number(f.progress) || 0), 0);
     return Math.round(sum / current.length);
   };
-
-  /* ===========================
-     Poll /status tới khi Drive xong
-  =========================== */
   const pollStatusUntilDone = (uploadId, fileIndex, fileSize) => {
     if (statusPollersRef.current[fileIndex]) {
       clearInterval(statusPollersRef.current[fileIndex]);
@@ -136,7 +106,6 @@ const MiniStatusBatch = ({
         const data = res.data;
         if (!data?.success) return;
 
-        // Lưu cache để UI có thể show “Đang đẩy lên Drive: x%”
         lastStatusRef.current[fileIndex] = {
           assembledBytes: data.contiguousWatermark,
           driveBytes: data.nextDriveOffset,
@@ -144,8 +113,6 @@ const MiniStatusBatch = ({
           drivePct: data.drivePct,
           state: data.state,
         };
-
-        // Drive chưa xong → giữ trạng thái processing
         if (
           Number(data.nextDriveOffset) < Number(fileSize) &&
           data.state !== "COMPLETED"
@@ -157,8 +124,6 @@ const MiniStatusBatch = ({
           );
           return;
         }
-
-        // Drive xong
         clearInterval(statusPollersRef.current[fileIndex]);
         delete statusPollersRef.current[fileIndex];
 
@@ -182,18 +147,11 @@ const MiniStatusBatch = ({
     tick();
     statusPollersRef.current[fileIndex] = setInterval(tick, 1500);
   };
-
-  /* ===========================
-     Upload 1 file bằng chunked upload
-  =========================== */
   const uploadFileWithChunks = async (fileState, fileIndex) => {
     const file = fileState.file;
     const chunks = createFileChunks(file);
 
-    // Tạo Abort cho file
     abortControllersRef.current[fileIndex] = new AbortController();
-
-    // Khởi tạo state file
     setFileStates((prev) =>
       prev.map((f, idx) =>
         idx === fileIndex ? { ...f, chunks, status: "uploading" } : f
@@ -202,7 +160,6 @@ const MiniStatusBatch = ({
 
     let uploadId = fileState.uploadId;
 
-    // Chunk đầu tiên → tạo session
     if (!uploadId) {
       try {
         const firstChunkBuf = await readFileChunk(

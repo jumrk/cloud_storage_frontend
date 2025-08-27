@@ -942,6 +942,7 @@
   "sidebar": {
     "logout_success": "Đăng xuất thành công!",
     "home": "Trang chủ",
+    "tool": "Công cụ",
     "file_management": "Quản lý tệp",
     "user_management": "Quản lý người dùng",
     "notification": "Thông báo",
