@@ -18,9 +18,9 @@ export default function MemberFileManager() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const t = useTranslations();
-  const [currentFolder, setCurrentFolder] = useState(null); // object
-  const [breadcrumb, setBreadcrumb] = useState([]); // [{id, name}]
-  const [view, setView] = useState("grid"); // 'grid' | 'table'
+  const [currentFolder, setCurrentFolder] = useState(null);
+  const [breadcrumb, setBreadcrumb] = useState([]);
+  const [view, setView] = useState("grid");
   const [showUpload, setShowUpload] = useState(false);
   const [uploadBatches, setUploadBatches] = useState([]);
   const [uploadingBatchId, setUploadingBatchId] = useState(null);

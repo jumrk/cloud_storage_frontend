@@ -1,4 +1,3 @@
-// app/tools/sub/SeparateSubtitles.jsx
 "use client";
 import { uploadInChunks } from "@/lib/tool/chunkUpload";
 import { useCallback, useMemo, useRef, useState } from "react";
@@ -11,7 +10,6 @@ export default function SeparateSubtitles() {
   const [mode, setMode] = useState("auto");
   const [format, setFormat] = useState("srt");
   const [srcLang, setSrcLang] = useState("auto");
-  const [translateTo, setTranslateTo] = useState("none");
 
   const [uploading, setUploading] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -22,7 +20,6 @@ export default function SeparateSubtitles() {
 
   const [result, setResult] = useState(null);
   const [downloadingIndex, setDownloadingIndex] = useState(-1);
-  const [cleaned, setCleaned] = useState(false);
 
   const startRef = useRef(null);
   const cancelCtrlRef = useRef(null);
@@ -42,7 +39,6 @@ export default function SeparateSubtitles() {
     setResult(null);
     setProcessing(false);
     setFile(f);
-    setCleaned(false);
   }, []);
 
   function onDrop(e) {
@@ -73,33 +69,41 @@ export default function SeparateSubtitles() {
     setUploadedBytes(0);
     setSpeed(0);
     setEta(null);
-    setCleaned(false);
+    setDownloadingIndex(-1);
   }
 
-  function directDownloadAndCleanup(url, filename = "subtitle.srt", idx = 0) {
-    setDownloadingIndex(idx);
-    const dl = url.includes("?")
-      ? `${url}&download=1&delete=1`
-      : `${url}?download=1&delete=1`;
-    fetch(dl)
-      .then(async (r) => {
-        if (!r.ok) throw new Error("Download failed");
-        const blob = await r.blob();
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        a.download = filename;
-        a.rel = "noopener";
-        a.style.display = "none";
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => {
-          URL.revokeObjectURL(a.href);
-          a.remove();
-        }, 0);
-        setCleaned(true);
-      })
-      .catch(() => setErr("Tải xuống thất bại"))
-      .finally(() => setDownloadingIndex(-1));
+  async function downloadAndCleanup(f, idx) {
+    try {
+      setDownloadingIndex(idx);
+      const base = f.downloadUrl || f.url;
+      const url = base.includes("?") ? `${base}&delete=1` : `${base}?delete=1`;
+      const resp = await fetch(url, { mode: "cors", credentials: "omit" });
+      if (!resp.ok) throw new Error(`Download failed: ${resp.status}`);
+
+      const blob = await resp.blob();
+      const cd = resp.headers.get("Content-Disposition") || "";
+      const fromHeader = /filename\*?=(?:UTF-8''|")?([^\";]+)/i.exec(cd)?.[1];
+      const safe = decodeURIComponent(
+        fromHeader || f.name || `subtitle.${f.format || "srt"}`
+      );
+
+      const objUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objUrl;
+      a.download = safe;
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        URL.revokeObjectURL(objUrl);
+        a.remove();
+      }, 0);
+
+      resetUI();
+    } catch (e) {
+      setDownloadingIndex(-1);
+      setErr(e.message || "Tải xuống thất bại");
+    }
   }
 
   async function startUpload() {
@@ -110,7 +114,6 @@ export default function SeparateSubtitles() {
     setErr("");
     setResult(null);
     setProcessing(false);
-
     setUploading(true);
     setProgress(0);
     setUploadedBytes(0);
@@ -118,8 +121,7 @@ export default function SeparateSubtitles() {
     setEta(null);
     startRef.current = Date.now();
 
-    const extraInitPayload = { mode, format, srcLang, translateTo };
-
+    const extraInitPayload = { mode, format, srcLang };
     const ctrl = uploadInChunks({
       file,
       initUrl: "/api/tools/sub/init",
@@ -190,11 +192,11 @@ export default function SeparateSubtitles() {
           done={!processing && !!result}
         />
         <span className="text-slate-300">—</span>
-        <Step label="Hoàn tất" active={!!result} done={!!result && cleaned} />
+        <Step label="Hoàn tất" active={!!result} done={false} />
       </div>
 
       <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
             <label className="text-xs text-slate-500">Chế độ</label>
             <select
@@ -227,21 +229,6 @@ export default function SeparateSubtitles() {
               onChange={(e) => setSrcLang(e.target.value)}
             >
               <option value="auto">Tự động</option>
-              <option value="vi">Tiếng Việt</option>
-              <option value="en">Tiếng Anh</option>
-              <option value="zh">Tiếng Trung</option>
-              <option value="ja">Tiếng Nhật</option>
-              <option value="ko">Tiếng Hàn</option>
-            </select>
-          </div>
-          <div>
-            <label className="text-xs text-slate-500">Dịch sang</label>
-            <select
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-4 focus:ring-indigo-100 focus:border-indigo-400"
-              value={translateTo}
-              onChange={(e) => setTranslateTo(e.target.value)}
-            >
-              <option value="none">Không dịch</option>
               <option value="vi">Tiếng Việt</option>
               <option value="en">Tiếng Anh</option>
               <option value="zh">Tiếng Trung</option>
@@ -314,17 +301,10 @@ export default function SeparateSubtitles() {
           </button>
         )}
 
-        {result && (
-          <button
-            onClick={resetUI}
-            className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium hover:bg-slate-50"
-          >
-            Reset
-          </button>
-        )}
-
         <div className="text-sm text-slate-500">
-          {file ? `${sizeText}` : "Chưa chọn tệp"}
+          {file
+            ? `${formatBytes(uploadedBytes)} / ${sizeText} • ${percent}%`
+            : "Chưa chọn tệp"}
         </div>
       </div>
 
@@ -341,9 +321,8 @@ export default function SeparateSubtitles() {
             />
           </div>
           <div className="mt-2 text-xs text-slate-500 flex items-center gap-3">
-            <span>Đã gửi: {formatBytes(uploadedBytes)}</span>
-            {speedText && <span>• Tốc độ: {speedText}</span>}
-            {etaText && <span>• Còn lại: {etaText}</span>}
+            <span>Tốc độ: {speedText || "—"}</span>
+            <span>• Còn lại: {etaText || "—"}</span>
           </div>
         </div>
       )}
@@ -357,7 +336,7 @@ export default function SeparateSubtitles() {
                 Đang tách phụ đề…
               </div>
               <div className="text-xs text-slate-500">
-                Vui lòng giữ tab mở đến khi hoàn tất.
+                Giữ tab mở đến khi hoàn tất.
               </div>
             </div>
           </div>
@@ -367,7 +346,6 @@ export default function SeparateSubtitles() {
       {result && (
         <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="text-sm font-semibold text-slate-800">Hoàn tất</div>
-
           {Array.isArray(result.files) && result.files.length > 0 && (
             <div className="mt-3 space-y-2">
               {result.files.map((f, i) => (
@@ -376,33 +354,31 @@ export default function SeparateSubtitles() {
                   className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2"
                 >
                   <div className="min-w-0">
-                    <div className="text-sm font-medium truncate">
-                      {f.label || `Subtitle ${i + 1}`}{" "}
+                    <div
+                      className="text-sm font-medium truncate"
+                      title={f.name || f.label}
+                    >
+                      {f.label || f.name || `Subtitle ${i + 1}`}{" "}
                       {f.lang ? `• ${f.lang}` : ""}{" "}
                       {f.format ? `• ${f.format.toUpperCase()}` : ""}
                     </div>
+                    {!!f.name && (
+                      <div className="text-xs text-slate-500 truncate">
+                        {f.name}
+                      </div>
+                    )}
                   </div>
                   <button
-                    onClick={() =>
-                      directDownloadAndCleanup(
-                        f.url,
-                        `subtitle-${f.lang || i + 1}.${f.format || format}`,
-                        i
-                      )
-                    }
-                    disabled={downloadingIndex === i || cleaned}
+                    onClick={() => downloadAndCleanup(f, i)}
+                    disabled={downloadingIndex === i}
                     className={
                       "rounded-lg px-3 py-1.5 text-xs font-semibold shadow " +
-                      (downloadingIndex === i || cleaned
-                        ? "bg-slate-200 text-slate-500 cursor-not-allowed"
+                      (downloadingIndex === i
+                        ? "bg-slate-200 text-slate-500"
                         : "bg-blue-600 text-white hover:shadow-md")
                     }
                   >
-                    {downloadingIndex === i
-                      ? "Đang tải…"
-                      : cleaned
-                      ? "Đã dọn dẹp"
-                      : "Tải xuống"}
+                    {downloadingIndex === i ? "Đang tải…" : "Tải xuống"}
                   </button>
                 </div>
               ))}
@@ -433,7 +409,6 @@ function Step({ label, active, done }) {
     </div>
   );
 }
-
 function Spinner() {
   return (
     <svg className="animate-spin h-5 w-5 text-indigo-600" viewBox="0 0 24 24">
@@ -454,7 +429,6 @@ function Spinner() {
     </svg>
   );
 }
-
 function SelectedFileCard({ file, onClear }) {
   return (
     <div className="flex items-center justify-between gap-3">
@@ -481,7 +455,6 @@ function SelectedFileCard({ file, onClear }) {
     </div>
   );
 }
-
 function formatBytes(bytes) {
   if (!Number.isFinite(bytes)) return "0 B";
   const units = ["B", "KB", "MB", "GB", "TB"];

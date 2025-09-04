@@ -9,15 +9,14 @@ import React, {
   useState,
 } from "react";
 import axiosClient from "@/lib/axiosClient";
+import toast from "react-hot-toast";
 
-const MAX_FILES = 10;
-const MAX_FILE_SIZE = 200 * 1024 * 1024;
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE || axiosClient.defaults.baseURL || "";
 
 const cn = (...s) => s.filter(Boolean).join(" ");
 const pretty = (n) => {
-  if (n === 0) return "0 B";
+  if (!n) return "0 B";
   const k = 1024;
   const sizes = ["B", "KB", "MB", "GB", "TB"];
   const i = Math.floor(Math.log(n) / Math.log(k));
@@ -30,6 +29,7 @@ function Stepper({ current = 1 }) {
     { id: 2, label: "Ghép video" },
     { id: 3, label: "Hoàn tất" },
   ];
+
   return (
     <div className="flex items-center justify-center gap-3 text-sm select-none">
       {steps.map((s, i) => (
@@ -58,14 +58,6 @@ function Stepper({ current = 1 }) {
   );
 }
 
-function Pill({ children }) {
-  return (
-    <span className="inline-flex items-center rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-200">
-      {children}
-    </span>
-  );
-}
-
 export default function MergePage() {
   const [mode, setMode] = useState("copy");
   const [outFmt, setOutFmt] = useState("mp4");
@@ -75,22 +67,25 @@ export default function MergePage() {
 
   const [files, setFiles] = useState([]);
   const [dragOver, setDragOver] = useState(false);
-  const [error, setError] = useState(null);
   const inputRef = useRef(null);
 
   const [sid, setSid] = useState(null);
-
   const [uploading, setUploading] = useState(false);
   const [uploadProg, setUploadProg] = useState({});
-  const [uploaded, setUploaded] = useState([]);
-
-  const [jobId, setJobId] = useState(null);
-  const [mergePercent, setMergePercent] = useState(0);
   const [status, setStatus] = useState("idle");
   const [message, setMessage] = useState("");
+  const [mergePercent, setMergePercent] = useState(0);
   const [downloadUrl, setDownloadUrl] = useState(null);
+  const [expiresAt, setExpiresAt] = useState(null);
   const [downloading, setDownloading] = useState(false);
-  const [cleaned, setCleaned] = useState(false);
+
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    if (!expiresAt) return;
+    setNow(Date.now());
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [expiresAt]);
 
   const esRef = useRef(null);
 
@@ -98,15 +93,12 @@ export default function MergePage() {
     () => files.reduce((s, f) => s + f.size, 0),
     [files]
   );
-  const tooMany = files.length > MAX_FILES;
-  const singleTooBig = files.some((f) => f.size > MAX_FILE_SIZE);
-  const totalTooBig = totalSize > MAX_FILES * MAX_FILE_SIZE;
-  const valid = files.length > 0 && !tooMany && !singleTooBig && !totalTooBig;
+  const valid = files.length > 0;
 
   const onFiles = useCallback((list) => {
     if (!list) return;
     const picked = Array.from(list).filter((f) => f.type.startsWith("video/"));
-    setFiles((prev) => [...prev, ...picked].slice(0, MAX_FILES * 2));
+    setFiles((prev) => [...prev, ...picked]);
   }, []);
 
   const onDrop = (e) => {
@@ -116,28 +108,6 @@ export default function MergePage() {
   };
 
   const openPicker = () => inputRef.current?.click();
-  const removeAt = (i) =>
-    setFiles((prev) => prev.filter((_, idx) => idx !== i));
-  const moveUp = (i) =>
-    setFiles((prev) =>
-      i === 0
-        ? prev
-        : (() => {
-            const a = [...prev];
-            [a[i - 1], a[i]] = [a[i], a[i - 1]];
-            return a;
-          })()
-    );
-  const moveDown = (i) =>
-    setFiles((prev) =>
-      i === prev.length - 1
-        ? prev
-        : (() => {
-            const a = [...prev];
-            [a[i + 1], a[i]] = [a[i], a[i + 1]];
-            return a;
-          })()
-    );
   const clearAll = () => setFiles([]);
 
   async function createSession() {
@@ -197,7 +167,7 @@ export default function MergePage() {
     es.onmessage = (e) => {
       try {
         const evt = JSON.parse(e.data || "{}");
-        if (evt.percent != null) setMergePercent(evt.percent);
+        if (typeof evt.percent === "number") setMergePercent(evt.percent);
         if (evt.message) setMessage(evt.message);
         if (evt.status === "completed") {
           setStatus("completed");
@@ -219,17 +189,14 @@ export default function MergePage() {
 
   async function handleSubmit() {
     if (!valid) {
-      setError("Vui lòng kiểm tra lại tệp đã chọn.");
+      toast.error("Chưa chọn video");
       return;
     }
-    setError(null);
     setStatus("uploading");
-    setUploading(true);
-    setUploaded([]);
     setUploadProg({});
     setMergePercent(0);
     setDownloadUrl(null);
-    setCleaned(false);
+    setExpiresAt(null);
 
     try {
       const s = await createSession();
@@ -240,50 +207,44 @@ export default function MergePage() {
         await uploadOneToSession(s.sid, f, (p) =>
           setUploadProg((prev) => ({ ...prev, [i]: p }))
         );
-        setUploaded((prev) => [...prev, { size: f.size, name: f.name }]);
       }
 
       const fin = await finalizeSession(s.sid);
-      setJobId(fin.jobId);
       listenProgress(fin.jobId);
 
-      const checkFinal = async () => {
-        for (let k = 0; k < 30; k++) {
+      const poll = async () => {
+        for (let k = 0; k < 120; k++) {
           const st = await getStatus(s.sid);
-          if (st?.meta?.finalUrl) {
-            setDownloadUrl(st.meta.finalUrl);
+          const url = st?.meta?.finalUrl || null;
+          const exp = st?.meta?.expiresAt || null;
+          if (url) {
+            setDownloadUrl(url);
+            setExpiresAt(exp);
             setStatus("completed");
             return;
           }
           await new Promise((r) => setTimeout(r, 1000));
         }
       };
-      checkFinal().catch(() => {});
+      poll().catch(() => {});
     } catch (e) {
       setStatus("failed");
-      setError(
-        e?.response?.data?.error ||
-          e.message ||
-          "Có lỗi khi tải lên/khởi tạo job"
+      toast.error(
+        e?.response?.data?.error || e.message || "Có lỗi khi ghép video"
       );
-    } finally {
-      setUploading(false);
     }
   }
 
   async function handleDownload() {
-    if (!downloadUrl || !sid) return;
+    if (!downloadUrl) return;
     try {
       setDownloading(true);
-      const url = `${downloadUrl}${
-        downloadUrl.includes("?") ? "&" : "?"
-      }cleanup=1`;
-      const res = await axiosClient.get(url, { responseType: "blob" });
+      const res = await axiosClient.get(downloadUrl, { responseType: "blob" });
       const blob = new Blob([res.data], {
         type: res.headers["content-type"] || "application/octet-stream",
       });
 
-      let filename = "merged." + outFmt;
+      let filename = `merged.${outFmt}`;
       const cd =
         res.headers["content-disposition"] ||
         res.headers["Content-Disposition"];
@@ -300,28 +261,13 @@ export default function MergePage() {
       a.click();
       a.remove();
       URL.revokeObjectURL(href);
-
-      setCleaned(true);
-      setMessage("Đã tải xuống & dọn dẹp.");
     } catch (e) {
-      setError("Tải xuống thất bại.");
+      if (e?.response?.status === 404)
+        toast.error("File không tồn tại, vui lòng thử lại");
+      else toast.error("Tải xuống thất bại");
     } finally {
       setDownloading(false);
     }
-  }
-
-  async function cancelSession() {
-    if (!sid) return;
-    try {
-      await axiosClient.delete(`/api/tools/merge/${sid}`);
-      setStatus("cancelled");
-      setMessage("Đã huỷ phiên");
-      if (esRef.current) {
-        try {
-          esRef.current.close();
-        } catch {}
-      }
-    } catch {}
   }
 
   useEffect(
@@ -331,21 +277,57 @@ export default function MergePage() {
     []
   );
 
-  return (
-    <div className=" bg-gradient-to-b from-white to-gray-50">
-      <div className="mx-auto w-full max-w-5xl px-4 ">
-        <div className="mb-6 flex items-center justify-center gap-2">
-          <Pill>GHÉP VIDEO</Pill>
-          {sid && <span className="text-xs text-gray-500">SID: {sid}</span>}
-        </div>
+  const expiresCountdown = useMemo(() => {
+    if (!expiresAt) return "";
+    const ms = Math.max(0, expiresAt - now);
+    if (ms <= 0) return "Đã hết hạn";
+    const m = Math.floor(ms / 60000);
+    const s = Math.floor((ms % 60000) / 1000);
+    return `${m}m ${s}s`;
+  }, [expiresAt, now]);
 
+  useEffect(() => {
+    if (!expiresAt) return;
+    const t = setInterval(() => setMessage((m) => m), 1000);
+    return () => clearInterval(t);
+  }, [expiresAt]);
+
+  const dragFrom = useRef(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
+  const reorder = (arr, from, to) => {
+    if (from === to || from == null || to == null) return arr;
+    const a = [...arr];
+    const [m] = a.splice(from, 1);
+    a.splice(to, 0, m);
+    return a;
+  };
+  const onItemDragStart = (index) => (e) => {
+    dragFrom.current = index;
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", String(index));
+  };
+  const onItemDragOver = (index) => (e) => {
+    e.preventDefault();
+    setDragOverIndex(index);
+  };
+  const onItemDrop = (index) => (e) => {
+    e.preventDefault();
+    const from = dragFrom.current;
+    setFiles((prev) => reorder(prev, from, index));
+    dragFrom.current = null;
+    setDragOverIndex(null);
+  };
+  const onItemDragEnd = () => {
+    dragFrom.current = null;
+    setDragOverIndex(null);
+  };
+
+  return (
+    <div className="bg-gradient-to-b from-white to-gray-50 min-h-screen">
+      <div className="mx-auto w-full max-w-5xl px-4 py-8">
         <h1 className="text-3xl text-center font-semibold tracking-tight text-gray-900">
-          Upload video để ghép thành một
+          Ghép video
         </h1>
-        <p className="mt-2 text-gray-600 text-center">
-          Giới hạn 10 video, mỗi video ≤ 200MB. Hỗ trợ giữ nguyên chất lượng
-          (stream copy) hoặc chuẩn hoá.
-        </p>
 
         <div className="mt-5">
           <Stepper
@@ -449,11 +431,6 @@ export default function MergePage() {
                 : "border-gray-200 bg-white"
             )}
           >
-            <img
-              alt="folder"
-              src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 24 24' fill='none' stroke='gray' stroke-width='1.5'%3E%3Cpath d='M3 7h4l2 2h12v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/%3E%3C/svg%3E"
-              className="mb-3 opacity-70"
-            />
             <p className="text-gray-700">Kéo video vào đây</p>
             <p className="mt-1 text-sm text-gray-500">hoặc</p>
             <button
@@ -477,7 +454,7 @@ export default function MergePage() {
             <div className="mt-4">
               <div className="mb-2 flex items-center justify-between">
                 <div className="text-sm text-gray-600">
-                  Đã chọn <b>{files.length}</b> / {MAX_FILES} • Tổng:{" "}
+                  Đã chọn <b>{files.length}</b> • Tổng:{" "}
                   <b>{pretty(totalSize)}</b>
                 </div>
                 <button
@@ -487,60 +464,54 @@ export default function MergePage() {
                   Xoá tất cả
                 </button>
               </div>
+
               <ul className="divide-y divide-gray-200 rounded-xl border border-gray-200 bg-white">
-                {files.map((f, i) => (
-                  <li
-                    key={`${f.name}-${i}`}
-                    className="flex items-center gap-3 p-3"
-                  >
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-100">
-                      🎞️
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div
-                        className="truncate text-sm font-medium text-gray-900"
-                        title={f.name}
-                      >
-                        {f.name}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {pretty(f.size)}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
+                {files.map((f, i) => {
+                  const isOver = dragOverIndex === i;
+                  return (
+                    <li
+                      key={`${f.name}-${i}`}
+                      draggable
+                      onDragStart={onItemDragStart(i)}
+                      onDragOver={onItemDragOver(i)}
+                      onDrop={onItemDrop(i)}
+                      onDragEnd={onItemDragEnd}
+                      className={cn(
+                        "flex items-center gap-3 p-3 select-none",
+                        isOver && "bg-indigo-50"
+                      )}
+                    >
                       <button
-                        onClick={() => moveUp(i)}
-                        disabled={i === 0}
-                        className={cn(
-                          "rounded-lg border px-2 py-1 text-xs",
-                          i === 0
-                            ? "opacity-30 cursor-not-allowed"
-                            : "hover:bg-gray-50"
-                        )}
+                        type="button"
+                        className="shrink-0 h-9 w-9 grid place-items-center rounded-lg border border-gray-200 text-gray-500 cursor-grab active:cursor-grabbing"
+                        title="Kéo để sắp xếp"
                       >
-                        Lên
+                        ☰
                       </button>
+
+                      <div className="min-w-0 flex-1">
+                        <div
+                          className="truncate text-sm font-medium text-gray-900"
+                          title={f.name}
+                        >
+                          {f.name}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {pretty(f.size)}
+                        </div>
+                      </div>
+
                       <button
-                        onClick={() => moveDown(i)}
-                        disabled={i === files.length - 1}
-                        className={cn(
-                          "rounded-lg border px-2 py-1 text-xs",
-                          i === files.length - 1
-                            ? "opacity-30 cursor-not-allowed"
-                            : "hover:bg-gray-50"
-                        )}
-                      >
-                        Xuống
-                      </button>
-                      <button
-                        onClick={() => removeAt(i)}
+                        onClick={() =>
+                          setFiles((prev) => prev.filter((_, idx) => idx !== i))
+                        }
                         className="rounded-lg border px-2 py-1 text-xs hover:bg-gray-50"
                       >
                         Xoá
                       </button>
-                    </div>
-                  </li>
-                ))}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           )}
@@ -550,7 +521,9 @@ export default function MergePage() {
               {files.map((f, i) => (
                 <div key={`up-${i}`} className="text-sm text-gray-600">
                   <div className="flex items-center justify-between">
-                    <span>{f.name}</span>
+                    <span className="truncate" title={f.name}>
+                      {f.name}
+                    </span>
                     <span>{uploadProg[i] || 0}%</span>
                   </div>
                   <div className="h-2 w-full overflow-hidden rounded bg-gray-200">
@@ -576,55 +549,38 @@ export default function MergePage() {
                   style={{ width: `${mergePercent}%` }}
                 />
               </div>
-              <div className="mt-3 flex gap-2">
-                <button
-                  onClick={cancelSession}
-                  className="rounded-lg border px-3 py-1 text-xs hover:bg-gray-50"
-                >
-                  Huỷ phiên
-                </button>
-              </div>
             </div>
           )}
 
           {status === "failed" && (
             <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
-              {error || message || "Có lỗi xảy ra."}
+              {message || "Có lỗi xảy ra."}
             </div>
           )}
 
           {status === "completed" && downloadUrl && (
             <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700 flex items-center justify-between">
               <span>
-                {cleaned
-                  ? "Đã sẵn sàng tải xuống (đã dọn dẹp sau khi tải)"
-                  : "Hoàn tất. Bấm để tải xuống và dọn dẹp."}
+                Hoàn tất. Link tồn tại 5 phút
+                {expiresAt ? ` • còn ${expiresCountdown}` : ""}.
               </span>
               <button
                 onClick={handleDownload}
-                disabled={downloading || cleaned}
+                disabled={downloading}
                 className={cn(
                   "rounded-xl px-4 py-2 text-sm font-medium",
-                  downloading || cleaned
+                  downloading
                     ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                     : "bg-emerald-600 text-white hover:bg-emerald-500"
                 )}
               >
-                {downloading
-                  ? "Đang tải…"
-                  : cleaned
-                  ? "Đã dọn dẹp"
-                  : "Tải xuống"}
+                {downloading ? "Đang tải…" : "Tải xuống"}
               </button>
             </div>
           )}
         </div>
 
-        <div className="mt-6 flex items-center justify-between">
-          <div className="text-xs text-gray-500">
-            Tip: <b>Giữ nguyên chất lượng</b> yêu cầu các clip cùng codec/kích
-            thước/FPS.
-          </div>
+        <div className="mt-6 flex items-center justify-end">
           <button
             onClick={handleSubmit}
             disabled={!valid || uploading || status === "merging"}

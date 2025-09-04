@@ -7,7 +7,6 @@ const axiosClient = axios.create({
 
 axiosClient.interceptors.request.use(
   (config) => {
-    // Ưu tiên token từ localStorage cho cross-domain
     if (!config.headers.Authorization) {
       let token = null;
       if (typeof window !== "undefined") {

@@ -30,6 +30,10 @@ function Layout({ children }) {
       label: "Tách Subtitle",
     },
     {
+      href: `/${slast}/tools/sub`,
+      label: "Dịch văn bản",
+    },
+    {
       href: `/${slast}/tools/merge`,
       label: "Ghép Video",
     },
