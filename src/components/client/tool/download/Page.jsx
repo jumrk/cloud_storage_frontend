@@ -1,30 +1,38 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
-import axiosClient from "@/lib/axiosClient";
+import { useEffect } from "react";
+import Image from "next/image";
+import { useDownloadPage } from "@/hooks/leader/tools/download/useDownloadPage";
 
 export default function DownloadTool({ logoList = [] }) {
-  const [url, setUrl] = useState("");
-  const [checking, setChecking] = useState(false);
-  const [analysis, setAnalysis] = useState(null);
-  const [mode, setMode] = useState("auto");
-  const [muxedId, setMuxedId] = useState("");
-  const [videoId, setVideoId] = useState("");
-  const [audioId, setAudioId] = useState("");
-  const [downloading, setDownloading] = useState(false);
-  const [jobId, setJobId] = useState(null);
-  const [status, setStatus] = useState({
-    state: "idle",
-    progress: 0,
-    result: null,
-    failedReason: null,
-  });
-  const [err, setErr] = useState("");
-  const [copied, setCopied] = useState(false);
-
-  const qualities = useMemo(
-    () => analysis?.meta?.qualities || { video: [], audio: [], muxed: [] },
-    [analysis]
-  );
+  const {
+    checking,
+    analysis,
+    mode,
+    muxedId,
+    videoId,
+    audioId,
+    downloading,
+    jobId,
+    status,
+    url,
+    err,
+    copied,
+    qualities,
+    progress,
+    isDone,
+    isFail,
+    handleAnalyze,
+    handleDownload,
+    setErr,
+    setCopied,
+    setMuxedId,
+    setVideoId,
+    setAudioId,
+    setStatus,
+    setUrl,
+    setAnalysis,
+    setMode,
+  } = useDownloadPage();
 
   useEffect(() => {
     if (!analysis?.ok) {
@@ -53,69 +61,6 @@ export default function DownloadTool({ logoList = [] }) {
     }
   }, [analysis]);
 
-  function buildFormat() {
-    const q = analysis?.meta?.qualities || { video: [], audio: [], muxed: [] };
-    if (mode === "muxed") {
-      const id = muxedId || (q.muxed?.[0]?.id ?? "");
-      return id || null;
-    }
-    if (mode === "pair") {
-      const v = videoId || (q.video?.[0]?.id ?? "");
-      const a = audioId || (q.audio?.[0]?.id ?? "");
-      return v && a ? `${v}+${a}` : null;
-    }
-    return null;
-  }
-
-  async function handleAnalyze() {
-    setErr("");
-    setAnalysis(null);
-    setJobId(null);
-    setStatus({ state: "idle", progress: 0, result: null, failedReason: null });
-    const link = url.trim();
-    if (!/^https?:\/\//i.test(link)) {
-      setErr("Link chưa hợp lệ. Hãy nhập link bắt đầu bằng http(s)://");
-      return;
-    }
-    try {
-      setChecking(true);
-      const { data } = await axiosClient.post("/api/tools/download/analyze", {
-        url: link,
-      });
-      setAnalysis(data);
-    } catch (e) {
-      setAnalysis(e?.response?.data || { error: "Analyze failed" });
-      setErr(e?.response?.data?.error || e.message || "Có lỗi khi phân tích");
-    } finally {
-      setChecking(false);
-    }
-  }
-
-  async function handleDownload() {
-    if (!analysis?.ok) return;
-    try {
-      setDownloading(true);
-      const format = buildFormat();
-      const { data } = await axiosClient.post("/api/tools/download/download", {
-        url,
-        format,
-      });
-      setJobId(data.jobId);
-      setStatus({
-        state: "queued",
-        progress: 0,
-        result: null,
-        failedReason: null,
-      });
-    } catch (e) {
-      setErr(
-        e?.response?.data?.error || e.message || "Không tạo được job tải xuống"
-      );
-    } finally {
-      setDownloading(false);
-    }
-  }
-
   useEffect(() => {
     if (!jobId) return;
     let stop = false;
@@ -137,10 +82,6 @@ export default function DownloadTool({ logoList = [] }) {
       stop = true;
     };
   }, [jobId]);
-
-  const progress = Math.max(0, Math.min(100, Math.round(status.progress || 0)));
-  const isDone = status.state === "completed";
-  const isFail = status.state === "failed";
 
   return (
     <div className="w-full max-w-3xl mx-auto space-y-6">
@@ -165,10 +106,15 @@ export default function DownloadTool({ logoList = [] }) {
                 key={i}
                 className="flex items-center justify-center w-12 h-12 md:w-14 md:h-14 rounded-xl border border-slate-200 bg-white shadow-sm hover:shadow transition"
               >
-                <img
+                <Image
                   src={src}
                   alt="logo"
                   className="max-w-[70%] max-h-[70%] object-contain"
+                  width={28}
+                  height={28}
+                  placeholder="blur"
+                  blurDataURL="data:image/png;base64,..."
+                  priority
                 />
               </div>
             ))}
@@ -228,10 +174,15 @@ export default function DownloadTool({ logoList = [] }) {
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-shrink-0 w-full md:w-48 aspect-video rounded-xl overflow-hidden border border-slate-200 bg-slate-100">
               {analysis.meta?.thumbnail ? (
-                <img
+                <Image
                   src={analysis.meta.thumbnail}
                   alt="Thumbnail"
                   className="w-full h-full object-cover"
+                  width={192}
+                  height={108}
+                  placeholder="blur"
+                  blurDataURL="data:image/png;base64,..."
+                  priority
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">

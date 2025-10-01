@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Modal from "../Modal";
-import InputCustom from "../ui/input_custom";
+import InputCustom from "../ui/InputCustom";
 
 const TYPE_OPTIONS = [
   { value: "bank", label: "Ngân hàng" },

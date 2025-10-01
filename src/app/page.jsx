@@ -8,7 +8,42 @@ import PlanList from "@/components/PlanList";
 import { useTranslations } from "next-intl";
 
 export const metadata = {
-  title: "D2MBox",
+  title: "D2MBox - Cloud Storage Solution",
+  description:
+    "D2MBox - Giải pháp lưu trữ đám mây chuyên nghiệp với AI, bảo mật cao, và các công cụ media tiên tiến. Tăng tốc công việc của bạn ngay hôm nay!",
+  keywords: [
+    "cloud storage",
+    "lưu trữ đám mây",
+    "AI tools",
+    "file management",
+    "D2MBox",
+  ],
+  openGraph: {
+    title: "D2MBox - Cloud Storage Solution",
+    description:
+      "Giải pháp lưu trữ đám mây chuyên nghiệp với AI và bảo mật cao",
+    type: "website",
+    images: [
+      {
+        url: "/images/og-homepage.jpg",
+        width: 1200,
+        height: 630,
+        alt: "D2MBox Homepage",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "D2MBox - Cloud Storage Solution",
+    description: "Giải pháp lưu trữ đám mây chuyên nghiệp với AI",
+  },
+  alternates: {
+    canonical: "https://d2mbox.com",
+    languages: {
+      vi: "https://d2mbox.com",
+      en: "https://d2mbox.com/en",
+    },
+  },
 };
 
 export default function Home() {

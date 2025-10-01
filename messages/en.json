@@ -1014,6 +1014,7 @@
     "logout_success": "Logout successful!",
     "home": "Home",
     "file_management": "File management",
+    "job_management": "Job management",
     "tool": "Tool",
     "user_management": "User management",
     "notification": "Notifications",

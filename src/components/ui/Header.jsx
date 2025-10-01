@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import Button_custom from "@/components/ui/Button_custom";
+import Button_custom from "@/components/ui/ButtonCustom";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { decodeTokenGetUser } from "@/lib/jwt";
@@ -8,7 +8,7 @@ import toast from "react-hot-toast";
 import axiosClient from "@/lib/axiosClient";
 import { HiOutlineGlobeAlt } from "react-icons/hi";
 import { useTranslations } from "next-intl";
-
+import Image from "next/image";
 export default function Header() {
   const router = useRouter();
   const t = useTranslations();
@@ -25,14 +25,12 @@ export default function Header() {
     } else {
       setUser(null);
     }
-    // Lấy locale hiện tại từ cookie khi client render
     if (typeof window !== "undefined") {
       const match = document.cookie.match(/NEXT_LOCALE=([^;]+)/);
       setCurrentLocale(match ? match[1] : "vi");
     }
   }, []);
 
-  // Đóng menu khi click ra ngoài
   useEffect(() => {
     function handleClickOutside(event) {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -62,7 +60,6 @@ export default function Header() {
     const nextLocale = currentLocale === "vi" ? "en" : "vi";
     document.cookie = `NEXT_LOCALE=${nextLocale}; path=/; SameSite=Lax`;
 
-    // Reload trang để đảm bảo tất cả component được cập nhật với ngôn ngữ mới
     window.location.reload();
   };
 
@@ -71,7 +68,13 @@ export default function Header() {
       <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
         {/* Logo */}
         <Link href="/" className="w-30 md:w-36">
-          <img src="/images/Logo_2.png" alt="logo" className="object-cover" />
+          <Image
+            src="/images/Logo_2.png"
+            alt="logo"
+            width={120}
+            height={40}
+            className="object-cover"
+          />
         </Link>
 
         <div className="flex gap-2 md:gap-4 xl:gap-6 items-center">

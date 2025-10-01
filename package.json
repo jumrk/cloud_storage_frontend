@@ -6,11 +6,22 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "export": "next export"
+    "export": "next export",
+    "postbuild": "next-sitemap",
+    "sitemap": "node generate-sitemap.js"
   },
   "dependencies": {
     "@babel/runtime": "^7.27.6",
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
     "@heroicons/react": "^2.2.0",
+    "@tiptap/extension-link": "^3.6.1",
+    "@tiptap/extension-placeholder": "^3.6.1",
+    "@tiptap/extension-text-align": "^3.6.1",
+    "@tiptap/extension-underline": "^3.6.1",
+    "@tiptap/html": "^3.6.1",
+    "@tiptap/react": "^3.6.1",
+    "@tiptap/starter-kit": "^3.6.1",
     "archiver": "^7.0.1",
     "axios": "^1.10.0",
     "bcryptjs": "^3.0.2",
@@ -23,6 +34,7 @@
     "jose": "^6.0.12",
     "jsonwebtoken": "^9.0.2",
     "lottie-react": "^2.4.1",
+    "lucide-react": "^0.544.0",
     "mongoose": "^8.16.2",
     "next": "15.3.5",
     "next-intl": "^4.3.4",
@@ -46,6 +58,7 @@
     "@tailwindcss/postcss": "^4",
     "eslint": "^9",
     "eslint-config-next": "15.3.5",
+    "next-sitemap": "^4.2.3",
     "tailwindcss": "^4"
   }
 }

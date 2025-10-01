@@ -17,6 +17,7 @@ import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import SkeletonChat from "@/components/ui/SkeletonChat";
 import { useTranslations } from "next-intl";
+import Image from "next/image";
 
 // Định nghĩa màu cho các loại label
 const LABEL_STYLES = {
@@ -151,7 +152,7 @@ function ChatSidebar({
                     <Skeleton
                       width={32}
                       height={12}
-                      style={{ background: "#e6f4ff" }}
+                      style={{ backgroundColor: "#e6f4ff" }}
                     />
                   </span>
                 </div>
@@ -217,10 +218,15 @@ function ChatSidebar({
                         setSearchResults([]);
                       }}
                     >
-                      <img
+                      <Image
                         src={u.avatar || "/images/avatar_empty.png"}
                         alt="avatar"
                         className="w-9 h-9 rounded-lg object-cover"
+                        width={36}
+                        height={36}
+                        placeholder="blur"
+                        blurDataURL="data:image/png;base64,..."
+                        priority
                       />
                       <div className="flex-1 min-w-0">
                         <div className="font-semibold text-[15px] text-[#222] truncate">
@@ -278,11 +284,16 @@ function ChatSidebar({
             style={{ minHeight: 54, borderRadius: 16 }}
           >
             <div className="relative">
-              <img
+              <Image
                 src={chat.avatar || "/images/avatar_empty.png"}
                 alt="avatar"
                 className="w-10 h-10 rounded-full object-cover flex-shrink-0 border border-gray-200"
-                style={{ background: "#fff" }}
+                style={{ backgroundColor: "#fff" }}
+                width={40}
+                height={40}
+                placeholder="blur"
+                blurDataURL="data:image/png;base64,..."
+                priority
               />
               {/* Chấm online/offline */}
               <span
@@ -485,10 +496,15 @@ function ChatConversation({
           {loadingMessages ? (
             <Skeleton circle width={AVATAR_SIZE} height={AVATAR_SIZE} />
           ) : (
-            <img
+            <Image
               src={chat?.avatar || "/images/avatar_empty.png"}
               alt="avatar"
               className="w-full h-full object-cover"
+              width={AVATAR_SIZE}
+              height={AVATAR_SIZE}
+              placeholder="blur"
+              blurDataURL="data:image/png;base64,..."
+              priority
             />
           )}
         </div>
@@ -561,10 +577,15 @@ function ChatConversation({
                 }`}
               >
                 {!isMe && (
-                  <img
+                  <Image
                     src={user?.avatar || "/images/avatar_empty.png"}
                     alt="avatar"
                     className="w-8 h-8 rounded-full object-cover mr-2 border border-gray-200"
+                    width={32}
+                    height={32}
+                    placeholder="blur"
+                    blurDataURL="data:image/png;base64,..."
+                    priority
                   />
                 )}
                 <div
@@ -578,10 +599,15 @@ function ChatConversation({
                   {msg.content}
                 </div>
                 {isMe && (
-                  <img
+                  <Image
                     src={user?.avatar || "/images/avatar_empty.png"}
                     alt="avatar"
                     className="w-8 h-8 rounded-full object-cover ml-2 border border-gray-200"
+                    width={32}
+                    height={32}
+                    placeholder="blur"
+                    blurDataURL="data:image/png;base64,..."
+                    priority
                   />
                 )}
               </div>
@@ -591,10 +617,15 @@ function ChatConversation({
         {/* Typing indicator */}
         {isTyping && (
           <div className="mb-2 flex justify-start items-end">
-            <img
+            <Image
               src={chat?.avatar || "/images/avatar_empty.png"}
               alt="avatar"
               className="w-8 h-8 rounded-full object-cover mr-2 border border-gray-200"
+              width={32}
+              height={32}
+              placeholder="blur"
+              blurDataURL="data:image/png;base64,..."
+              priority
             />
             <div
               className="px-3 py-2 rounded-2xl bg-white border border-gray-100 flex items-center"
@@ -741,7 +772,7 @@ function formatTimeShort(dateStr) {
   if (!dateStr) return "";
   const date = new Date(dateStr);
   const now = new Date();
-  const diff = Math.floor((now - date) / 1000); // giây
+  const diff = Math.floor((now - date) / 1000);
   if (diff < 60) return "now";
   if (diff < 3600) return `${Math.floor(diff / 60)}m`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
@@ -749,7 +780,7 @@ function formatTimeShort(dateStr) {
 }
 
 export default function ChatLayout({ isAdmin = false, updateUnreadCount }) {
-  const [chats, setChats] = useState([]); // {id, name, lastMessage, time, unread, role}
+  const [chats, setChats] = useState([]);
   const [selected, setSelected] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [messages, setMessages] = useState([]);
@@ -763,7 +794,6 @@ export default function ChatLayout({ isAdmin = false, updateUnreadCount }) {
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : "";
 
-  // Lấy id user hiện tại từ token
   const [myId, setMyId] = useState(null);
   useEffect(() => {
     const token =
@@ -774,7 +804,6 @@ export default function ChatLayout({ isAdmin = false, updateUnreadCount }) {
     }
   }, []);
 
-  // Lấy danh sách tất cả user đã từng nhắn tin (và admin nếu chưa có)
   useEffect(() => {
     async function fetchConversations() {
       setLoadingChats(true);
@@ -818,7 +847,6 @@ export default function ChatLayout({ isAdmin = false, updateUnreadCount }) {
     fetchConversations();
   }, [isAdmin]);
 
-  // Lấy lịch sử chat khi chọn người chat
   useEffect(() => {
     if (!selected) return;
     setLoadingMessages(true);
@@ -837,7 +865,6 @@ export default function ChatLayout({ isAdmin = false, updateUnreadCount }) {
     fetchHistory();
   }, [selected]);
 
-  // Load thêm tin nhắn cũ khi kéo lên
   const onLoadMore = async () => {
     if (!hasMore || loadingMore || !messages.length) return;
     setLoadingMore(true);
@@ -860,14 +887,12 @@ export default function ChatLayout({ isAdmin = false, updateUnreadCount }) {
           return unique;
         });
         setHasMore(res.data.hasMore);
-        // Không scroll xuống đáy khi load thêm
         shouldScrollToBottom.current = false;
       }
     } catch {}
     setLoadingMore(false);
   };
 
-  // Phát âm thanh khi nhận tin nhắn mới (không phải do mình gửi)
   const playMessageSound = () => {
     if (
       typeof window !== "undefined" &&
@@ -878,17 +903,13 @@ export default function ChatLayout({ isAdmin = false, updateUnreadCount }) {
     }
   };
 
-  // Kết nối socket
   const onMessage = useCallback(
     (msg) => {
       if (msg.from === selected || msg.to === selected) {
         setMessages((prev) => [...prev, msg]);
-        // Nếu là tin nhắn đến (không phải do mình gửi), phát âm thanh
         if (msg.from !== myId) playMessageSound();
-        // Cập nhật badge realtime
         if (updateUnreadCount) updateUnreadCount();
       }
-      // Cập nhật lastMessage cho sidebar
       setChats((prev) => {
         const chatId = msg.from === myId ? msg.to : msg.from;
         const updated = prev.map((c) =>
@@ -896,7 +917,6 @@ export default function ChatLayout({ isAdmin = false, updateUnreadCount }) {
             ? { ...c, lastMessage: msg.content, time: msg.createdAt }
             : c
         );
-        // Sắp xếp lại: chat vừa nhận lên đầu
         return [
           ...updated.filter((c) => c.id === chatId),
           ...updated.filter((c) => c.id !== chatId),
@@ -913,14 +933,11 @@ export default function ChatLayout({ isAdmin = false, updateUnreadCount }) {
     }
   }, [socketRef]);
 
-  // Quản lý danh sách user online
   const [onlineList, setOnlineList] = useState([]);
   useEffect(() => {
     if (!socketRef.current) return;
-    // Lấy danh sách online ban đầu
     socketRef.current.emit("user:getOnline");
     socketRef.current.on("user:onlineList", (list) => setOnlineList(list));
-    // Lắng nghe sự kiện online/offline
     socketRef.current.on("user:online", (id) =>
       setOnlineList((prev) => [...new Set([...prev, id])])
     );
@@ -934,21 +951,18 @@ export default function ChatLayout({ isAdmin = false, updateUnreadCount }) {
     };
   }, [socketRef.current]);
 
-  // Gửi tin nhắn
   const handleSend = (content) => {
     if (!content.trim() || !selected) return;
     if (socketRef.current) {
       socketRef.current.emit("chat:send", { to: selected, content });
     }
     setInput("");
-    // Cập nhật lastMessage cho sidebar
     setChats((prev) => {
       const updated = prev.map((c) =>
         c.id === selected
           ? { ...c, lastMessage: content, time: new Date().toISOString() }
           : c
       );
-      // Sắp xếp lại: chat vừa nhắn lên đầu
       return [
         ...updated.filter((c) => c.id === selected),
         ...updated.filter((c) => c.id !== selected),
@@ -956,7 +970,6 @@ export default function ChatLayout({ isAdmin = false, updateUnreadCount }) {
     });
   };
 
-  // Modal options
   const modalOptions = Object.values(userMap);
 
   const handleAddUser = (user) => {
@@ -991,7 +1004,6 @@ export default function ChatLayout({ isAdmin = false, updateUnreadCount }) {
   const [isTyping, setIsTyping] = useState(false);
   useEffect(() => {
     if (!socketRef.current) return;
-    // Lắng nghe typing
     const handleTyping = (data) => {
       if (data.from === selected) {
         setIsTyping(true);
@@ -1007,7 +1019,6 @@ export default function ChatLayout({ isAdmin = false, updateUnreadCount }) {
 
   const [showSidebar, setShowSidebar] = useState(false);
 
-  // Khi click vào chat, sau khi đánh dấu đã đọc, gọi updateUnreadCount
   const handleSelectChat = async (id, chat) => {
     setSelected(id);
     setShowSidebar(false);
@@ -1021,7 +1032,6 @@ export default function ChatLayout({ isAdmin = false, updateUnreadCount }) {
 
   return (
     <div className="w-full h-screen flex bg-white relative">
-      {/* Nút mở sidebar trên mobile: chỉ hiện khi sidebar đang đóng */}
       {!showSidebar && (
         <button
           className="block md:hidden fixed top-4 right-4 z-40 bg-[#189ff2] text-white rounded-full p-2 shadow-lg"
@@ -1032,7 +1042,6 @@ export default function ChatLayout({ isAdmin = false, updateUnreadCount }) {
           <FiMenu size={28} />
         </button>
       )}
-      {/* Sidebar: z-50 để luôn trên overlay */}
       <div
         className={`h-full bg-white border-r border-gray-200 z-50 transition-transform duration-300 md:relative fixed top-0 left-0 w-[85vw] max-w-[340px] md:w-[340px] md:max-w-[340px] md:block ${
           showSidebar ? "translate-x-0" : "-translate-x-full"
@@ -1056,14 +1065,12 @@ export default function ChatLayout({ isAdmin = false, updateUnreadCount }) {
           loadingChats={loadingChats}
         />
       </div>
-      {/* Overlay che mờ khi sidebar mở trên mobile, z-20 */}
       {showSidebar && (
         <div
           className="fixed inset-0 bg-black/30 z-20 md:hidden"
           onClick={() => setShowSidebar(false)}
         />
       )}
-      {/* Khung chat */}
       <div className="flex-1 h-full">
         <ChatConversation
           chat={userMap[selected]}

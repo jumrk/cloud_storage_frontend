@@ -1,8 +1,17 @@
-import Notification_Page from "@/components/client/Notification/Notification_Page";
+import Notification_Page from "@/components/client/Notification/NotificationPage";
 import React from "react";
-export const metadata = {
-  title: "Thông báo",
-};
+
+export async function generateMetadata({ params }) {
+  return {
+    title: "Thông báo - D2MBox",
+    description: "Xem và quản lý thông báo trong khu vực leader D2MBox",
+    robots: {
+      index: false,
+      follow: false,
+    },
+  };
+}
+
 function Notification() {
   return (
     <div>

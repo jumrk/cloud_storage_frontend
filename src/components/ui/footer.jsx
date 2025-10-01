@@ -1,5 +1,6 @@
 import React from "react";
 import { useTranslations } from "next-intl";
+import Image from "next/image";
 
 function Footer() {
   const t = useTranslations();
@@ -10,10 +11,14 @@ function Footer() {
           {/* Cột trái: Logo + Info + Social */}
           <div className="md:w-1/3 flex flex-col items-center md:items-start gap-4 mb-6 md:mb-0">
             <div className="flex items-center gap-2 mb-2">
-              <img
+              <Image
                 src="/images/Logo_white.png"
                 alt="D2MBox"
-                className="w-40 "
+                width={160}
+                height={40}
+                placeholder="blur"
+                blurDataURL="data:image/png;base64,..."
+                priority
               />
             </div>
             <div className="text-gray-400 text-sm ">

@@ -1,21 +1,10 @@
-import React, { useState, useEffect } from "react";
-import axiosClient from "@/lib/axiosClient";
+import React, { useEffect } from "react";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import { PLAN_ICONS } from "@/components/admin/planIcons";
-import { getCustomPlanPrice } from "@/utils/planUtils";
 import { formatSize } from "@/utils/driveUtils";
 import { FaUser, FaHdd } from "react-icons/fa";
-import { useTranslations } from "next-intl";
-
-const PLAN_COLORS = [
-  "#4abad9",
-  "#fbbf24",
-  "#a78bfa",
-  "#f87171",
-  "#34d399",
-  "#f472b6",
-];
+import usePlanListUse from "@/hooks/leader/inforUser/usePlanListUse";
 
 export default function PlanListInUser({
   currentPlanName,
@@ -24,30 +13,10 @@ export default function PlanListInUser({
   onRenew,
   onChoose,
   currentPlanStorage,
-  user, // nhận thêm prop user
+  user,
 }) {
-  const t = useTranslations();
-  const [plans, setPlans] = useState([]);
-  const [loading, setLoading] = useState(true);
-
+  const { PLAN_COLORS, t, plans, loading, fetchPlans } = usePlanListUse();
   useEffect(() => {
-    const fetchPlans = async () => {
-      setLoading(true);
-      try {
-        const res = await axiosClient.get("/api/admin/plans", {
-          params: { limit: 100 },
-        });
-        if (res.data && res.data.success) {
-          setPlans(res.data.data);
-        } else {
-          setPlans([]);
-        }
-      } catch (e) {
-        setPlans([]);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchPlans();
   }, []);
 
@@ -97,13 +66,13 @@ export default function PlanListInUser({
             </div>
           ))}
         </div>
-      ) : plans.length === 0 ? (
+      ) : plans?.length === 0 ? (
         <div className="text-center text-gray-400 py-12 px-2">
           {t("plan_list_in_user.no_plans")}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-6 px-2 sm:px-0">
-          {plans.map((plan, idx) => {
+          {plans?.map((plan, idx) => {
             const color = PLAN_COLORS[idx % PLAN_COLORS.length];
             const Icon =
               PLAN_ICONS[plan.icon] || PLAN_ICONS[Object.keys(PLAN_ICONS)[0]];

@@ -1,6 +1,18 @@
 import DownloadTool from "@/components/client/tool/download/Page";
 import React from "react";
-export const metadata = { title: "Tải video" };
+
+export async function generateMetadata({ params }) {
+  return {
+    title: "Tải video - D2MBox",
+    description:
+      "Công cụ tải video từ YouTube, iQiyi, Tencent và các nền tảng khác trong khu vực thành viên D2MBox",
+    robots: {
+      index: false,
+      follow: false,
+    },
+  };
+}
+
 function page() {
   const logoList = [
     "/images/logo/baidu.png",

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Modal from "../Modal";
-import InputCustom from "../ui/input_custom";
+import InputCustom from "../ui/InputCustom";
 import { PLAN_ICON_OPTIONS } from "./planIcons";
 
 const STATUS_OPTIONS = [

@@ -4,6 +4,7 @@ import { FiCheck, FiX, FiUpload, FiClock } from "react-icons/fi";
 import axiosClient from "@/lib/axiosClient";
 import toast from "react-hot-toast";
 import { useTranslations } from "next-intl";
+import Image from "next/image";
 
 const calculateOptimalChunkSize = (fileSize) => {
   if (fileSize < 1 * 1024 * 1024) return Math.max(1, Math.floor(fileSize / 2));
@@ -700,7 +701,7 @@ const MiniStatusBatch = ({
         <div className="flex flex-col gap-1 mt-2 max-h-32 overflow-y-auto">
           {moveItems?.map((item, idx) => (
             <div key={idx} className="flex w-full items-center gap-2 text-xs">
-              <img
+              <Image
                 src={
                   item.type === "folder"
                     ? "/images/icon/folder.png"
@@ -708,6 +709,11 @@ const MiniStatusBatch = ({
                 }
                 alt="icon"
                 className="w-4 h-4 object-contain flex-shrink-0"
+                width={16}
+                height={16}
+                placeholder="blur"
+                blurDataURL="data:image/png;base64,..."
+                priority
               />
               <span
                 className="flex-1 truncate overflow-hidden min-w-0 file-name-fixed-width text-blue-700 font-semibold"
@@ -757,10 +763,15 @@ const MiniStatusBatch = ({
           />
         </div>
         <div className="flex items-center gap-2 text-xs mt-2">
-          <img
+          <Image
             src={"/images/icon/folder.png"}
             alt="icon"
             className="w-4 h-4 object-contain flex-shrink-0"
+            width={16}
+            height={16}
+            placeholder="blur"
+            blurDataURL="data:image/png;base64,..."
+            priority
           />
           <span className="truncate flex-1 text-blue-700 font-semibold">
             {folderName}
@@ -812,7 +823,7 @@ const MiniStatusBatch = ({
         <div className="flex flex-col gap-1 mt-2 max-h-32 overflow-y-auto">
           {moveItems?.map((item, idx) => (
             <div key={idx} className="flex w-full items-center gap-2 text-xs">
-              <img
+              <Image
                 src={
                   item.type === "folder"
                     ? "/images/icon/folder.png"
@@ -820,6 +831,11 @@ const MiniStatusBatch = ({
                 }
                 alt="icon"
                 className="w-4 h-4 object-contain flex-shrink-0"
+                width={16}
+                height={16}
+                placeholder="blur"
+                blurDataURL="data:image/png;base64,..."
+                priority
               />
               <span
                 className="flex-1 truncate overflow-hidden min-w-0 file-name-fixed-width text-red-700 font-semibold"
@@ -872,10 +888,15 @@ const MiniStatusBatch = ({
       <div className="flex flex-col gap-2 max-h-48 overflow-y-auto">
         {isFolder ? (
           <div className="flex items-center gap-2 text-xs">
-            <img
+            <Image
               src={"/images/icon/folder.png"}
               alt="icon"
               className="w-4 h-4 object-contain flex-shrink-0"
+              width={16}
+              height={16}
+              placeholder="blur"
+              blurDataURL="data:image/png;base64,..."
+              priority
             />
             <span className="truncate flex-1 text-blue-700 font-semibold">
               {folderName}
@@ -896,10 +917,15 @@ const MiniStatusBatch = ({
             return (
               <div key={idx} className="flex flex-col gap-0.5 w-full">
                 <div className="flex w-full items-center gap-2 text-xs">
-                  <img
+                  <Image
                     src={f.icon}
                     alt="icon"
                     className="w-4 h-4 object-contain flex-shrink-0"
+                    width={16}
+                    height={16}
+                    placeholder="blur"
+                    blurDataURL="data:image/png;base64,..."
+                    priority
                   />
                   <span
                     className={

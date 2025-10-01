@@ -86,7 +86,7 @@ export default function ClientLayout({ children }) {
   }, [socketRef.current]);
   if (!isAuthChecked) return null;
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen ">
       {/* Sidebar desktop */}
       <div className="hidden md:block w-60 h-full bg-white shadow-lg z-10">
         <Sidebar

@@ -1,8 +1,17 @@
-import YourFolder from "@/components/client/file_management/File_Managemant";
+import YourFolder from "@/components/client/file_management/FileManagemant";
 import React from "react";
-export const metadata = {
-  title: "Quản lý tệp",
-};
+
+export async function generateMetadata({ params }) {
+  return {
+    title: "Quản lý tệp - D2MBox",
+    description: "Quản lý file và folder trong khu vực leader D2MBox",
+    robots: {
+      index: false,
+      follow: false,
+    },
+  };
+}
+
 function page() {
   return <YourFolder />;
 }

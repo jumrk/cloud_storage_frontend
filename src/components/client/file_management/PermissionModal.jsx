@@ -1,146 +1,29 @@
-import React, { useState, useEffect } from "react";
+import usePermissionModal from "@/hooks/leader/FileManagement/usePermissionModal";
+import { useEffect } from "react";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
-import axiosClient from "@/lib/axiosClient";
-import toast from "react-hot-toast";
-import { useTranslations } from "next-intl";
 
 const PermissionModal = ({ isOpen, onClose, folder, onPermissionChange }) => {
-  const t = useTranslations();
-  const [members, setMembers] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [currentPermissions, setCurrentPermissions] = useState([]);
-  const [loadingMembers, setLoadingMembers] = useState(false);
-  const [loadingPerms, setLoadingPerms] = useState(false);
+  const {
+    members,
+    loading,
+    fetchMembers,
+    fetchCurrentPermissions,
+    handleGrantPermission,
+    handleRevokePermission,
+    getMemberPermission,
+    isFolder,
+    isLoadingList,
+    t,
+  } = usePermissionModal(onPermissionChange, folder);
 
   useEffect(() => {
     if (isOpen && folder) {
       fetchMembers();
       fetchCurrentPermissions();
     }
-    // eslint-disable-next-line
   }, [isOpen, folder]);
-
-  const fetchMembers = async () => {
-    setLoadingMembers(true);
-    try {
-      const token =
-        typeof window !== "undefined" ? localStorage.getItem("token") : null;
-      const res = await axiosClient.get("/api/user/members", {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      const data = res.data;
-      if (Array.isArray(data.members)) {
-        setMembers(data.members);
-      }
-    } catch (error) {
-      setMembers([]);
-      console.error("Error fetching members:", error);
-    } finally {
-      setLoadingMembers(false);
-    }
-  };
-
-  const fetchCurrentPermissions = async () => {
-    setLoadingPerms(true);
-    try {
-      const token =
-        typeof window !== "undefined" ? localStorage.getItem("token") : null;
-      const res = await axiosClient.get(
-        `/api/folders/${folder._id}/permissions`,
-        {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        }
-      );
-      const data = res.data;
-      if (data.success) {
-        setCurrentPermissions(data.permissions || []);
-      }
-    } catch (error) {
-      setCurrentPermissions([]);
-      console.error("Error fetching permissions:", error);
-    } finally {
-      setLoadingPerms(false);
-    }
-  };
-
-  const handleGrantPermission = async (memberId, locked) => {
-    setLoading(true);
-    try {
-      const token =
-        typeof window !== "undefined" ? localStorage.getItem("token") : null;
-      await axiosClient.post(
-        "/api/folders/permissions",
-        {
-          folderId: folder._id,
-          memberId,
-          locked,
-        },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-        }
-      );
-      await fetchCurrentPermissions();
-      if (onPermissionChange) {
-        onPermissionChange();
-      }
-    } catch (error) {
-      const msg = error?.response?.data?.error || t("permission.grant_error");
-      toast.error(msg);
-      console.error("Error granting permissions:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleRevokePermission = async (memberId) => {
-    setLoading(true);
-    try {
-      const token =
-        typeof window !== "undefined" ? localStorage.getItem("token") : null;
-      await axiosClient.delete("/api/folders/permissions", {
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        data: {
-          folderId: folder._id,
-          memberId,
-        },
-      });
-      await fetchCurrentPermissions();
-      if (onPermissionChange) {
-        onPermissionChange();
-      }
-    } catch (error) {
-      const msg = error?.response?.data?.error || t("permission.revoke_error");
-      toast.error(msg);
-      console.error("Error revoking permission:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Helper: lấy trạng thái locked của member (true/false/null)
-  const getMemberPermission = (memberId) => {
-    const p = currentPermissions.find(
-      (perm) =>
-        perm.memberId &&
-        (perm.memberId._id === memberId || perm.memberId === memberId)
-    );
-    return p ? p.locked : null;
-  };
-
-  // Helper: kiểm tra chỉ cho phép cấp quyền folder
-  const isFolder = folder && (!folder.type || folder.type === "folder");
-
   if (!isOpen || !folder) return null;
-
-  const isLoadingList = loadingMembers || loadingPerms;
-
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
       <div className="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto shadow-2xl border border-gray-100 relative animate-fade-in">

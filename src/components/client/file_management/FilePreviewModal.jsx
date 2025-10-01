@@ -16,7 +16,6 @@ export default function FilePreviewModal({ file, fileUrl, onClose }) {
     }
   }, [fileUrl, isText, t]);
 
-  // Helper chuyển link Google Drive sang /preview nếu là /view
   function getEmbedUrl(url) {
     if (!url) return "";
     if (url.includes("drive.google.com") && url.includes("/view")) {

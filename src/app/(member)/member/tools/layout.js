@@ -20,7 +20,7 @@ function Layout({ children }) {
 
   return (
     <div>
-      <div className="container w-full mx-auto px-4 py-12">
+      <div className="container w-full mx-auto px-4 py-6">
         {/* Header */}
         <div className="mb-6 rounded-2xl border border-slate-200 bg-gradient-to-br from-pink-50 via-white to-blue-50 p-6">
           {isToolsHome ? (

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import React from "react";
 
 const Loader = ({ size = "default", position = "fixed", hideText = false }) => {
@@ -48,9 +49,12 @@ const Loader = ({ size = "default", position = "fixed", hideText = false }) => {
         justifyContent: "center",
       }}
     >
-      <img
+      <Image
         src="/images/Logo_1.png"
         alt="Loading..."
+        width={120}
+        height={40}
+        priority={true}
         style={{
           ...sizeStyles,
           animation: "flip 2s cubic-bezier(0.4, 0, 0.2, 1) infinite",

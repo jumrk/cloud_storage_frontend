@@ -5,6 +5,7 @@ import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import { getCustomPlanPrice } from "@/utils/planUtils";
 import { useTranslations } from "next-intl";
+import Image from "next/image";
 
 let slastCheckTimeout = null;
 
@@ -777,10 +778,15 @@ export default function PlanPurchaseModal({
             </div>
             <div className="flex justify-center">
               {qrImgUrl ? (
-                <img
+                <Image
                   src={qrImgUrl}
                   alt="QR chuyển khoản VietQR"
                   className="mb-2 border rounded-xl w-[220px] h-[220px] object-contain shadow-lg"
+                  width={220}
+                  height={220}
+                  placeholder="blur"
+                  blurDataURL="data:image/png;base64,..."
+                  priority
                 />
               ) : (
                 <Skeleton

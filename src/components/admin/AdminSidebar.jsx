@@ -6,12 +6,9 @@ import {
   FiHome,
   FiBarChart2,
   FiUsers,
-  FiSettings,
-  FiLogOut,
   FiLayers,
   FiUser,
   FiHelpCircle,
-  FiMenu,
   FiBell,
   FiCreditCard,
   FiMessageCircle,
@@ -20,6 +17,7 @@ import { FaBars } from "react-icons/fa";
 import { decodeTokenGetUser } from "@/lib/jwt";
 import { useRouter } from "next/navigation";
 import axiosClient from "@/lib/axiosClient";
+import Image from "next/image";
 
 const boards = [
   { href: "/admin", label: "Dashboard", icon: <FiHome size={20} /> },
@@ -160,7 +158,16 @@ export default function AdminSidebar(props) {
         <div className="flex flex-col flex-1 px-4  gap-8">
           {/* Logo/Brand */}
           <div className="flex items-center mt-3">
-            <img src="/images/Logo_2.png" alt="Logo" className="h-12" />
+            <Image
+              src="/images/Logo_2.png"
+              alt="Logo"
+              className="h-12"
+              width={120}
+              height={40}
+              placeholder="blur"
+              blurDataURL="data:image/png;base64,..."
+              priority
+            />
           </div>
           {/* Boards */}
           <div>

@@ -1,18 +1,8 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import axiosClient from "@/lib/axiosClient";
 import { calcPlanChange, getCustomPlanPrice } from "@/utils/planUtils";
-import { useTranslations } from "next-intl";
-
-const bankIdMap = {
-  MBbank: "mbbank",
-  Vietcombank: "vietcombank",
-  Techcombank: "techcombank",
-  BIDV: "bidv",
-  Agribank: "agribank",
-  ACB: "acb",
-  Sacombank: "sacombank",
-  VPBank: "vpbank",
-};
+import Image from "next/image";
+import usePlanChange from "@/hooks/leader/inforUser/usePlanChange";
 
 export default function PlanChangeSummaryModal({
   open,
@@ -20,50 +10,52 @@ export default function PlanChangeSummaryModal({
   user,
   currentPlan,
   targetPlan,
-  actionType, // "renew" | "upgrade" | "downgrade"
+  actionType,
   onConfirm,
 }) {
-  const t = useTranslations();
-  const [discountCode, setDiscountCode] = useState("");
-  const [discountInfo, setDiscountInfo] = useState(null); // {valid, percent}
-  const [discountLoading, setDiscountLoading] = useState(false);
-  const [discountError, setDiscountError] = useState("");
-  const [billingType, setBillingType] = useState("month"); // "month" | "year"
-  const [paymentMethod, setPaymentMethod] = useState(null);
-  const [paymentLoading, setPaymentLoading] = useState(false);
-  const [submitLoading, setSubmitLoading] = useState(false);
-  const [submitSuccess, setSubmitSuccess] = useState(false);
-  const [submitError, setSubmitError] = useState("");
-  const [now, setNow] = useState(new Date());
-
-  // Thêm state cho custom plan
-  const [custom, setCustom] = useState({ storage: 20, users: 20 });
-  const [customError, setCustomError] = useState("");
-
-  // Thêm state cho ngày hết hạn và ngày còn lại dạng string để tránh hydration error
-  const [formattedPlanEndDate, setFormattedPlanEndDate] = useState("");
-  const [clientDaysLeft, setClientDaysLeft] = useState(null);
+  const {
+    bankIdMap,
+    t,
+    discountCode,
+    setDiscountCode,
+    discountInfo,
+    setDiscountInfo,
+    discountLoading,
+    setDiscountLoading,
+    discountError,
+    setDiscountError,
+    billingType,
+    setBillingType,
+    paymentMethod,
+    paymentLoading,
+    submitLoading,
+    setSubmitLoading,
+    submitSuccess,
+    setSubmitSuccess,
+    submitError,
+    setSubmitError,
+    now,
+    setNow,
+    custom,
+    setCustom,
+    customError,
+    setCustomError,
+    formattedPlanEndDate,
+    setFormattedPlanEndDate,
+    clientDaysLeft,
+    setClientDaysLeft,
+    getPayment,
+    validateCustom,
+  } = usePlanChange();
 
   useEffect(() => {
-    if (open) {
-      setPaymentLoading(true);
-      setPaymentMethod(null);
-      axiosClient
-        .get("/api/admin/payment-methods", { params: { limit: 1 } })
-        .then((res) => {
-          if (res.data.success && res.data.data.length > 0) {
-            setPaymentMethod(res.data.data[0]);
-          }
-        })
-        .finally(() => setPaymentLoading(false));
-    }
+    getPayment({ open });
   }, [open]);
 
   useEffect(() => {
     if (open) setNow(new Date());
   }, [open]);
 
-  // Nếu là custom plan, reset input khi mở modal
   useEffect(() => {
     if (open && targetPlan?.isCustom) {
       setCustom({ storage: 20, users: 20 });
@@ -71,21 +63,6 @@ export default function PlanChangeSummaryModal({
     }
   }, [open, targetPlan]);
 
-  // Validate custom input
-  const validateCustom = () => {
-    if (!Number.isInteger(Number(custom.storage)) || custom.storage < 20) {
-      setCustomError(t("plan_change_summary.storage_min_error"));
-      return false;
-    }
-    if (!Number.isInteger(Number(custom.users)) || custom.users < 20) {
-      setCustomError(t("plan_change_summary.users_min_error"));
-      return false;
-    }
-    setCustomError("");
-    return true;
-  };
-
-  // Xác định chu kỳ đang chọn (tháng/năm) chỉ dựa vào billingType
   const selectedCycle = billingType;
   const oldType = user?.planType || "month";
 
@@ -102,7 +79,6 @@ export default function PlanChangeSummaryModal({
     if (isNaN(daysLeft) || daysLeft < 0) daysLeft = 0;
   }
 
-  // Tính giá động cho custom plan hiện tại (user)
   const userCustomPlanPrice = useMemo(() => {
     if (
       user?.plan?.name?.toLowerCase().includes("tùy chọn") ||
@@ -120,16 +96,7 @@ export default function PlanChangeSummaryModal({
       year: Number(user?.plan?.priceYear || 0),
     };
   }, [user]);
-  // Khi là custom plan, truyền giá động vào calcPlanChange để tính toán đúng số tiền, ngày cộng thêm, v.v.
-  const currentCustomPlanPrice = useMemo(() => {
-    if (currentPlan?.isCustom) {
-      return getCustomPlanPrice(currentPlan.storage, currentPlan.users);
-    }
-    return {
-      month: Number(currentPlan?.priceMonth || 0),
-      year: Number(currentPlan?.priceYear || 0),
-    };
-  }, [currentPlan]);
+
   const targetCustomPlanPrice = useMemo(() => {
     if (targetPlan?.isCustom) {
       return getCustomPlanPrice(custom.storage, custom.users);
@@ -186,13 +153,11 @@ export default function PlanChangeSummaryModal({
     note = t("plan_change_summary.change_plan");
   }
 
-  // Áp dụng giảm giá nếu có mã hợp lệ
   let finalAmount = amount;
   if (discountInfo && discountInfo.valid && discountInfo.percent > 0) {
     finalAmount = Math.round(amount * (1 - discountInfo.percent / 100));
   }
 
-  // Kiểm tra mã giảm giá
   const handleCheckDiscount = async () => {
     setDiscountLoading(true);
     setDiscountError("");

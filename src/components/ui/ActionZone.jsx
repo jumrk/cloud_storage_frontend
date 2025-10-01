@@ -3,7 +3,7 @@ import { IoMoveOutline } from "react-icons/io5";
 import { FiDownload, FiShare2, FiUserPlus } from "react-icons/fi";
 import { RiDeleteBin6Line } from "react-icons/ri";
 import toast from "react-hot-toast";
-import Button_icon from "@/components/ui/Button_icon";
+import Button_icon from "@/components/ui/ButtonIcon";
 
 function CircleActionButton({ icon, bg, onClick, ariaLabel, children }) {
   return (
@@ -28,7 +28,7 @@ export default function ActionZone({
   onDelete,
   onShare,
   onGrantPermission,
-  canGrantPermission = true, // thêm prop này, default true
+  canGrantPermission = true,
 }) {
   const [copiedShareMobile, setCopiedShareMobile] = React.useState(false);
 
