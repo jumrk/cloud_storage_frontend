@@ -79,7 +79,7 @@ export default function WorkingSpace({ query = "" }) {
           ))}
 
         {!loading && !err && filteredBoards.length === 0 && (
-          <div className="w-full max-w-[560px] rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-6 text-sm text-neutral-600">
+          <div className="w-[220px] h-[96px] rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-6 text-sm text-neutral-600">
             Trống
           </div>
         )}
