@@ -7,9 +7,22 @@ import {
   IoPencil,
   IoTrash,
 } from "react-icons/io5";
-import CardTask from "../Card/CardTask";
 import ModalDetailCardTask from "../Card/ModalDetailCardTask";
 import { useListBoard } from "@/hooks/jobManagement/useListBoard";
+import SortableCardTask from "../Card/SortableCardTask";
+
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import ListBoardSkeleton from "@/components/skeleton/ListBoardSkeleton";
 
 function ListBoard({
   id,
@@ -24,36 +37,34 @@ function ListBoard({
     loading,
     count,
     menuOpen,
-    setMenuOpen,
     renameOpen,
-    setRenameOpen,
     addOpen,
-    setAddOpen,
     tempTitle,
-    setTempTitle,
     saving,
     addTitle,
-    setAddTitle,
     menuRef,
     renameInputRef,
     addInputRef,
+    activeCard,
+    setMenuOpen,
+    setRenameOpen,
+    setAddOpen,
+    setTempTitle,
+    setAddTitle,
     onSaveRename,
     submitAdd,
-    activeCard,
     openCard,
     closeCard,
     handleDeleteCard,
     patchCard,
+    handleDragEnd,
+    onDragOverNative,
+    onDropNative,
   } = useListBoard({ id, title, handleUpdate });
 
-  useEffect(() => {
-    const onClickOutside = (e) => {
-      if (!menuRef.current) return;
-      if (!menuRef.current.contains(e.target)) setMenuOpen(false);
-    };
-    if (menuOpen) document.addEventListener("mousedown", onClickOutside);
-    return () => document.removeEventListener("mousedown", onClickOutside);
-  }, [menuOpen, setMenuOpen, menuRef]);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
+  );
 
   useEffect(() => {
     if (renameOpen)
@@ -67,9 +78,15 @@ function ListBoard({
     if (addOpen) setTimeout(() => addInputRef.current?.focus(), 0);
   }, [addOpen, addInputRef]);
 
+  if (loading) return <ListBoardSkeleton />;
+
   return (
     <>
-      <div className="w-[352px] min-w-[352px] min-h-[560px] rounded-2xl border border-dashed border-neutral-300 bg-white shadow-sm">
+      <div
+        className="w-[352px] min-w-[352px] min-h-[560px] rounded-2xl border border-dashed border-neutral-300 bg-white shadow-sm"
+        onDragOver={onDragOverNative}
+        onDrop={onDropNative}
+      >
         <div className="px-4 pt-3 pb-2">
           <div className="flex items-start gap-2">
             <div className="min-w-0 flex-1">
@@ -142,25 +159,25 @@ function ListBoard({
 
         <div className="px-3 pb-3">
           {addOpen && (
-            <div className="mt-2 rounded-2xl bg-white text-black/60 p-2 border border-neutral-200">
+            <form
+              onSubmit={(e) => {
+                e.defaultPrevented();
+                submitAdd();
+              }}
+              className="mt-2 rounded-2xl bg-white text-black/60 p-2 border border-neutral-200"
+              data-drag-ignore
+            >
               <input
                 ref={addInputRef}
                 value={addTitle}
                 onChange={(e) => setAddTitle(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Escape") {
-                    setAddOpen(false);
-                    setAddTitle("");
-                  }
-                  if (e.key === "Enter") submitAdd();
-                }}
                 placeholder="Nhập tiêu đề"
                 className="w-full rounded-lg border border-[#60A5FA] bg-transparent px-3 py-2 text-sm outline-none placeholder:text-neutral-400"
               />
               <div className="mt-2 flex items-center gap-3">
                 <button
-                  type="button"
-                  onClick={submitAdd}
+                  type="submit"
+                  disabled={!addTitle.trim()}
                   className="inline-flex items-center rounded-xl bg-[#3B82F6] hover:brightness-95 text-white text-sm px-4 py-2"
                 >
                   Thêm thẻ
@@ -177,39 +194,51 @@ function ListBoard({
                   <IoClose size={18} />
                 </button>
               </div>
-            </div>
+            </form>
           )}
 
-          <div className="mt-2 space-y-2">
-            {loading ? (
-              <div className="text-sm text-neutral-400 py-2 text-center">
-                Đang tải…
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={cards.map((c) => c._id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="mt-2 space-y-2">
+                {loading ? (
+                  <div className="text-sm text-neutral-400 py-2 text-center">
+                    Đang tải…
+                  </div>
+                ) : cards.length === 0 ? (
+                  <div className="text-sm text-neutral-400 py-2 text-center">
+                    Chưa có thẻ nào
+                  </div>
+                ) : (
+                  cards.map((c, idx) => (
+                    <SortableCardTask
+                      key={c._id}
+                      listId={id}
+                      id={c._id}
+                      index={idx}
+                      title={c.title}
+                      desc={c.desc}
+                      progress={c.progress}
+                      dueDate={c.dueDate}
+                      members={c.members}
+                      labels={c.labels}
+                      onEdit={openCard}
+                      onDelete={handleDeleteCard}
+                    />
+                  ))
+                )}
               </div>
-            ) : cards.length === 0 ? (
-              <div className="text-sm text-neutral-400 py-2 text-center">
-                Chưa có thẻ nào
-              </div>
-            ) : (
-              cards.map((c) => (
-                <CardTask
-                  key={c._id}
-                  id={c._id}
-                  title={c.title}
-                  desc={c.desc}
-                  progress={c.progress}
-                  dueDate={c.dueDate}
-                  members={c.members}
-                  onEdit={openCard}
-                  labels={c.labels}
-                  onDelete={handleDeleteCard}
-                />
-              ))
-            )}
-          </div>
+            </SortableContext>
+          </DndContext>
         </div>
       </div>
 
-      {/* Modal edit 1 lần cho cả cột */}
       <ModalDetailCardTask
         open={Boolean(activeCard)}
         onClose={closeCard}
@@ -220,7 +249,6 @@ function ListBoard({
         }}
       />
 
-      {/* Rename dialog */}
       {renameOpen && (
         <div
           className="fixed inset-0 z-30 flex items-center justify-center"

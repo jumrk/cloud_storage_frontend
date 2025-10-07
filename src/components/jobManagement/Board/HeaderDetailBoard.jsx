@@ -12,9 +12,10 @@ export default function HeaderDetailBoard({ boardId }) {
     link,
     open,
     title,
-    handelAddMember,
     copyLink,
     genLink,
+    loading,
+    handelAddMember,
     handleRemoveMember,
     setOpen,
     FetchMember,
@@ -46,6 +47,7 @@ export default function HeaderDetailBoard({ boardId }) {
         </button>
 
         <ModalShareBoard
+          loading={loading}
           open={open}
           onClose={() => setOpen(false)}
           members={members}

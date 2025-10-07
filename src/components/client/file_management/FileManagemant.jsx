@@ -10,6 +10,7 @@ import {
   FiFolderPlus,
   FiArrowLeft,
 } from "react-icons/fi";
+import { BiSelectMultiple } from "react-icons/bi";
 import Table from "@/components/ui/TableCustom";
 import Card_file from "@/components/CardFile";
 import UploadModal from "@/components/Upload_component";
@@ -18,7 +19,7 @@ import ActionZone from "@/components/ui/ActionZone";
 import PermissionModal from "@/components/client/file_management/PermissionModal";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
-import SkeletonTable from "@/components/ui/SkeletonTable";
+import SkeletonTable from "@/components/skeleton/SkeletonTable";
 import EmptyState from "@/components/ui/EmptyState";
 import SidebarFilter from "@/components/client/file_management/SidebarFilter";
 import FilePreviewModal from "@/components/client/file_management/FilePreviewModal";
@@ -28,57 +29,59 @@ export default function YourFolder() {
   const {
     t,
     isSidebarOpen,
-    setSidebarOpen,
     isMobile,
     viewMode,
-    setViewMode,
     showUploadDropdown,
-    setShowUploadDropdown,
     showUploadModal,
-    setShowUploadModal,
     showCreateFolderModal,
-    setShowCreateFolderModal,
     newFolderName,
-    setNewFolderName,
     data,
     loading,
-    setPage,
     hasMore,
     loadingMore,
-    resetAndReload,
     currentFolderId,
-    handleBack,
-    handleFolderClick,
     uploadBatches,
-    setUploadBatches,
-    handleStartUpload,
     filter,
-    setFilter,
     members,
     searchTerm,
-    setSearchTerm,
     showMoveModal,
-    setShowMoveModal,
     moveTargetFolder,
+    showGrantPermissionModal,
+    grantPermissionTarget,
+    previewFile,
+    tableActions,
+    foldersToShowFiltered,
+    tableHeader,
+    filesToShowFiltered,
+    previewUrl,
+    setSidebarOpen,
+    setViewMode,
+    setShowUploadDropdown,
+    setShowUploadModal,
+    setShowCreateFolderModal,
+    setNewFolderName,
+    setPage,
+    resetAndReload,
+    handleBack,
+    handleFolderClick,
+    setUploadBatches,
+    handleStartUpload,
+    setFilter,
+    setSearchTerm,
+    setShowMoveModal,
     setMoveTargetFolder,
     handleShowMoveModal,
     handleConfirmMove,
     handleMoveItems,
     handleDeleteItems,
-    showGrantPermissionModal,
     setShowGrantPermissionModal,
-    grantPermissionTarget,
     handleGrantPermission,
-    previewFile,
-    previewUrl,
+    handleCreateFolder,
     setPreviewFile,
     handlePreview,
     handleDownload,
-    handleCreateFolder,
-    tableActions,
-    foldersToShowFiltered,
-    tableHeader,
-    filesToShowFiltered,
+    dedupeById,
+    areAllVisibleSelected,
   } = useFileManagementPage();
   return (
     <div className="flex w-full min-h-screen bg-[#f7f8fa] relative">
@@ -96,6 +99,8 @@ export default function YourFolder() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+
+          {/* action add */}
           <div className="relative">
             <button
               className="flex cursor-pointer items-center gap-2 px-4 py-2 rounded-xl bg-[#1cadd9] hover:bg-[#00c3ff] text-white font-semibold shadow-md transition-all text-[15px]"
@@ -142,7 +147,7 @@ export default function YourFolder() {
             )}
           </div>
 
-          <div className="hidden items-center gap-2 ml-2 bg-white rounded-xl px-2 py-1 shadow-sm border border-gray-200  lg:flex">
+          <div className="hidden items-center gap-2 ml-2 bg-white rounded-xl px-2 py-1 shadow-sm border border-gray-200 lg:flex">
             <button
               className={`p-2 rounded-lg transition-all text-lg ${
                 viewMode === "grid"
@@ -164,6 +169,50 @@ export default function YourFolder() {
               aria-label={t("file.button.view_list")}
             >
               <FiList />
+            </button>
+          </div>
+          <div className="bg-white cursor-pointer rounded-xl px-1 py-1 shadow-sm border border-gray-200">
+            <button
+              aria-label="Chọn tất cả"
+              title={
+                areAllVisibleSelected(
+                  tableActions?.selectedItems,
+                  foldersToShowFiltered,
+                  filesToShowFiltered
+                )
+                  ? "Bỏ chọn tất cả"
+                  : "Chọn tất cả trong thư mục này"
+              }
+              className={`p-2 rounded-lg transition ${
+                areAllVisibleSelected(
+                  tableActions?.selectedItems,
+                  foldersToShowFiltered,
+                  filesToShowFiltered
+                )
+                  ? "text-red-500 hover:bg-red-50"
+                  : "text-[#1cadd9] hover:bg-gray-100"
+              }`}
+              onClick={() => {
+                const allVisible = dedupeById([
+                  ...foldersToShowFiltered,
+                  ...filesToShowFiltered,
+                ]);
+
+                if (
+                  areAllVisibleSelected(
+                    tableActions?.selectedItems,
+                    foldersToShowFiltered,
+                    filesToShowFiltered
+                  )
+                ) {
+                  tableActions.setSelectedItems([]);
+                } else {
+                  tableActions.setSelectedItems(allVisible);
+                }
+              }}
+            >
+              <span className="sr-only">Toggle chọn tất cả</span>
+              <BiSelectMultiple />
             </button>
           </div>
         </div>
@@ -365,11 +414,41 @@ export default function YourFolder() {
             />
             <div className="flex gap-2">
               <button
+                disabled={loading}
                 onClick={handleCreateFolder}
-                className="flex-1 bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600"
+                aria-busy={loading}
+                className="relative flex-1 bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600
+               disabled:bg-blue-300 disabled:cursor-not-allowed disabled:hover:bg-blue-300"
               >
-                {t("file.button.create")}
+                {loading ? (
+                  <span className="inline-flex items-center justify-center gap-2">
+                    <svg
+                      className="h-5 w-5 animate-spin"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      aria-hidden="true"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                      />
+                    </svg>
+                    <span>{t("file.button.create")}</span>
+                  </span>
+                ) : (
+                  t("file.button.create")
+                )}
               </button>
+
               <button
                 onClick={() => setShowCreateFolderModal(false)}
                 className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300"

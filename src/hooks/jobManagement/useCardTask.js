@@ -2,9 +2,24 @@ import { useMemo, useState } from "react";
 
 function formatDate(d) {
   try {
-    const dt = new Date(d);
+    if (d == null || d === "") return "";
+
+    let dt;
+    if (d instanceof Date) {
+      dt = d;
+    } else if (typeof d === "number") {
+      dt = new Date(d);
+    } else if (typeof d === "string") {
+      const m = d.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      dt = m
+        ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+        : new Date(d);
+    } else {
+      return "";
+    }
+
     if (Number.isNaN(dt.getTime())) return "";
-    return dt.toLocaleDateString("en-GB", {
+    return dt.toLocaleDateString("vi-VN", {
       day: "2-digit",
       month: "short",
       year: "numeric",

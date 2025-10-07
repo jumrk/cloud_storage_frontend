@@ -47,7 +47,7 @@ function ColumnBoard({ boardId }) {
       >
         <div
           ref={dragRef}
-          className="flex gap-3 p-3 overflow-auto scrollbar-hide"
+          className="flex gap-3 p-3 select-none overflow-auto scrollbar-hide"
         >
           {list.length > 0 &&
             list.map((e) => (

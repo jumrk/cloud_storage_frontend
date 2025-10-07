@@ -21,6 +21,7 @@ const useFileManagementPage = () => {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
+  const [folderHistory, setFolderHistory] = useState([]);
 
   const [uploadBatches, setUploadBatches] = useState([]);
   const [data, setData] = useState([]);
@@ -288,22 +289,32 @@ const useFileManagementPage = () => {
   }, []);
 
   const handleBack = useCallback(() => {
-    setCurrentFolderId(null);
+    setFolderHistory((h) => {
+      const prev = h[h.length - 1] ?? null;
+      setCurrentFolderId(prev);
+      return h.slice(0, -1);
+    });
   }, []);
 
-  const handleFolderClick = useCallback((folder) => {
-    setCurrentFolderId(folder?.id ?? null);
-  }, []);
+  const handleFolderClick = useCallback(
+    (folder) => {
+      setFolderHistory((h) => [...h, currentFolderId]);
+      setCurrentFolderId(folder?.id ?? null);
+    },
+    [currentFolderId]
+  );
 
   const handleCreateFolder = useCallback(async () => {
     const name = (newFolderName || "").trim();
     if (!name) return;
     try {
+      setLoading(true);
       await api.createFolder(
         { name, parentId: currentFolderId || null },
         tokenRef.current
       );
       toast.success(t("upload_status.create_folder_success"));
+      setLoading(false);
       setShowCreateFolderModal(false);
       setNewFolderName("");
       resetAndReload();
@@ -311,6 +322,8 @@ const useFileManagementPage = () => {
       toast.error(
         e?.response?.data?.error || t("upload_status.create_folder_failed")
       );
+    } finally {
+      setLoading(false);
     }
   }, [api, newFolderName, currentFolderId, resetAndReload, t]);
 
@@ -448,6 +461,28 @@ const useFileManagementPage = () => {
     },
     [api]
   );
+  function toIdSet(selectedItems = []) {
+    return new Set(
+      selectedItems.map((x) => (typeof x === "string" ? x : x?.id))
+    );
+  }
+
+  function dedupeById(arr = []) {
+    const map = new Map();
+    for (const it of arr) map.set(it.id, it);
+    return Array.from(map.values());
+  }
+
+  function areAllVisibleSelected(
+    selectedItems,
+    foldersToShowFiltered = [],
+    filesToShowFiltered = []
+  ) {
+    const visible = [...foldersToShowFiltered, ...filesToShowFiltered];
+    if (visible.length === 0) return false;
+    const sel = toIdSet(selectedItems);
+    return visible.every((it) => sel.has(it.id));
+  }
 
   const tableHeader = [
     t("file.table.name"),
@@ -458,83 +493,60 @@ const useFileManagementPage = () => {
 
   return {
     t,
-
     isSidebarOpen,
-    setSidebarOpen,
     isMobile,
-    setIsMobile,
     viewMode,
-    setViewMode,
     showUploadDropdown,
-    setShowUploadDropdown,
     showUploadModal,
-    setShowUploadModal,
     showCreateFolderModal,
-    setShowCreateFolderModal,
     newFolderName,
-    setNewFolderName,
-
     data,
-    setData,
     loading,
-    setLoading,
-    page,
-    setPage,
     hasMore,
     loadingMore,
-    fetchData,
-    resetAndReload,
-
     currentFolderId,
-    setCurrentFolderId,
-    visibleFolders,
-    visibleFiles,
-    handleBack,
-    handleFolderClick,
-
     uploadBatches,
-    setUploadBatches,
-    handleStartUpload,
-
     filter,
-    setFilter,
     members,
     searchTerm,
-    setSearchTerm,
-
-    foldersToShowFiltered,
-    filesToShowFiltered,
-
     showMoveModal,
-    setShowMoveModal,
-    pendingMoveItems,
-    setPendingMoveItems,
     moveTargetFolder,
+    showGrantPermissionModal,
+    grantPermissionTarget,
+    previewFile,
+    tableActions,
+    foldersToShowFiltered,
+    tableHeader,
+    filesToShowFiltered,
+    previewUrl,
+    setSidebarOpen,
+    setViewMode,
+    setShowUploadDropdown,
+    setShowUploadModal,
+    setShowCreateFolderModal,
+    setNewFolderName,
+    setPage,
+    resetAndReload,
+    handleBack,
+    handleFolderClick,
+    setUploadBatches,
+    handleStartUpload,
+    setFilter,
+    setSearchTerm,
+    setShowMoveModal,
     setMoveTargetFolder,
     handleShowMoveModal,
     handleConfirmMove,
     handleMoveItems,
     handleDeleteItems,
-
-    showGrantPermissionModal,
     setShowGrantPermissionModal,
-    grantPermissionTarget,
-    setGrantPermissionTarget,
     handleGrantPermission,
-
-    previewFile,
-    previewUrl,
+    handleCreateFolder,
     setPreviewFile,
-    setPreviewUrl,
     handlePreview,
     handleDownload,
-
-    tableActions,
-    tableHeader,
-
-    getPreferredDownloadUrl,
-    isTempApi,
-    handleCreateFolder,
+    dedupeById,
+    areAllVisibleSelected,
   };
 };
 

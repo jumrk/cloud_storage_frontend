@@ -8,7 +8,7 @@ export default function useShareBoard(boardId) {
   const [members, setMembers] = useState([]);
   const [title, setTitle] = useState("");
   const [link, setLink] = useState("");
-
+  const [loading, setLoading] = useState(false);
   const normUser = (u = {}) => ({
     id: String(u._id || u.id || ""),
     name:
@@ -23,6 +23,7 @@ export default function useShareBoard(boardId) {
     });
     return Array.from(map.values());
   };
+
   const handelAddMember = async (emailRaw) => {
     const email = String(emailRaw || "")
       .trim()
@@ -30,37 +31,45 @@ export default function useShareBoard(boardId) {
     if (!email) return toast.error("Vui lòng nhập email");
 
     try {
+      setLoading(true);
       const res = await addMember(email, boardId);
       const b = res.data.data;
       const combined = [b.createdBy, ...(b.members || [])].filter(Boolean);
-
       const list = uniqById(combined);
       const ownerId = String(b.createdBy?._id || "");
       list.sort((a, b2) => (a.id === ownerId ? -1 : b2.id === ownerId ? 1 : 0));
       setMembers(list);
+      setLoading(false);
       toast.success("Thêm thành công");
     } catch (err) {
       toast.error(err?.response?.data?.messenger || "Lỗi khi thêm thành viên");
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleRemoveMember = async (id) => {
     const memberId = id.trim();
     try {
+      setLoading(true);
       const res = await removeMember(boardId, memberId);
       if (!res) {
         toast.error("Lỗi khi gỡ");
       }
 
       setMembers((prev) => prev.filter((m) => m.id !== id));
+      setLoading(false);
       toast.success("Gỡ thành công");
     } catch (error) {
       toast.error("Lỗi");
+    } finally {
+      setLoading(false);
     }
   };
 
   const FetchMember = async () => {
     try {
+      setLoading(true);
       const res = await getBoardById(boardId);
       const payload = res?.data;
       if (!payload?.success) {
@@ -75,10 +84,13 @@ export default function useShareBoard(boardId) {
       const list = uniqById(combined);
       const ownerId = String(b.createdBy?._id || "");
       list.sort((a, b2) => (a.id === ownerId ? -1 : b2.id === ownerId ? 1 : 0));
+      setLoading(false);
       setMembers(list);
     } catch (error) {
       console.error(error);
       toast.error("Lỗi server");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -87,6 +99,7 @@ export default function useShareBoard(boardId) {
     members,
     link,
     title,
+    loading,
     FetchMember,
     setOpen,
     handelAddMember,

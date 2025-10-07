@@ -66,8 +66,8 @@ function ModalDetailCardTask({ open, card, onClose, onSave, boardId }) {
     fetchComment,
     handleAddComment,
     handleDeleteComment,
-    handleUpdateComment,
     setAddComment,
+    moveCheckList,
   } = useModalDetailCardTask(card, onSave, boardMembers);
 
   useEffect(() => {
@@ -440,6 +440,7 @@ function ModalDetailCardTask({ open, card, onClose, onSave, boardId }) {
                       checklists={checkList}
                       boardMembers={boardMembers}
                       onSave={onSave}
+                      moveCheckList={moveCheckList}
                     />
                   </div>
                 </div>

@@ -5,6 +5,7 @@ import ChecklistItemRow from "./ChecklistItemRow";
 import toast from "react-hot-toast";
 import checklistItemService from "@/lib/services/jobManagement/checkListItemService";
 import AddItemRow from "./AddItemRow";
+import ChecklistBlockSkeleton from "@/components/skeleton/RowSkeleton";
 
 function pct(done, total) {
   if (!total) return 0;
@@ -32,7 +33,6 @@ export default function ChecklistBlock({
   members,
   onRename,
   onDelete,
-  // đổi: thay vì onProgressChange, ta phát ra counts
   onCountsChange,
 }) {
   const { getItemsByChecklist, createItem, deleteItem, updateItem } =
@@ -41,6 +41,7 @@ export default function ChecklistBlock({
   const [title, setTitle] = useState(data.title || "");
   const [checkListItems, setCheckListItems] = useState([]);
   const [openAddItem, setOpenAddItem] = useState(false);
+  const [loading, setLoading] = useState(false);
   const checklistsId = data?._id;
 
   const total = checkListItems.length;
@@ -58,7 +59,6 @@ export default function ChecklistBlock({
   const trackColor = "#E5E7EB";
   const fillStyle = { width: `${percent}%`, background: barColor };
 
-  // chỉ gửi counts khi thay đổi thực sự
   const lastSentRef = useRef({ done, total });
   useEffect(() => {
     const last = lastSentRef.current;
@@ -70,6 +70,7 @@ export default function ChecklistBlock({
 
   const fetchChecklistItem = async () => {
     try {
+      setLoading(true);
       const res = await getItemsByChecklist(checklistsId);
       const payload = res?.data;
       if (!payload?.success) {
@@ -77,9 +78,12 @@ export default function ChecklistBlock({
         return;
       }
       setCheckListItems(payload.data);
+      setLoading(false);
     } catch (error) {
       const msg = error?.response?.data?.messenger || "Lỗi";
       toast.error(msg);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -109,6 +113,7 @@ export default function ChecklistBlock({
       p.map((c) => (c._id === itemId ? { ...c, isDone: nextDone } : c))
     );
     try {
+      setLoading(true);
       const res = await updateItem(itemId, { isDone: nextDone });
       const ok = res?.data?.success;
       if (!ok) {
@@ -116,10 +121,14 @@ export default function ChecklistBlock({
         toast.error(res?.data?.messenger || "Không thể thay đổi");
         return;
       }
+      setLoading(false);
       toast.success("Cập nhật thành công");
     } catch (e) {
       setCheckListItems(prev);
-      toast.error(e?.message || "Cập nhật thất bại");
+      const msg = error?.response?.data?.messenger || "Lỗi";
+      toast.error(msg);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -144,9 +153,10 @@ export default function ChecklistBlock({
         );
       }
       toast.success("Cập nhật thành công");
-    } catch (e) {
+    } catch (error) {
+      const msg = error?.response?.data?.messenger || "Lỗi";
       setCheckListItems(prev);
-      toast.error(e?.message || "Cập nhật thất bại");
+      toast.error(msg);
     }
   };
 
@@ -159,8 +169,9 @@ export default function ChecklistBlock({
       if (!ok) throw new Error(res?.data?.messenger || "Không thể xóa");
       toast.success("Đã xóa");
     } catch (e) {
+      const msg = error?.response?.data?.messenger || "Lỗi";
       setCheckListItems(prev);
-      toast.error(e?.message || "Xóa thất bại");
+      toast.error(msg);
     }
   };
 
@@ -170,6 +181,7 @@ export default function ChecklistBlock({
     fetchChecklistItem();
   }, [data]);
 
+  if (loading) return <ChecklistBlockSkeleton />;
   return (
     <div className="p-3 border border-black/30 border-dashed rounded-2xl w-full">
       <div className="flex items-center justify-between">
@@ -220,6 +232,7 @@ export default function ChecklistBlock({
               <ChecklistItemRow
                 item={it}
                 members={members}
+                setLoading={setLoading}
                 onToggle={onToggleItem}
                 onUpdate={onUpdateItem}
                 onDelete={onDeleteItem}

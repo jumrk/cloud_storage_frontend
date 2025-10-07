@@ -118,7 +118,7 @@ export default function useModalDetailCardTask(card, onSave, boardMembers) {
       const result = payload.data;
       setCheckList((prev) => [result, ...prev]);
       toast.success("Thêm thành công");
-      setAddingChecklist("");
+      setNewChecklistTitle("");
       setAddingChecklist(false);
     } catch (error) {
       const msg = error?.response?.data?.messenger || "Lỗi";
@@ -152,6 +152,19 @@ export default function useModalDetailCardTask(card, onSave, boardMembers) {
       setCheckList((prev) =>
         prev.map((c) => (c._id === checklistId ? { ...c, ...data } : c))
       );
+    } catch (error) {
+      const msg = error?.response?.data?.messenger || "Lỗi";
+      toast.error(msg);
+    }
+  };
+  const moveCheckList = async (checklistId, pos) => {
+    try {
+      const res = await updateChecklist(checklistId, { pos });
+      const payload = res?.data;
+      if (!payload.success) {
+        toast.error(payload?.messenger || "Lỗi không thể sửa");
+        return;
+      }
     } catch (error) {
       const msg = error?.response?.data?.messenger || "Lỗi";
       toast.error(msg);
@@ -371,5 +384,6 @@ export default function useModalDetailCardTask(card, onSave, boardMembers) {
     handleDeleteComment,
     handleUpdateComment,
     setAddComment,
+    moveCheckList,
   };
 }

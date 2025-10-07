@@ -15,7 +15,7 @@ import { useRef } from "react";
 import { decodeTokenGetUser } from "@/lib/jwt";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
-import SkeletonChat from "@/components/ui/SkeletonChat";
+import SkeletonChat from "@/components/skeleton/SkeletonChat";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 

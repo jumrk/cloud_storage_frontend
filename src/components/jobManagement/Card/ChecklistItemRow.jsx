@@ -7,6 +7,7 @@ import {
 } from "react-icons/io5";
 import DuePopover from "@/components/jobManagement/Card/DuePopover";
 import MembersPopover from "@/components/jobManagement/Card/MembersPopover";
+import toast from "react-hot-toast";
 
 const fmtShortVN = (iso) => {
   if (!iso) return "";
@@ -21,6 +22,7 @@ export default function ChecklistItemRow({
   members = [],
   onToggle,
   onUpdate,
+  setLoading,
   onDelete,
 }) {
   const [text, setText] = useState(item.text || "");
@@ -51,8 +53,16 @@ export default function ChecklistItemRow({
 
   const applyAssignee = async (nextIds) => {
     const first = nextIds?.[0] || "";
-    setAssignee(first);
-    await onUpdate?.(item._id, { assignee: first || null });
+    try {
+      setLoading(true);
+      setAssignee(first);
+      await onUpdate?.(item._id, { assignee: first || null });
+      setLoading(false);
+    } catch (error) {
+      toast.error("Lỗi");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

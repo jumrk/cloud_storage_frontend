@@ -1,4 +1,6 @@
 "use client";
+import ModalShareBoardSkeleton from "@/components/skeleton/ModalShareBoardSkeleton";
+import Loader from "@/components/ui/Loader";
 import React, { useState, useRef, useEffect } from "react";
 import { FiX } from "react-icons/fi";
 
@@ -19,6 +21,7 @@ export default function ModalShareBoard({
   members = [],
   onAdd,
   onRemove,
+  loading,
 }) {
   const [email, setEmail] = useState("");
   const inputRef = useRef(null);
@@ -34,7 +37,7 @@ export default function ModalShareBoard({
     onAdd?.(email.trim());
     setEmail("");
   };
-
+  if (loading) return <ModalShareBoardSkeleton />;
   return (
     <div className="fixed inset-0 z-50">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
@@ -66,6 +69,7 @@ export default function ModalShareBoard({
                   className="w-full rounded-xl border border-neutral-200 px-3 py-2 outline-none shadow-sm focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300"
                 />
                 <button
+                  disabled={loading}
                   onClick={handleAdd}
                   className="whitespace-nowrap rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500"
                 >

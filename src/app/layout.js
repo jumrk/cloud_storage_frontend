@@ -2,6 +2,7 @@ import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import { NextIntlClientProvider } from "next-intl";
 import { cookies } from "next/headers";
+import "react-loading-skeleton/dist/skeleton.css";
 import en from "../../messages/en.json";
 import vi from "../../messages/vi.json";
 export const metadata = {

@@ -50,7 +50,7 @@ export default function CardTask({
   } = useCardTask(title, desc, progress, dueDate, members, labels, showDetails);
 
   return (
-    <div className="group relative w-full rounded-xl border border-neutral-200 bg-white p-3 hover:bg-neutral-50">
+    <div className="group relative w-full select-none rounded-xl border border-neutral-200 bg-white p-3 hover:bg-neutral-50">
       <div className="flex items-start">
         <div className="min-w-0 pr-8">
           <h3 className="text-[14px] font-medium leading-snug text-neutral-800 truncate">
@@ -105,7 +105,7 @@ export default function CardTask({
           {(hasProgress || showDetails) && (
             <div className="mt-3">
               <div className="mb-1.5 flex items-center justify-between">
-                <span className="text-[12px] text-neutral-600">Progress</span>
+                <span className="text-[12px] text-neutral-600">Tiến độ</span>
                 <span
                   className="text-[12px] font-medium"
                   style={{ color: barColor }}
