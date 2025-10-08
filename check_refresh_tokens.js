@@ -1,5 +1,4 @@
-// check_refresh_tokens.js
-import "dotenv/config"; // Đảm bảo biến môi trường được load
+import "dotenv/config";
 import mongoose from "mongoose";
 import { google } from "googleapis";
 

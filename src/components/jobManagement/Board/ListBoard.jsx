@@ -161,7 +161,7 @@ function ListBoard({
           {addOpen && (
             <form
               onSubmit={(e) => {
-                e.defaultPrevented();
+                e.preventDefault();
                 submitAdd();
               }}
               className="mt-2 rounded-2xl bg-white text-black/60 p-2 border border-neutral-200"
