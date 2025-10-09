@@ -537,18 +537,6 @@ export default function ImportByLinkModal({
                       qua thư mục rỗng).
                     </p>
                   </div>
-
-                  <div className="mt-3 border-2 border-dashed rounded-xl p-3 text-center text-xs text-gray-500">
-                    {helpImageSrc ? (
-                      <img
-                        src={helpImageSrc}
-                        alt="Hướng dẫn mở quyền public"
-                        className="w-full h-auto rounded-md"
-                      />
-                    ) : (
-                      "Khu vực chèn ảnh hướng dẫn (bạn thêm ảnh sau)"
-                    )}
-                  </div>
                 </div>
               )}
             </div>
