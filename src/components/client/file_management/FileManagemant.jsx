@@ -589,6 +589,7 @@ export default function YourFolder() {
       <ImportByLinkModal
         isOpen={openImport}
         onClose={() => setOpenImport(false)}
+        onImported={resetAndReload}
       />
 
       {previewFile && (
