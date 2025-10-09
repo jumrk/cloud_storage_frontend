@@ -9,6 +9,7 @@ import {
   FiUpload,
   FiFolderPlus,
   FiArrowLeft,
+  FiLink,
 } from "react-icons/fi";
 import { BiSelectMultiple } from "react-icons/bi";
 import Table from "@/components/ui/TableCustom";
@@ -24,6 +25,7 @@ import EmptyState from "@/components/ui/EmptyState";
 import SidebarFilter from "@/components/client/file_management/SidebarFilter";
 import FilePreviewModal from "@/components/client/file_management/FilePreviewModal";
 import useFileManagementPage from "@/hooks/leader/FileManagement/useFileManagementPage";
+import ImportByLinkModal from "./ImportByLinkModal";
 
 export default function YourFolder() {
   const {
@@ -54,6 +56,7 @@ export default function YourFolder() {
     tableHeader,
     filesToShowFiltered,
     previewUrl,
+    openImport,
     setSidebarOpen,
     setViewMode,
     setShowUploadDropdown,
@@ -82,6 +85,7 @@ export default function YourFolder() {
     handleDownload,
     dedupeById,
     areAllVisibleSelected,
+    setOpenImport,
   } = useFileManagementPage();
   return (
     <div className="flex w-full min-h-screen bg-[#f7f8fa] relative">
@@ -142,6 +146,16 @@ export default function YourFolder() {
                   <span className="text-gray-700">
                     {t("file.button.create_folder")}
                   </span>
+                </button>
+                <button
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors rounded-b-lg"
+                  onClick={() => {
+                    setOpenImport(true);
+                    setShowUploadDropdown(false);
+                  }}
+                >
+                  <FiLink className="text-gray-600" />
+                  <span className="text-gray-700">Tải bằng liên kết</span>
                 </button>
               </div>
             )}
@@ -571,6 +585,10 @@ export default function YourFolder() {
         onClose={() => setShowGrantPermissionModal(false)}
         folder={grantPermissionTarget}
         onPermissionChange={resetAndReload}
+      />
+      <ImportByLinkModal
+        isOpen={openImport}
+        onClose={() => setOpenImport(false)}
       />
 
       {previewFile && (

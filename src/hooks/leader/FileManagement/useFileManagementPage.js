@@ -22,7 +22,7 @@ const useFileManagementPage = () => {
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [folderHistory, setFolderHistory] = useState([]);
-
+  const [openImport, setOpenImport] = useState(false);
   const [uploadBatches, setUploadBatches] = useState([]);
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -497,6 +497,7 @@ const useFileManagementPage = () => {
     isMobile,
     viewMode,
     showUploadDropdown,
+    openImport,
     showUploadModal,
     showCreateFolderModal,
     newFolderName,
@@ -547,6 +548,7 @@ const useFileManagementPage = () => {
     handleDownload,
     dedupeById,
     areAllVisibleSelected,
+    setOpenImport,
   };
 };
 
