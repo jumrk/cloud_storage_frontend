@@ -14,6 +14,11 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   cursor: pointer;
   z-index: 10;
 }
+.no-native-drag,
+.no-native-drag * {
+  -webkit-user-drag: none;
+  user-drag: none;
+}
 
 .scrollbar-hide {
   -ms-overflow-style: none; /* IE and Edge */

@@ -1,8 +1,9 @@
 // useDragScroll.js
 import { useEffect, useRef } from "react";
 
-export default function useDragScroll(axis = "x") {
+export default function useDragScroll(axis = "x", opts = {}) {
   const ref = useRef(null);
+  const { disabled = false } = opts;
   const st = useRef({
     down: false,
     start: 0,
@@ -16,7 +17,7 @@ export default function useDragScroll(axis = "x") {
 
   useEffect(() => {
     const el = ref.current;
-    if (!el) return;
+    if (!el || disabled) return;
     const key = axis === "x" ? "clientX" : "clientY";
     const getPos = (e) => ("touches" in e ? e.touches[0][key] : e[key]);
 
@@ -104,7 +105,7 @@ export default function useDragScroll(axis = "x") {
 
       cancelAnimationFrame(st.current.raf);
     };
-  }, [axis]);
+  }, [axis, disabled]);
 
   return ref;
 }

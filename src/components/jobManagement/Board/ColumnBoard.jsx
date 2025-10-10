@@ -1,8 +1,9 @@
 "use client";
-import React, { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { IoAdd, IoClose } from "react-icons/io5";
 import SortableListBoard from "./SortableListBoard";
-import { DndContext, closestCenter } from "@dnd-kit/core";
+import { DndContext, closestCenter, DragOverlay } from "@dnd-kit/core";
+import { restrictToWindowEdges } from "@dnd-kit/modifiers";
 import {
   SortableContext,
   horizontalListSortingStrategy,
@@ -17,6 +18,7 @@ function ColumnBoard({ boardId }) {
     inputRef,
     sensors,
     list,
+    attachListApi,
     setAdding,
     fetchListBoard,
     setTitle,
@@ -25,29 +27,67 @@ function ColumnBoard({ boardId }) {
     submit,
     cancel,
     onDragEnd,
+    onDragCancel,
+    onDragStart,
   } = useColumnBoard(boardId);
+
+  const [draggingType, setDraggingType] = useState(null);
+  const [overlayCard, setOverlayCard] = useState(null);
+
+  useEffect(() => {
+    const stopNativeDrag = (e) => {
+      if (draggingType) e.preventDefault();
+    };
+    window.addEventListener("dragstart", stopNativeDrag, { capture: true });
+    return () =>
+      window.removeEventListener("dragstart", stopNativeDrag, {
+        capture: true,
+      });
+  }, [draggingType]);
 
   useEffect(() => {
     if (adding) inputRef.current?.focus();
-  }, [adding]);
+  }, [adding, inputRef]);
 
   useEffect(() => {
-    fetchListBoard(boardId);
+    fetchListBoard();
   }, [boardId]);
 
   return (
     <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
-      onDragEnd={onDragEnd}
+      modifiers={[restrictToWindowEdges]}
+      onDragStart={(e) => {
+        const t = e?.active?.data?.current?.type || null;
+        setDraggingType(t);
+        if (t === "card") {
+          setOverlayCard(e?.active?.data?.current?.preview || null);
+        } else {
+          setOverlayCard(null);
+        }
+        onDragStart?.(e);
+      }}
+      onDragEnd={(e) => {
+        setDraggingType(null);
+        setOverlayCard(null);
+        onDragEnd(e);
+      }}
+      onDragCancel={(e) => {
+        setDraggingType(null);
+        setOverlayCard(null);
+        onDragCancel?.(e);
+      }}
     >
       <SortableContext
-        items={list.map((l) => l._id)}
+        items={list.map((l) => String(l._id))}
         strategy={horizontalListSortingStrategy}
       >
         <div
           ref={dragRef}
           className="flex gap-3 p-3 select-none overflow-auto scrollbar-hide"
+          style={{ overscrollBehavior: "contain" }}
+          onDragStartCapture={(e) => e.preventDefault()}
         >
           {list.length > 0 &&
             list.map((e) => (
@@ -59,6 +99,7 @@ function ColumnBoard({ boardId }) {
                 boardId={e.boardId}
                 handleUpdate={handleUpdateListBoard}
                 handleDelete={handleDeleteListBoard}
+                onAttach={attachListApi}
               />
             ))}
 
@@ -104,6 +145,24 @@ function ColumnBoard({ boardId }) {
           )}
         </div>
       </SortableContext>
+
+      <DragOverlay dropAnimation={null}>
+        {overlayCard ? (
+          <div className="rounded-2xl border border-neutral-200 bg-white shadow-lg w-[320px] p-3">
+            <div
+              className="font-medium text-neutral-800 truncate"
+              title={overlayCard?.title}
+            >
+              {overlayCard?.title || "Card"}
+            </div>
+            {overlayCard?.desc ? (
+              <div className="mt-1 text-xs text-neutral-500 line-clamp-2">
+                {overlayCard.desc}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </DragOverlay>
     </DndContext>
   );
 }

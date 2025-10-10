@@ -1,24 +1,38 @@
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import useDragScroll from "@/lib/hook/useDragScroll";
 import toast from "react-hot-toast";
 import listBoardService from "@/lib/services/jobManagement/listBoardService";
-
 import { PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
+import cardService from "@/lib/services/jobManagement/cardListService";
 
 export function useColumnBoard(boardId) {
-  const dragRef = useDragScroll("x");
   const [adding, setAdding] = useState(false);
   const [title, setTitle] = useState("");
   const [list, setList] = useState([]);
-  const [openAdd, setOpenAdd] = useState(false);
   const inputRef = useRef(null);
+  const listsApiRef = useRef(new Map());
+  const [draggingType, setDraggingType] = useState(null);
+  const dragRef = useDragScroll("x", { disabled: draggingType === "card" });
+
+  const onDragStart = ({ active }) => {
+    setDraggingType(active?.data?.current?.type || "unknown");
+  };
+  const onDragCancel = () => setDraggingType(null);
 
   const { createList, deleteList, getLists, updateList, reorderListsInBoard } =
     listBoardService();
 
+  const { moveCard } = cardService();
+
+  const attachListApi = useCallback((listId, api) => {
+    const key = String(listId);
+    listsApiRef.current.set(key, api);
+    return () => listsApiRef.current.delete(key);
+  }, []);
+
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
 
   const handleUpdateListBoard = async (listId, patch) => {
@@ -107,7 +121,7 @@ export function useColumnBoard(boardId) {
     setTitle("");
     setAdding(false);
   };
-  const fetchListBoard = async (boardId) => {
+  const fetchListBoard = async () => {
     if (!boardId) return;
     try {
       const res = await getLists(boardId);
@@ -135,34 +149,138 @@ export function useColumnBoard(boardId) {
     }
   };
   const onDragEnd = async ({ active, over }) => {
-    if (!over || active.id === over.id) return;
-
-    const oldIndex = list.findIndex((l) => l._id === active.id);
-    const newIndex = list.findIndex((l) => l._id === over.id);
-    if (oldIndex < 0 || newIndex < 0) return;
-
-    const prevSnapshot = list;
-    const next = arrayMove(list, oldIndex, newIndex).map((l, idx) => ({
-      ...l,
-      pos: (idx + 1) * 1000,
-    }));
-    setList(next);
-
     try {
-      const updates = next.map((l) => ({ listId: l._id, pos: l.pos }));
-      const res = await reorderListsInBoard(boardId, updates);
-      const ok = res?.data?.success !== false;
-      if (!ok) {
-        setList(prevSnapshot);
-        toast.error(res?.data?.messenger || "Không lưu được thứ tự");
+      if (!over) return;
+
+      const S = (v) => String(v);
+      const aType = active?.data?.current?.type;
+      const oType = over?.data?.current?.type;
+
+      // --- Kéo LISTBOARD (reorder list ngang) ---
+      if (aType === "list" && oType === "list") {
+        if (S(active.id) === S(over.id)) return;
+
+        const oldIndex = list.findIndex((l) => S(l._id) === S(active.id));
+        const newIndex = list.findIndex((l) => S(l._id) === S(over.id));
+        if (oldIndex < 0 || newIndex < 0) return;
+
+        const prevSnapshot = list.map((l) => ({ ...l }));
+        const next = arrayMove(list, oldIndex, newIndex).map((l, idx) => ({
+          ...l,
+          pos: (idx + 1) * 1000,
+        }));
+        setList(next);
+
+        try {
+          const updates = next.map((l) => ({ listId: l._id, pos: l.pos }));
+          const res = await reorderListsInBoard(boardId, updates);
+          const ok = res?.data?.success !== false;
+          if (!ok) {
+            setList(() => prevSnapshot);
+            toast.error(res?.data?.messenger || "Không lưu được thứ tự");
+          }
+        } catch {
+          setList(() => prevSnapshot);
+          toast.error("Lỗi lưu thứ tự");
+        }
+        return;
       }
-    } catch {
-      setList(prevSnapshot);
-      toast.error("Lỗi lưu thứ tự");
+
+      // --- Kéo CARD ---
+      if (aType === "card") {
+        const fromListId = active?.data?.current?.listId;
+        let toListId = null;
+        let toPos = 0;
+
+        if (oType === "card") {
+          toListId = over?.data?.current?.listId;
+          toPos = over?.data?.current?.sortable?.index ?? 0;
+        } else if (oType === "list") {
+          toListId = over?.data?.current?.listId;
+          toPos = over?.data?.current?.itemsCount ?? 0;
+        } else {
+          const sid = S(over.id || "");
+          if (sid.startsWith("list-slot-")) {
+            toListId = sid.replace("list-slot-", "");
+            toPos = 999999;
+          }
+        }
+
+        if (!fromListId || !toListId) return;
+
+        const fromKey = S(fromListId);
+        const toKey = S(toListId);
+        const cardId = S(active.id);
+
+        if (fromKey === toKey) {
+          const api = listsApiRef.current.get(fromKey);
+          if (api?.setCards) {
+            const fromIdx = active?.data?.current?.sortable?.index ?? -1;
+            const toIdx =
+              oType === "card"
+                ? over?.data?.current?.sortable?.index ?? 0
+                : over?.data?.current?.itemsCount ?? 0;
+
+            api.setCards((prev) => {
+              const oldIndex =
+                fromIdx >= 0
+                  ? fromIdx
+                  : prev.findIndex((c) => S(c._id) === cardId);
+              const newIndex = Math.max(0, Math.min(toIdx, prev.length - 1));
+              return arrayMove(prev, oldIndex, newIndex);
+            });
+          }
+
+          try {
+            await moveCard(cardId, { toListId: toKey, toPos });
+          } catch {
+            listsApiRef.current.get(fromKey)?.refetchCards();
+            toast.error("Không thể di chuyển thẻ");
+          }
+          return;
+        }
+
+        const fromApi = listsApiRef.current.get(fromKey);
+        const toApi = listsApiRef.current.get(toKey);
+
+        if (fromApi?.setCards && toApi?.setCards) {
+          let moved = null;
+
+          fromApi.setCards((prev) => {
+            moved = prev.find((c) => S(c._id) === cardId) || null;
+            return prev.filter((c) => S(c._id) !== cardId);
+          });
+
+          toApi.setCards((prev) => {
+            const arr = [...(prev || [])];
+            const pos = Math.max(0, Math.min(toPos, arr.length));
+            if (moved) arr.splice(pos, 0, moved);
+            return arr;
+          });
+
+          try {
+            await moveCard(cardId, { toListId: toKey, toPos });
+          } catch {
+            fromApi.refetchCards?.();
+            toApi.refetchCards?.();
+            toast.error("Không thể di chuyển thẻ");
+          }
+        } else {
+          try {
+            await moveCard(cardId, { toListId: toKey, toPos });
+            fromApi?.refetchCards?.();
+            toApi?.refetchCards?.();
+          } catch {
+            toast.error("Không thể di chuyển thẻ");
+          }
+        }
+        return;
+      }
+    } finally {
+      setDraggingType(null);
     }
   };
-  const openAddTask = () => setOpenAdd(true);
-  const closeAddTask = () => setOpenAdd(false);
+
   return {
     dragRef,
     adding,
@@ -170,6 +288,7 @@ export function useColumnBoard(boardId) {
     inputRef,
     sensors,
     list,
+    attachListApi,
     setAdding,
     fetchListBoard,
     setTitle,
@@ -178,5 +297,8 @@ export function useColumnBoard(boardId) {
     submit,
     cancel,
     onDragEnd,
+    onDragStart,
+    onDragCancel,
+    setDraggingType,
   };
 }

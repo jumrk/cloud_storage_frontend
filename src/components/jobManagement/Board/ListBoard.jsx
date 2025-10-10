@@ -10,19 +10,12 @@ import {
 import ModalDetailCardTask from "../Card/ModalDetailCardTask";
 import { useListBoard } from "@/hooks/jobManagement/useListBoard";
 import SortableCardTask from "../Card/SortableCardTask";
-
-import {
-  DndContext,
-  closestCenter,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
 import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import ListBoardSkeleton from "@/components/skeleton/ListBoardSkeleton";
+import EmptySlot from "./EmptySlot";
 
 function ListBoard({
   id,
@@ -31,6 +24,7 @@ function ListBoard({
   title = "To do",
   headerRightSlot,
   boardId,
+  onAttach,
 }) {
   const {
     cards,
@@ -57,14 +51,20 @@ function ListBoard({
     closeCard,
     handleDeleteCard,
     patchCard,
-    handleDragEnd,
-    onDragOverNative,
-    onDropNative,
+    setCards,
+    refresh,
   } = useListBoard({ id, title, handleUpdate });
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
-  );
+  useEffect(() => {
+    if (!onAttach) return;
+    const detach = onAttach(id, {
+      setCards: (updater) =>
+        setCards((prev) =>
+          typeof updater === "function" ? updater(prev) : updater
+        ),
+      refresh,
+    });
+    return detach;
+  }, [id, onAttach, setCards, refresh]);
 
   useEffect(() => {
     if (renameOpen)
@@ -81,12 +81,8 @@ function ListBoard({
   if (loading) return <ListBoardSkeleton />;
 
   return (
-    <>
-      <div
-        className="w-[352px] min-w-[352px] min-h-[560px] rounded-2xl border border-dashed border-neutral-300 bg-white shadow-sm"
-        onDragOver={onDragOverNative}
-        onDrop={onDropNative}
-      >
+    <div>
+      <div className="w-[352px] min-w-[352px] min-h-[560px] rounded-2xl border border-dashed border-neutral-300 bg-white shadow-sm">
         <div className="px-4 pt-3 pb-2">
           <div className="flex items-start gap-2">
             <div className="min-w-0 flex-1">
@@ -197,45 +193,40 @@ function ListBoard({
             </form>
           )}
 
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
+          <SortableContext
+            items={cards.map((c) => String(c._id))}
+            strategy={verticalListSortingStrategy}
           >
-            <SortableContext
-              items={cards.map((c) => c._id)}
-              strategy={verticalListSortingStrategy}
-            >
-              <div className="mt-2 space-y-2">
-                {loading ? (
-                  <div className="text-sm text-neutral-400 py-2 text-center">
-                    Đang tải…
-                  </div>
-                ) : cards.length === 0 ? (
-                  <div className="text-sm text-neutral-400 py-2 text-center">
-                    Chưa có thẻ nào
-                  </div>
-                ) : (
-                  cards.map((c, idx) => (
-                    <SortableCardTask
-                      key={c._id}
-                      listId={id}
-                      id={c._id}
-                      index={idx}
-                      title={c.title}
-                      desc={c.desc}
-                      progress={c.progress}
-                      dueDate={c.dueDate}
-                      members={c.members}
-                      labels={c.labels}
-                      onEdit={openCard}
-                      onDelete={handleDeleteCard}
-                    />
-                  ))
-                )}
-              </div>
-            </SortableContext>
-          </DndContext>
+            <div className="mt-2 space-y-2">
+              {loading ? (
+                <div className="text-sm text-neutral-400 py-2 text-center">
+                  Đang tải…
+                </div>
+              ) : cards.length === 0 ? (
+                <div className="text-sm text-neutral-400 py-2 text-center">
+                  Chưa có thẻ nào
+                </div>
+              ) : (
+                cards.map((c, idx) => (
+                  <SortableCardTask
+                    key={c._id}
+                    listId={id}
+                    id={c._id}
+                    index={idx}
+                    title={c.title}
+                    desc={c.desc}
+                    progress={c.progress}
+                    dueDate={c.dueDate}
+                    members={c.members}
+                    labels={c.labels}
+                    onEdit={openCard}
+                    onDelete={handleDeleteCard}
+                  />
+                ))
+              )}
+              <EmptySlot listId={id} count={cards.length} />
+            </div>
+          </SortableContext>
         </div>
       </div>
 
@@ -309,7 +300,7 @@ function ListBoard({
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
 

@@ -292,5 +292,6 @@ export function useListBoard({ id, title, handleUpdate }) {
     handleDragEnd,
     onDragOverNative,
     onDropNative,
+    setCards,
   };
 }
