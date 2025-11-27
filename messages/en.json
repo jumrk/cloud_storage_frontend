@@ -1,0 +1,1795 @@
+{
+  "hero": {
+    "solution": "SOLUTION",
+    "storage": "STORAGE",
+    "safe": "SAFE",
+    "and": "AND",
+    "fast1": "HIGH SPEED",
+    "fast2": "AI TECHNOLOGY",
+    "get_started": "Get Started",
+    "view_pricing": "View Pricing",
+    "users": "Users",
+    "files": "Files Uploaded",
+    "capacity": "Storage Capacity",
+    "desc": "D2MBox is a powerful data storage platform, offering high-speed uploads/downloads with no storage limits. Flexible permission system helps teams and businesses manage efficiently, while ensuring absolute data safety with various sharing modes. Built on Google infrastructure, D2MBox provides an intuitive interface and convenient, easy-to-use file management tools.",
+    "desc_1": "Not just storage, D2MBox also integrates advanced AI tools: automatic video upload and processing, multi-language subtitle extraction – translation – synchronization, media content merging, global AI voice conversion,... All streamlined in an intuitive interface, running smoothly on all platforms.",
+    "desc_2": "Built on Google's powerful infrastructure and enhanced with AI tecsidebarhnology, D2MBox is not just a storage place – but a smart data processing & operations center of the future."
+  },
+  "description": {
+    "title": "SMART USER PERMISSIONS",
+    "feature_1_title": "Self-create & manage group users",
+    "feature_1_desc": "Create and manage users in your group without going through a central system.",
+    "feature_2_title": "Shared storage & quick actions",
+    "feature_2_desc": "Members share storage, actions are just a few clicks away.",
+    "feature_3_title": "Tree-structured permissions",
+    "feature_3_desc": "Build a tree-structured permission model, each leader is a 'mini admin' of their own system.",
+    "feature_4_title": "Full team control",
+    "feature_4_desc": "You have full control over your team – like a separate system within a larger system.",
+    "sync": "OPTIMAL SYNC & STORAGE",
+    "sync_title": "Superior speed, absolute security",
+    "sync_desc": "With just a few simple steps, you can easily upload any file from your device to the system. All data is securely stored, instantly synchronized and ready to access anytime, anywhere – fast, convenient and with maximum security.",
+    "share": "SMART & FLEXIBLE AI TOOLS",
+    "share_title": "Comprehensive support, handle media content in just a few steps",
+    "share_desc": "Integrating a powerful AI toolkit makes working with video and language easier than ever: From downloading movies, joining videos, getting and adjusting subtitles, to automatic multilingual translation and AI voiceover. Everything is fast, accurate, and optimized for post-production, media, or cross-platform learning.",
+    "ui": "MODERN & EASY TO MASTER INTERFACE",
+    "ui_title": "Intuitive, user-friendly – works in a snap",
+    "ui_desc": "The interface is designed to be minimalistic yet sophisticated, making it easy for users to get acquainted and operate right from the first use. Every management process – from file organization to user control – becomes seamless, saving time and improving work efficiency."
+  },
+  "plans": {
+    "title": "SERVICE PLANS",
+    "no_plan": "No service plans available.",
+    "choose": "Choose this plan",
+    "custom_storage_error": "Minimum storage is 20TB, integer only",
+    "custom_users_error": "Minimum users is 20, integer only",
+    "featured": "Most popular",
+    "custom": "Custom",
+    "free": "Free",
+    "month": "/month",
+    "year": "Year:",
+    "save": "Save {sale}%",
+    "users": "{users} users",
+    "storage": "{storage}"
+  },
+  "faq": {
+    "title": "FREQUENTLY ASKED QUESTIONS",
+    "1_q": "1. Is my data really safe?",
+    "1_a": "We use modern encryption technology and manual verification to ensure your data is always maximally protected from unauthorized access.",
+    "2_q": "2. Can I upgrade/downgrade my plan at any time?",
+    "2_a": "You can change your plan at any time with just a few simple steps in your account management page.",
+    "3_q": "3. How do I pay? Do you provide invoices?",
+    "3_a": "We support various payment methods (bank transfer, e-wallet, etc.). VAT invoices will be sent to you after successful payment.",
+    "4_q": "4. Will I get quick support if I have problems?",
+    "4_a": "Our support team is always available 24/7 via email, phone, fanpage, and online chat channels.",
+    "5_q": "5. Can storage capacity be expanded?",
+    "5_a": "You can contact us for advice on upgrading storage to suit your needs."
+  },
+  "cta": {
+    "title": "Grow your team's work with",
+    "desc": "D2MBox is a smart storage and collaboration platform that helps teams and businesses operate efficiently, securely and flexibly. Whether you are a small startup or a growing company, D2MBox provides a secure storage space combined with a powerful authorization system, task creation, work division and direct exchange right on the web. In addition, the platform also integrates a versatile AI Toolkit that supports movie downloading, video merging, subtitle extraction and translation, multilingual voiceover - all helping you shorten processing time and improve work efficiency. Easy management, smooth operation, transparency and professionalism - all ready to help your team accelerate.",
+    "btn": "Learn more"
+  },
+  "footer": {
+    "description": "Cloud computing encryption service for the community",
+    "copyright": "© D2MBox 2025 All rights reserved",
+    "follow_us": "Follow D2MBox",
+    "support_title": "Support",
+    "policy_title": "Policy",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Use",
+    "cookie": "Cookie Policy",
+    "about": "About D2MBox",
+    "support": "Contact/Support",
+    "faq": "FAQ"
+  },
+  "about": {
+    "hero": {
+      "title": "Explore mission and core values",
+      "subtitle": "D2MBox is not only a storage platform, but also a comprehensive solution for secure, flexible and efficient data sharing and management. With the mission of accompanying modern businesses and individuals, D2MBox brings a smooth experience, optimizes work and connects smart collaboration in the digital age.",
+      "cta": "Get Started"
+    },
+    "values": {
+      "security": {
+        "title": "Absolute Security",
+        "desc": "Encrypted data, multi-layer protection, absolute safety commitment."
+      },
+      "storage": {
+        "title": "Flexible Storage",
+        "desc": "Google Drive integration, unlimited expansion, multi-platform sync."
+      },
+      "team": {
+        "title": "Smart Team Management",
+        "desc": "Tree-structured permissions, leaders manage members independently, internal security."
+      },
+      "speed": {
+        "title": "Outstanding Speed",
+        "desc": "Fast upload/download, smooth operations, optimized for businesses."
+      }
+    },
+    "partner": {
+      "title": "D2MBox – A reliable companion at work",
+      "feature_1": "Unlimited file & folder storage & sharing",
+      "feature_2": "Detailed permissions, secure access control",
+      "feature_3": "Smooth experience on all devices",
+      "feature_4": "Real-time chat & notifications, 24/7 support",
+      "feature_5": "Powerful AI tools"
+    },
+    "stats": {
+      "uptime": {
+        "value": "99.99%",
+        "label": "System Uptime"
+      },
+      "storage": {
+        "value": "1PB+",
+        "label": "Storage Capacity"
+      },
+      "users": {
+        "value": "10,000+",
+        "label": "Trusted Users"
+      }
+    },
+    "goals": {
+      "title": "D2MBox Goals & Commitments",
+      "item_1": "Providing flexible, highly secure storage platform, meeting the needs of individuals and businesses",
+      "item_2": "Ensure absolute privacy, detailed access control by authorization",
+      "item_3": "Accompanying businesses on the journey of effective and modern digital transformation",
+      "item_4": "Integrated smart AI Toolkit supports video processing, subtitles, translation and multilingual voiceover",
+      "item_5": "Dedicated, professional 24/7 customer service – always available when you need it"
+    },
+    "vision": {
+      "title": "Development orientation of D2MBox",
+      "integration": {
+        "title": "Comprehensive integration expansion",
+        "desc": "Flexible connectivity with cloud platforms, APIs, and enterprise management systems. D2MBox aims to become a digital data coordination center - where all processes, tools, and platforms are intelligently synchronized for large-scale enterprises."
+      },
+      "ai": {
+        "title": "AI & Intelligent Automation",
+        "desc": "Integrate advanced AI tools to automate data management, retrieval, and security processes. From language translation, subtitling, voice transcription, to video content analysis – everything becomes fast, accurate, and resource-efficient."
+      },
+      "platform": {
+        "title": "Seamless cross-platform experience",
+        "desc": "D2MBox is designed to work seamlessly on any device – from web browsers, mobile apps, desktops to IoT systems. Wherever you work, your data and tools are always at your fingertips."
+      }
+    },
+    "cta": {
+      "title": "Ready to experience D2MBox?",
+      "subtitle": "Register an account now to receive offers and explore all our amazing features!",
+      "button": "Experience Now"
+    }
+  },
+  "header": {
+    "switch_language": "Switch language",
+    "file_management": "File management",
+    "video_processor": "Video processor",
+    "job_management": "Job management",
+    "logout": "Logout",
+    "login": "Login",
+    "logout_success": "Logout successful!",
+    "notifications": "Notifications"
+  },
+  "tour": {
+    "step": "Step {current} / {total}",
+    "next": "Next",
+    "previous": "Previous",
+    "skip": "Skip",
+    "finish": "Finish",
+    "home": {
+      "create_video": {
+        "title": "Create New Video",
+        "description": "Click this button to create a new video project. You can choose from an empty canvas or popular aspect ratios like 16:9, 9:16, 1:1."
+      },
+      "filter": {
+        "title": "Filter Projects",
+        "description": "Use this filter to view projects by specific aspect ratio. Select 'All' to view all projects."
+      },
+      "search": {
+        "title": "Search Projects",
+        "description": "Type keywords in the search box to quickly find the project you need. The system will search by project name."
+      }
+    },
+    "project": {
+      "left_rail": {
+        "title": "Left Toolbar",
+        "description": "This is the main navigation bar. You can switch between panels: Media, Audio, Subtitles, and Voiceover."
+      },
+      "media_panel": {
+        "title": "Media Panel",
+        "description": "Here you can upload and manage video, image, audio, and subtitle files. Drag and drop files here or click the 'Import Media' button."
+      },
+      "preview_stage": {
+        "title": "Preview Area",
+        "description": "This is where you preview your video. You can change the aspect ratio and export your video from here."
+      },
+      "timeline": {
+        "title": "Timeline",
+        "description": "The timeline is where you edit your video. Drag clips here, arrange them, cut and edit. Use the tools above to split or delete clips."
+      },
+      "inspector": {
+        "title": "Edit Panel",
+        "description": "When you select a clip, you'll see editing options here. You can adjust volume, speed, and many other parameters."
+      }
+    }
+  },
+  "common": {
+    "error": "Something went wrong",
+    "server_error": "Server error, please try again later"
+  },
+  "auth": {
+    "not_logged_in": "You are not logged in, please log in",
+    "login": {
+      "welcome_back": "Welcome back",
+      "description": "Login to start managing your projects.",
+      "email": "Email",
+      "email_placeholder": "example@gmail.com",
+      "password": "Password",
+      "password_placeholder": "Enter password",
+      "roleMember": "Member",
+      "roleLeader": "Leader",
+      "forgot_password": "Forgot password?",
+      "login_button": "Login",
+      "sign_in_with_google": "Sign in with Google",
+      "role_prefix": "Log in with",
+      "register_button": "Sign up",
+      "otp_title": "Enter verification code",
+      "otp_description": "We have sent a 6-digit verification code to {email}. Please check and enter the code to complete login.",
+      "otp_label": "Verification code (6 digits)",
+      "otp_resend_countdown": "Resend code in {countdown} seconds",
+      "verify_and_login": "Verify and login",
+      "back": "Back",
+      "otp_sent_success": "Verification code has been sent to your email",
+      "otp_required_error": "Verification code must be 6 digits",
+      "login_success": "Login successful",
+      "general_error": "An error occurred",
+      "check_info_error": "Please check your information again"
+    },
+    "forgot_password": {
+      "title": "Forgot password",
+      "step1_description": "Enter your email to receive a verification code.",
+      "step2_description": "Enter the verification code sent to your email.",
+      "step3_description": "Enter a new password for your account.",
+      "step4_description": "Password changed successfully! Please log in again.",
+      "email": "Email",
+      "email_placeholder": "example@gmail.com",
+      "email_required": "Please enter email",
+      "send_code": "Send verification code",
+      "send_code_failed": "Failed to send code",
+      "code_sent_success": "Verification code has been sent to your email!",
+      "verify_code": "Verify code",
+      "otp_required": "Please enter complete verification code",
+      "invalid_otp": "Invalid verification code",
+      "otp_verified_success": "Code verified successfully, please enter new password!",
+      "new_password": "New password",
+      "new_password_placeholder": "Enter new password",
+      "confirm_password": "Confirm password",
+      "confirm_password_placeholder": "Re-enter password",
+      "password_required": "Please enter complete information",
+      "password_mismatch": "Passwords do not match",
+      "reset_password": "Reset password",
+      "reset_failed": "Failed to reset password",
+      "reset_success": "Password changed successfully! Please log in again.",
+      "success_message": "Password changed successfully!",
+      "general_error": "An error occurred, please try again later"
+    },
+    "register": {
+      "title": "Create an account",
+      "subtitle": "Enter your information to get started",
+      "email": "Email",
+      "email_placeholder": "example@gmail.com",
+      "phone": "Phone number",
+      "phone_placeholder": "09xx xxx xxx",
+      "password": "Password",
+      "password_placeholder": "Enter password",
+      "confirm_password": "Confirm password",
+      "confirm_password_placeholder": "Re-enter password",
+      "submit": "Sign up",
+      "to_login": "Already have an account? Log in",
+      "verify_title": "Verify your email",
+      "verify_subtitle": "Enter the 6-digit code we sent to your email",
+      "verify_submit": "Verify code",
+      "resend_code": "Resend code",
+      "verify_hint": "We sent a 6-digit verification code to",
+      "otp_invalid": "Invalid or expired verification code"
+    }
+  },
+
+  "modal": {
+    "close": "Close",
+    "registration_info": "Registration Information",
+    "full_name": "Full Name",
+    "full_name_placeholder": "Enter your full name",
+    "full_name_required": "Please enter your full name",
+    "email": "Email",
+    "email_placeholder": "Enter login email",
+    "email_required": "Please enter email",
+    "email_invalid": "Invalid email",
+    "email_exists": "Email already exists in the system",
+    "email_note": "* Email used for login, please enter your primary email",
+    "phone": "Phone Number",
+    "phone_placeholder": "Enter phone number",
+    "phone_required": "Please enter phone number",
+    "slast_label": "Personal Identifier (plans)",
+    "slast_placeholder": "Enter personal identifier (e.g., name without spaces, nickname, personal code...)",
+    "slast_required": "Please enter personal identifier",
+    "slast_invalid": "Only use letters, numbers, hyphens or underscores",
+    "slast_exists": "This identifier is already in use, please choose another one.",
+    "slast_note": "This identifier will appear in your personal access path (e.g., cloudstorage.com/leader/slast/home). Each user must have a unique identifier, not duplicated with others.",
+    "checking_slast": "Checking identifier...",
+    "discount_code": "Discount Code (if any)",
+    "discount_code_placeholder": "Enter discount code...",
+    "discount_invalid": "Invalid discount code",
+    "discount_applied": "Apply {percent}% discount",
+    "cancel": "Cancel",
+    "check": "Check",
+    "checking": "Checking...",
+    "email_check_error": "Email check error",
+    "order_error": "Order or payment method error",
+    "payment_info": "Payment Information",
+    "pay_monthly": "Pay Monthly",
+    "pay_yearly": "Pay Yearly",
+    "storage_label": "Storage (TB)",
+    "storage_tooltip": "Storage price: 240,000₫ for first 10TB\n20,000₫ for each additional TB\nMinimum storage: 20TB",
+    "storage_min_error": "Minimum storage is 20TB, integer only",
+    "users_label": "Number of Users",
+    "users_tooltip": "User price: 10,000₫ / user / month\nMinimum users: 20",
+    "users_min_error": "Minimum users is 20, integer only",
+    "amount_to_pay": "Amount to pay",
+    "bank": "Bank",
+    "account_number": "Account Number",
+    "account_name": "Account Holder",
+    "transfer_content": "Transfer Content",
+    "transfer_note": "Please transfer with correct content for automatic system confirmation.",
+    "scan_qr": "Scan QR code to pay",
+    "confirm_payment": "Confirm Payment",
+    "registering": "Registering...",
+    "order_success": "Order Successful!",
+    "order_success_desc": "Your order has been recorded and is pending approval.\nWe will send your account information to the email you provided\nIf you don't receive a response email from the system within 10 minutes, please contact customer service.",
+    "month": "Month",
+    "year": "Year"
+  },
+  "home": {
+    "filter": {
+      "account": "Account",
+      "file": "File type",
+      "date": "Upload date",
+      "size": "Size"
+    },
+    "table": {
+      "account": "Account",
+      "file": "File & Folder",
+      "date": "Upload date",
+      "size": "Size"
+    },
+    "empty": "No data to display",
+    "sidebar": {
+      "overview": "Overview",
+      "total_storage": "Total storage",
+      "used": "Used",
+      "file_ratio": "File ratio",
+      "account_info": "Account info",
+      "total_files": "Total files",
+      "sub_accounts": "Sub accounts",
+      "remain": "Remaining",
+      "plan": "Plan"
+    }
+  },
+  "file": {
+    "table": {
+      "name": "File name",
+      "size": "Size",
+      "updated": "Updated date",
+      "share": "Share",
+      "date": "Date",
+      "downloads": "Downloads"
+    },
+    "filter": {
+      "all": "All",
+      "folder": "Folder",
+      "image": "Image file",
+      "video": "Video file",
+      "word": "Word file"
+    },
+    "button": {
+      "load_more": "Load more",
+      "loading": "Loading...",
+      "cancel": "Cancel",
+      "move": "Move",
+      "upload": "Upload",
+      "upload_files_folders": "Upload files and folders",
+      "create_folder": "Create folder",
+      "view_grid": "Grid view",
+      "view_list": "List view",
+      "back": "Back",
+      "view_more": "View more",
+      "create": "Create",
+      "import_link": "Download via link"
+    },
+    "action": {
+      "download": "Download"
+    },
+    "toast": {
+      "download_success": "Downloaded selected files",
+      "loading_more": "Loading more..."
+    },
+    "search": {
+      "placeholder": "Search your files"
+    },
+    "modal": {
+      "select_destination": "Select destination folder",
+      "go_to_root": "Go outside all folders (Root folder)",
+      "create_folder_title": "Create new folder",
+      "create_folder_placeholder": "Folder name",
+      "move_folder_title": "Select destination folder",
+      "move_outside_all": "Go outside all folders (Root folder)",
+      "move_folder_option": "📁 {folderName}"
+    },
+    "folder": {
+      "root": "Root folder"
+    },
+    "sidebar": {
+      "close_filter": "Close filter",
+      "open_filter": "Open filter",
+      "type": "Type",
+      "all": "All",
+      "file": "File",
+      "folder": "Folder",
+      "account": "Account",
+      "file_types": "File types"
+    },
+    "error": {
+      "cannot_identify_permission_target": "Cannot identify folder or file to grant permission!"
+    },
+    "preview": {
+      "close": "Close",
+      "cannot_preview": "Cannot preview this file."
+    },
+    "select_all": "Select all",
+    "select_all_current": "Select all current",
+    "deselect_all": "Deselect all"
+  },
+  "file_shared": {
+    "title": "Shared files",
+    "description": {
+      "me": "Files you are currently sharing with collaborators.",
+      "with_me": "Files that other users share with you."
+    },
+    "tabs": {
+      "me": "Shared by me",
+      "with_me": "Shared with me"
+    },
+    "table": {
+      "name": "File name",
+      "recipient": "Recipient",
+      "owner": "Owner",
+      "date": "Shared date",
+      "permission": "Permission"
+    },
+    "empty": "No files in this view.",
+    "actions": {
+      "manage": "Manage sharing"
+    }
+  },
+  "file_favorites": {
+    "title": "Favorites",
+    "description": "Quick access to files you starred.",
+    "empty": "You have not starred any files yet.",
+    "card": {
+      "updated": "Last updated",
+      "open": "Open",
+      "remove": "Unstar"
+    }
+  },
+  "file_analytics": {
+    "title": "Storage analytics",
+    "description": "Monitor usage by account and file type.",
+    "usage": {
+      "total": "Used capacity",
+      "remaining": "Remaining capacity",
+      "accounts": "Linked accounts"
+    },
+    "sections": {
+      "account_usage": "Usage by account",
+      "type_usage": "Distribution by type",
+      "logs": "Recent activity"
+    },
+    "tables": {
+      "account": "Account",
+      "type": "File type",
+      "usage": "Usage",
+      "percent": "Percent"
+    },
+    "logs": {
+      "sample1": "marketing@d2mbox.com uploaded 3 videos (2.2 GB)",
+      "sample2": "production@d2mbox.com removed 12 images (430 MB)",
+      "sample3": "You pinned 2 important documents"
+    }
+  },
+  "hooks": {
+    "home_table": {
+      "rename_success": "Rename successful!",
+      "rename_failed": "Rename failed: {message}"
+    },
+    "drive_actions": {
+      "load_data_error": "Error loading data",
+      "upload_success": "Upload successful!",
+      "parse_response_error": "Error parsing response",
+      "process_response_error": "Error processing response",
+      "upload_failed": "Upload failed",
+      "network_error": "Network connection error",
+      "upload_timeout": "Upload timeout",
+      "upload_error": "Error uploading",
+      "batch_upload_error": "Error uploading batch",
+      "move_success": "Move successful!",
+      "move_failed": "Move failed",
+      "move_error": "Error moving",
+      "delete_success": "Delete successful!",
+      "delete_failed": "Delete failed",
+      "delete_error": "Error deleting",
+      "rename_success": "Rename successful!",
+      "rename_failed": "Rename failed",
+      "rename_error": "Error renaming"
+    }
+  },
+  "user_management": {
+    "load_members_error": "Error loading member list",
+    "create_success": "Create member successful!",
+    "create_failed": "Create member failed",
+    "update_success": "Update member successful!",
+    "delete_success": "Member deleted!",
+    "title": "Manage members and account permissions here.",
+    "add_new": "Add new member",
+    "member_example": "member (e.g.",
+    "member_unique": "). Each member must have a unique identifier, no duplicates",
+    "edit_title": "Edit member",
+    "no_members": "No matching members",
+    "confirm_delete_title": "Confirm delete member",
+    "confirm_delete_message": "Are you sure you want to delete member {name}?",
+    "page_title": "User Management",
+    "search_placeholder": "Search",
+    "add_user": "Add User",
+    "email_exists": "Email already exists in the system",
+    "slast_exists": "This identifier is already in use, please choose another identifier.",
+    "connection_error": "Connection error",
+    "update_failed": "Update failed",
+    "delete_failed": "Delete failed",
+    "checking_email": "Checking email...",
+    "checking_slast": "Checking identifier...",
+    "slast_description": "This identifier will appear in your personal access path",
+    "slast_path": "cloudstorage.com/leader/slast/home",
+    "slast_unique": "Must be unique and different from others.",
+    "email_placeholder": "Email",
+    "fullname_placeholder": "Full Name",
+    "password_placeholder": "Password",
+    "slast_placeholder": "Personal identifier (slast)",
+    "new_password_placeholder": "New password (leave blank if not changing)",
+    "cancel": "Cancel",
+    "create": "Create",
+    "creating": "Creating...",
+    "save": "Save",
+    "saving": "Saving...",
+    "edit": "Edit",
+    "delete": "Delete",
+    "user_name": "User Name",
+    "added_date": "Added Date",
+    "folders_managed": "Folders Managed",
+    "storage_used": "Storage Used",
+    "max_users": "Max Users",
+    "no_members_found": "No matching members found"
+  },
+  "permission": {
+    "grant_error": "Error occurred while granting permission",
+    "revoke_error": "Error occurred while revoking permission",
+    "close": "Close",
+    "manage_access_permissions": "Manage Access Permissions",
+    "folder": "Folder",
+    "member_list": "Member List",
+    "no_members": "No members",
+    "permission_open": "Permission Open",
+    "permission_locked": "Permission Locked",
+    "lock_permission": "Lock Permission",
+    "open_permission": "Open Permission",
+    "revoke_permission_title": "Completely revoke permission",
+    "revoke": "Remove"
+  },
+  "user_info": {
+    "update_success": "Information updated successfully!",
+    "update_failed": "Update failed",
+    "connection_error": "Connection error",
+    "plan_expiring_title": "Your plan is about to expire!",
+    "plan_expiring": "The <b>{plan}</b> plan will expire on <b>{date}</b> (in <b>{days}</b> days).\nPlease renew to avoid service interruption.",
+    "detail_info": "Detailed Information",
+    "pending_order_title": "Order Pending Approval",
+    "pending_order": "You have submitted a request to change/renew the plan. Please wait for admin approval before performing further actions.",
+    "sub_accounts": "Total sub-accounts:",
+    "sub_accounts_note": "(Number of user accounts allocated according to the current plan)",
+    "current_plan": "Current service plan:",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving...",
+    "edit": "Edit",
+    "cannot_load_user": "Cannot load user information.",
+    "full_name": "Full Name:",
+    "date_of_birth": "Date of Birth:",
+    "phone": "Phone:",
+    "total_files": "Total files:",
+    "total_storage": "Total storage:",
+    "used_storage": "Used storage:"
+  },
+  "pages": {
+    "faq": {
+      "title": "Frequently Asked Questions",
+      "faqs": [
+        {
+          "q": "What is D2MBox?",
+          "a": "D2MBox is a modern cloud storage platform that helps you store, sync, and share personal and business data safely, securely, and conveniently. You can access your data anytime, anywhere, on any device with just one account. D2MBox is suitable for individuals, workgroups, and businesses who want to optimize digital data management."
+        },
+        {
+          "q": "Is my data secure?",
+          "a": "We apply multiple layers of security: data encryption during transmission and storage, strict access control, multi-factor authentication (2FA), and regular security testing. Only you and those you authorize can access your data. D2MBox commits not to share personal data with third parties without your consent."
+        },
+        {
+          "q": "What devices can I access my data from?",
+          "a": "You can access D2MBox from computers, phones, tablets through the website or app (if available). Data is synchronized instantly across all devices. For example: you upload a file from your phone, you can open it immediately on your laptop without additional operations."
+        },
+        {
+          "q": "How do I recover my password if I forget it?",
+          "a": "You just need to click 'Forgot Password' on the login page, enter your registered email. The system will send a verification code to your email, you enter this code and set a new password. If you encounter difficulties, contact the support team for quick assistance."
+        },
+        {
+          "q": "Does D2MBox support sharing files with people outside the system?",
+          "a": "Yes. You can create share links for files/folders to anyone, including people without D2MBox accounts. You can set passwords, expiration times, or only allow viewing without downloading to control access rights."
+        },
+        {
+          "q": "Can I upgrade or downgrade my service plan?",
+          "a": "You can upgrade/downgrade your plan at any time in the account management section. Balance or duration will be automatically calculated according to D2MBox policy. If you need advice on suitable plans, contact the support team for detailed answers."
+        },
+        {
+          "q": "Is payment on D2MBox secure?",
+          "a": "We use reputable payment gateways, encrypt transactions, and do not store your card information on the system. All transactions are confirmed via email or SMS to ensure absolute safety for users."
+        },
+        {
+          "q": "How do I contact support?",
+          "a": "You can contact us via email contact-d2m@dammeviet.vn, hotline +84 911 930 807 or send support requests directly on the website. Our support team is always ready to answer all questions and handle incidents 24/7."
+        },
+        {
+          "q": "Can deleted data be recovered?",
+          "a": "You can recover deleted files within the temporary storage period (Recycle Bin, usually 15-30 days). After this period, data will be permanently deleted from the system and cannot be recovered. Please check carefully before deleting important data."
+        },
+        {
+          "q": "Can I use D2MBox for business?",
+          "a": "D2MBox provides specialized service packages and features for businesses: group management, detailed permissions, usage reports, API integration, private deployment support. Contact us to receive advice on the most suitable solution for your business."
+        }
+      ]
+    },
+    "contact": {
+      "title": "Contact & Support",
+      "subtitle": "If you need support, consultation, or have any questions about D2MBox, please contact us through the channels below or send a request directly via the form.",
+      "contact_info": "Contact Information",
+      "address": "Address",
+      "email": "Email",
+      "phone": "Phone",
+      "fanpage": "Fanpage",
+      "whatsapp": "Whatsapp/Wechat",
+      "send_request": "Send Support Request",
+      "full_name": "Full Name",
+      "full_name_placeholder": "Enter your full name",
+      "email_placeholder": "Enter contact email",
+      "support_content": "Support Content",
+      "support_content_placeholder": "Describe the issue you need support for...",
+      "send_request_btn": "Send Request",
+      "sending": "Sending...",
+      "please_fill_all": "Please fill in all information.",
+      "send_success": "Request sent successfully!",
+      "send_failed": "Failed to send request."
+    },
+    "terms": {
+      "title": "Terms of Service",
+      "last_updated": "Last updated: 22/07/2025",
+      "sections": [
+        { "id": "intro", "label": "1. Introduction" },
+        { "id": "register", "label": "2. Registration & Service Usage" },
+        { "id": "googleauth", "label": "2.1. Google Login and Data Access" },
+        { "id": "data", "label": "3. Data Responsibility" },
+        { "id": "user_rights", "label": "4. User Rights & Obligations" },
+        {
+          "id": "provider_rights",
+          "label": "5. D2MBox Rights & Responsibilities"
+        },
+        { "id": "payment", "label": "6. Payment & Refunds" },
+        { "id": "suspend", "label": "7. Service Suspension/Termination" },
+        { "id": "liability", "label": "8. Liability Limitations" },
+        { "id": "changes", "label": "9. Terms Changes" },
+        { "id": "contact", "label": "10. Contact" }
+      ],
+      "content": {
+        "intro": {
+          "p1": "When using D2MBox services, you agree to comply with the terms below. These terms are designed to ensure the rights, obligations, and responsibilities of both users and service providers. Please read carefully before using.",
+          "p2": "These terms apply to all users who access, register, or use any D2MBox product, service, website, or application."
+        },
+        "register": {
+          "list": [
+            "You must provide accurate, complete information when registering an account.",
+            "Do not use the service for illegal purposes, distributing harmful content, spam, fraud, or cyber attacks.",
+            "You are responsible for securing login information and not sharing your account with others.",
+            "Notify D2MBox immediately when you detect unauthorized access or suspect account information leakage."
+          ],
+          "example": "Example: Do not use the service to store/distribute malware, copyright-infringing content, or prohibited materials."
+        },
+        "googleauth": {
+          "list": [
+            "When using Google login features or connecting Google Drive, you agree to allow D2MBox to access information and files within the scope of permissions you have confirmed with Google.",
+            "You have the right to control and revoke this access at any time through your Google account management page.",
+            "D2MBox commits to only use your Google data to provide announced features, not for advertising purposes or sharing with third parties."
+          ]
+        },
+        "data": {
+          "list": [
+            "You are responsible for the content of uploaded data, ensuring no violation of intellectual property rights or laws.",
+            "D2MBox commits to protect your data according to the highest security standards, but is not responsible for data content.",
+            "You have the right to export and delete data at any time. D2MBox will completely delete data when you request."
+          ]
+        },
+        "user_rights": {
+          "rights": "Rights: Access and use services according to registered packages, receive technical support, data security.",
+          "obligations": "Obligations: Comply with terms, not violate laws, secure account information, pay in full.",
+          "limitations": "Limitations: Do not use the service for illegal purposes or harm the system or other users."
+        },
+        "provider_rights": {
+          "rights": "Rights: Suspend/block violating accounts, change services, collect fees according to agreed packages.",
+          "responsibilities": "Responsibilities: Provide stable services, secure data, technical support, warranty according to commitments.",
+          "limitations": "Limitations: Not responsible for data content, user errors, incidents beyond control."
+        },
+        "payment": {
+          "list": [
+            "Payment is made before using services according to the selected package.",
+            "Refunds only apply when D2MBox cannot provide services according to commitments.",
+            "No refunds for users voluntarily canceling services or violating terms.",
+            "All payment transactions are recorded and invoices issued according to regulations."
+          ]
+        },
+        "suspend": {
+          "suspend": "Suspension: When violations are detected, wait for verification and processing according to regulations.",
+          "terminate": "Termination: When serious violations occur, not remedied after warnings, or user requests.",
+          "data_deletion": "After termination, data will be permanently deleted within 30 days.",
+          "export": "Users can export data before service termination."
+        },
+        "liability": {
+          "list": [
+            "D2MBox is not responsible for data loss due to technical errors, natural disasters, or network incidents.",
+            "Maximum compensation responsibility does not exceed the amount paid in the last 12 months.",
+            "Not responsible for indirect damages, lost profits, or lost data.",
+            "Users bear risks when using services and need to backup important data."
+          ]
+        },
+        "changes": {
+          "list": [
+            "D2MBox has the right to change these terms when necessary to improve services or comply with laws.",
+            "Change notifications will be sent via email or posted on the website at least 30 days before taking effect.",
+            "Continuing to use services after changes take effect is considered agreement with new terms.",
+            "If you disagree with changes, you have the right to cancel services and export data before changes take effect."
+          ]
+        },
+        "contact": {
+          "p1": "If you have questions about these terms, please contact us:",
+          "list": [
+            "Email: contact-d2m@dammeviet.vn",
+            "Phone: +84 911 930 807",
+            "Address: 205 Binh Duc 5, Binh Duc Ward, An Giang"
+          ],
+          "effective": "These terms are effective from 22/07/2025 and replace all previous terms."
+        }
+      },
+      "labels": {
+        "example": "Example:",
+        "rights": "Rights:",
+        "obligations": "Obligations:",
+        "limitations": "Limitations:",
+        "responsibilities": "Responsibilities:",
+        "suspend": "Suspend:",
+        "terminate": "Terminate:",
+        "phone": "Phone:"
+      }
+    },
+    "table_of_contents": "Table of Contents",
+    "privacy": {
+      "title": "Privacy Policy",
+      "last_updated": "Last updated: 22/07/2025",
+      "labels": {
+        "real_example": "Real example",
+        "note": "Note",
+        "example": "Example",
+        "data_breach": "Data breach cases"
+      },
+      "sections": [
+        { "id": "introduction", "label": "1. Introduction" },
+        { "id": "collect", "label": "2. Information we collect" },
+        { "id": "personal", "label": "2.1. Personal information" },
+        { "id": "nonpersonal", "label": "2.2. Non-personal information" },
+        { "id": "cookies", "label": "2.3. Cookies & Similar technologies" },
+        { "id": "googleapi", "label": "2.4. Data from Google API" },
+        { "id": "use", "label": "3. How we use information" },
+        { "id": "share", "label": "4. Sharing & disclosure" },
+        { "id": "rights", "label": "5. User rights and choices" },
+        { "id": "security", "label": "6. Data security" },
+        { "id": "storage", "label": "7. Data storage & deletion" },
+        { "id": "changes", "label": "8. Policy changes" },
+        { "id": "contact", "label": "9. Contact" }
+      ],
+      "content": {
+        "introduction": {
+          "p1": "D2MBox is committed to protecting your privacy and personal data when using our cloud storage service. This policy explains in detail how we collect, use, store, share, and protect your information. Using our service means you agree to the terms in this policy. We encourage you to read carefully and regularly update on changes.",
+          "p2": "This policy applies to all users who access, register, or use any D2MBox service, product, website, or application, including both individual and business customers."
+        },
+        "collect": {
+          "p1": "We collect the following types of information to provide, operate, protect, and improve our service:",
+          "list": [
+            "Personal Information (Personal Data)",
+            "Non-Personal Information (Non-Personal Data)",
+            "Cookies & Similar Technologies"
+          ]
+        },
+        "personal": {
+          "p1": "We collect personally identifiable information that you provide directly when registering an account, using our service, contacting support, or participating in promotional programs. Examples include:",
+          "list": [
+            "Full name, email, phone number, contact address.",
+            "Login information (username, encrypted password).",
+            "Data stored on our system (files, folders, related metadata).",
+            "Transaction history, invoices, payment information (if using paid services).",
+            "Content of communications with support, feedback, reviews.",
+            "Additional verification information (ID card, business license) if required for business accounts."
+          ],
+          "example": "Real example: When you register an account, we require email and phone number for verification and account security support. When you contact support, we save communication content to improve our service."
+        },
+        "nonpersonal": {
+          "p1": "We automatically collect some non-personally identifiable information when you visit our website or use our application, including:",
+          "list": [
+            "IP address, device type, operating system, browser, screen resolution.",
+            "Access time, pages viewed, links clicked, referral source.",
+            "Anonymous statistical data about usage behavior, system performance.",
+            "Geographic location information (if you allow)."
+          ],
+          "note": "Note: This information helps us analyze, optimize performance, detect errors, protect the system from unauthorized access, and enhance user experience."
+        },
+        "cookies": {
+          "p1": "We use cookies, web beacons, and similar technologies to:",
+          "list": [
+            "Remember login information, personalize interface preferences.",
+            "Analyze traffic, measure marketing campaign effectiveness.",
+            "Support security, detect unusual behavior."
+          ],
+          "p2": "You can customize your browser to reject or delete cookies, however some features may not work optimally if cookies are disabled."
+        },
+        "googleapi": {
+          "p1": "We use Google services, including Google Drive API, to provide features such as storing, retrieving, and managing your files on Google Drive. When you log in or connect your Google account to D2MBox, we may collect and process the following information (depending on the permissions you grant):",
+          "list": [
+            "Basic Google profile information (name, email, profile picture).",
+            "List of files and folders on your Google Drive.",
+            "File content (only when you perform upload, download, or preview operations).",
+            "Information about file access permissions and sharing."
+          ],
+          "commitment": "We commit to:",
+          "commitment_list": [
+            "Only access and use Google Drive data when you have given clear permission.",
+            "Not share, sell, or use your Google Drive data for purposes outside the scope of our service.",
+            "Encrypt data retrieved from Google API during transmission and storage.",
+            "You can disconnect your Google account at any time, and we will delete related access tokens from our system.",
+            "We comply with Google API Services User Data Policy, including requirements for usage limits and data security."
+          ],
+          "policy_link": "Google API Services User Data Policy"
+        },
+        "use": {
+          "list": [
+            "Provide, maintain, develop, and personalize service for each user.",
+            "Manage accounts, authentication, customer support, process requests and responses.",
+            "Send notifications, updates, promotions, newsletters (if you subscribe).",
+            "Analyze, statistics, market research, improve products.",
+            "Detect, prevent fraud, protect system and user security.",
+            "Comply with legal regulations, resolve disputes, handle complaints."
+          ],
+          "example": "Example: We use your email to send notifications about service changes, login verification, or support when you forget your password."
+        },
+        "share": {
+          "list": [
+            "We do not sell, exchange, or share personal information with third parties for commercial purposes without your consent.",
+            "May share with technical partners, payment service providers, storage, security providers, but only within necessary scope and with security commitments.",
+            "Share information when there are legal requests from authorities or to protect legitimate interests of D2MBox and users.",
+            "Transfer data in case of merger, business acquisition (will notify in advance)."
+          ],
+          "example": "Example: If you pay through a bank gateway, we will share necessary information with payment partners to process the transaction."
+        },
+        "rights": {
+          "list": [
+            "Request access, edit, update, or delete personal information at any time.",
+            "Withdraw consent for personal data processing (may affect service usage).",
+            "Object to using data for marketing purposes.",
+            "Receive a copy of personal data (as per legal regulations).",
+            "Contact support to exercise these rights."
+          ],
+          "note": "Note: Some requests may require identity verification to ensure your safety."
+        },
+        "security": {
+          "list": [
+            "Data is encrypted during transmission and storage on servers located in internationally certified data centers.",
+            "Apply physical security measures (access control, cameras, guards), technical (firewall, anti-virus, IDS/IPS), and administrative (internal procedures, staff training).",
+            "Regularly inspect, evaluate, update systems to prevent risks and security vulnerabilities.",
+            "Limit access to personal data only to necessary personnel.",
+            "Collaborate with experts, independent security units for regular testing."
+          ],
+          "breach": "In case of data breach: If an incident occurs, we will promptly notify users and authorities as required by regulations."
+        },
+        "storage": {
+          "list": [
+            "Personal data is stored for the duration you use our service and/or as required by law.",
+            "You can request account deletion and personal data at any time (except when law requires retention).",
+            "After deletion, data will be removed from main system and backups within reasonable time.",
+            "Some non-personal data, anonymous statistics may be retained longer for analysis and service improvement."
+          ],
+          "example": "Example: When you delete your account, all files and personal information will be deleted from the main system within 30 days."
+        },
+        "changes": {
+          "p1": "Privacy policy may be updated to comply with legal regulations, new technology, or operational needs. All changes will be announced on our website and/or via email if necessary. Continuing to use our service after policy changes means you accept the new terms."
+        },
+        "contact": {
+          "p1": "If you have questions, requests, or complaints related to privacy policy, please contact:",
+          "list": [
+            "Email: contact-d2m@dammeviet.vn",
+            "Hotline: +84 911 930 807",
+            "Address: 205 Binh Duc 5, Binh Duc Ward, An Giang"
+          ],
+          "response": "We will respond within 3 business days."
+        }
+      }
+    },
+    "cookie": {
+      "title": "Cookie Policy",
+      "last_updated": "Last updated: 22/07/2025",
+      "sections": [
+        { "id": "intro", "label": "1. Introduction" },
+        { "id": "what", "label": "2. What are cookies?" },
+        { "id": "types", "label": "3. Types of cookies we use" },
+        { "id": "purpose", "label": "4. Purpose of using cookies" },
+        { "id": "manage", "label": "5. Managing & disabling cookies" },
+        { "id": "rights", "label": "6. User rights" },
+        { "id": "changes", "label": "7. Policy changes" },
+        { "id": "contact", "label": "8. Contact" }
+      ],
+      "content": {
+        "intro": {
+          "p1": "This page explains how D2MBox uses cookies and similar technologies to identify you when accessing our website/services. Using our service means you agree to this cookie policy."
+        },
+        "what": {
+          "p1": "Cookies are small files stored on your device when you visit a website. Cookies help websites remember information about you (such as login status, preferences, browsing history) to improve your user experience."
+        },
+        "types": {
+          "list": [
+            {
+              "title": "Essential cookies:",
+              "desc": "Help websites function properly (login, security, navigation...)"
+            },
+            {
+              "title": "Functional cookies:",
+              "desc": "Remember personalization preferences (language, interface...)"
+            },
+            {
+              "title": "Analytics cookies:",
+              "desc": "Collect anonymous data about user behavior to improve services."
+            },
+            {
+              "title": "Advertising cookies:",
+              "desc": "Support displaying relevant advertisements (if any)."
+            }
+          ]
+        },
+        "purpose": {
+          "list": [
+            "Remember login information, avoiding the need to re-enter each time you visit.",
+            "Store personalization preferences for interface and language.",
+            "Analyze, measure website effectiveness, detect errors, optimize experience.",
+            "Support security, detect unusual access.",
+            "Display advertisements relevant to preferences (if any)."
+          ]
+        },
+        "manage": {
+          "p1": "You can customize your browser to reject or delete cookies at any time. However, disabling cookies may affect some website features (e.g., no automatic login, loss of personalization preferences).",
+          "list": [
+            "Cookie management guides are usually found in the Settings section of your browser.",
+            "You can also use incognito mode to limit cookie storage."
+          ]
+        },
+        "rights": {
+          "list": [
+            "Right to know, control, delete cookies on your device.",
+            "Right to reject cookies not necessary for basic website functionality.",
+            "Right to contact D2MBox to inquire about cookie usage."
+          ]
+        },
+        "changes": {
+          "p1": "Cookie policy may be updated to comply with legal regulations or operational needs. All changes will be announced on our website."
+        },
+        "contact": {
+          "list": [
+            "Email: contact-d2m@dammeviet.vn",
+            "Hotline: +84 911 930 807",
+            "Address: 205 Binh Duc 5, Binh Duc Ward, An Giang"
+          ],
+          "response": "We will respond within 3 business days."
+        }
+      }
+    }
+  },
+  "table_of_contents": "Table of Contents",
+  "notification": {
+    "title": "Notification",
+    "description": "View your latest notifications here.",
+    "mark_all_read": "Mark all as read",
+    "empty": "No notifications.",
+    "new": "New",
+    "delete_tooltip": "Delete notification",
+    "delete": "Delete",
+    "load_more": "Load more",
+    "loading": "Loading...",
+    "view_all": "View All"
+  },
+  "change_password": {
+    "title": "Change Password",
+    "old_password_placeholder": "Current password",
+    "new_password_placeholder": "New password",
+    "confirm_password_placeholder": "Confirm new password",
+    "old_password_required": "Please enter your current password",
+    "new_password_required": "Please enter a new password",
+    "password_min_length": "The new password must be at least 6 characters",
+    "password_mismatch": "Passwords do not match",
+    "change_success": "Password changed successfully!",
+    "general_error": "An error occurred",
+    "cancel": "Cancel",
+    "confirm_change": "Confirm password change",
+    "changing": "Changing..."
+  },
+  "plan_change_summary": {
+    "owner_info_title": "Owner Information",
+    "current_plan": "Current plan:",
+    "new_plan": "New plan:",
+    "storage_label": "Storage (TB):",
+    "users_label": "Number of users:",
+    "storage_min_error": "Minimum storage is 20TB, must be an integer",
+    "users_min_error": "Minimum number of users is 20, must be an integer",
+    "select_type": "Select type:",
+    "month": "Month",
+    "year": "Year",
+    "current_expiry": "Current expiry date:",
+    "days_remaining": "Days remaining:",
+    "extra_days": "Extra days added to the new plan:",
+    "extra_days_tooltip": "Extra days = (Remaining days of the old plan × old plan price/day) divided by new plan price/day.\n\nIf the new plan is more expensive, fewer days are converted. If the new plan is cheaper, more days are converted.",
+    "pro_rata_payment": "Payment amount is calculated based on the remaining days (pro-rata)",
+    "pro_rata_tooltip": "When changing to the same type (month → month or year → year), payment = (new plan price for the remaining days) minus the remaining value of the old plan.\n\nYou only pay the difference when upgrading.",
+    "cannot_downgrade_title": "Cannot downgrade while the current plan still has validity.",
+    "cannot_downgrade": "Please wait until expiry to switch to a lower plan.",
+    "downgrade_year_to_month_title": "Downgrade from yearly to monthly plan:",
+    "downgrade_year_to_month": "Remaining days of the yearly plan will be converted into {extraDays} days of the new monthly plan.",
+    "insufficient_value_title": "The remaining value of the old plan is insufficient to convert into new plan days.",
+    "insufficient_value": "You will start the new plan without any additional days.",
+    "upgrade_renew_same_type_title": "Upgrade/Renew same type:",
+    "upgrade_renew_same_type": "Payment = New plan price - Remaining value of the old plan.\nRemaining value: {amount}₫\nNew plan price: {newPrice}₫",
+    "upgrade_month_to_year_title": "Upgrade from monthly to yearly plan:",
+    "upgrade_month_to_year": "Payment = Yearly plan price - Remaining value of the monthly plan.\nRemaining value: {amount}₫\nYearly plan price: {yearPrice}₫",
+    "new_registration_title": "New registration:",
+    "new_registration": "Pay full price for the new plan.",
+    "cannot_change_plan": "You cannot downgrade or change the plan while the current plan is still valid. Please wait until expiry.",
+    "discount_code_label": "Discount code (if any):",
+    "discount_code_placeholder": "Enter discount code...",
+    "apply": "Apply",
+    "checking": "Checking...",
+    "discount_applied": "{percent}% discount applied",
+    "payment_info_title": "Payment Information",
+    "amount_to_pay": "Amount to pay:",
+    "scan_qr": "Scan QR code to pay:",
+    "bank": "Bank:",
+    "account_number": "Account number:",
+    "account_name": "Account holder:",
+    "loading": "Loading...",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "sending": "Sending...",
+    "order_success": "Order submitted successfully! Please wait for admin approval.",
+    "close": "Close"
+  },
+  "plan_list_in_user": {
+    "title": "Service Plans",
+    "no_plans": "No service plans available.",
+    "custom": "Custom",
+    "free": "Free",
+    "per_month": "/month",
+    "year": "Year:",
+    "save": "Save {sale}%",
+    "users": "{users} users",
+    "renew": "Renew",
+    "currently_using": "Currently using",
+    "cannot_buy_smaller": "Cannot purchase a smaller plan",
+    "cannot_buy_smaller_tooltip": "Cannot purchase a plan smaller than the current custom plan",
+    "choose_this_plan": "Choose this plan",
+    "cannot_downgrade": "Cannot downgrade",
+    "cannot_downgrade_tooltip": "Downgrade is only allowed when the plan is about to expire or has expired",
+    "featured": "Most Popular"
+  },
+  "chat": {
+    "sidebar": {
+      "search_placeholder": "Search messages",
+      "search_user_placeholder": "Search by email or slast...",
+      "searching": "Searching...",
+      "no_user_found": "No user found",
+      "welcome": "Welcome back",
+      "title": "Collaboration inbox",
+      "new_chat": "Start a chat",
+      "filter_all": "All",
+      "filter_unread": "Unread",
+      "filter_pinned": "Pinned"
+    },
+    "conversation": {
+      "select_conversation": "Select a conversation",
+      "loading_more": "Loading more...",
+      "input_placeholder": "Type a message",
+      "search_placeholder": "Search in conversation",
+      "search_messages": "Search messages",
+      "no_results": "0 results",
+      "members": "members",
+      "pinned": "Pinned message",
+      "view_detail": "View detail",
+      "audio_call": "Audio call",
+      "video_call": "Video call",
+      "info_title": "Contact info",
+      "email": "Email",
+      "phone": "Phone",
+      "role": "Role",
+      "joined": "Joined date",
+      "add_attachment": "Attach file",
+      "sending_attachment": "Sending file...",
+      "download_attachment": "Download",
+      "attachment_label": "Attachment",
+      "start_call": "Start",
+      "end_call": "End",
+      "pin": "Pin message",
+      "unpin": "Unpin",
+      "incoming": "Incoming call",
+      "outgoing": "Calling...",
+      "connecting": "Connecting...",
+      "connected": "Connected",
+      "accept": "Accept",
+      "reject": "Decline",
+      "cancel": "Cancel call",
+      "unknown_user": "User"
+    },
+    "status": {
+      "online": "Online",
+      "offline": "Offline"
+    },
+    "role": {
+      "admin": "Admin",
+      "leader": "Leader",
+      "member": "Member"
+    }
+  },
+  "upload_status": {
+    "moving": "Moving...",
+    "move_success": "Move successful!",
+    "move_failed": "Move failed",
+    "creating_folder": "Creating folder...",
+    "create_folder_success": "Folder created successfully!",
+    "create_folder_failed": "Folder creation failed",
+    "create_folder_error": "An error occurred while creating the folder.",
+    "deleting": "Deleting...",
+    "delete_success": "Delete successful!",
+    "delete_failed": "Delete failed",
+    "uploading": "Uploading... {progress}%",
+    "has_error": "Some files failed",
+    "upload_success": "Upload successful!"
+  },
+  "upload_modal": {
+    "title": "Upload files or folders",
+    "drag_drop": "Drag and drop files/folders or choose from device",
+    "drop_here": "Drop files/folders here!",
+    "file_list": "File list ({count})",
+    "remove": "Remove",
+    "uploading": "Uploading...",
+    "choose_file": "Choose file",
+    "choose_folder": "Choose folder",
+    "upload_count": "Upload {count} items",
+    "processing": "Processing, please wait..."
+  },
+  "sidebar": {
+    "logout_success": "Logout successful!",
+    "home": "Home",
+    "file_management": "File management",
+    "shared": "Shared files",
+    "favorites": "Favorites",
+    "analytics": "Storage analytics",
+    "job_management": "Job management",
+    "tool": "Tool",
+    "edit_video": "Edit video",
+    "download_video": "Download video",
+    "user_management": "Member management",
+    "notification": "Notifications",
+    "account_info": "Account info",
+    "chat": "Chat",
+    "logout": "Logout",
+    "close_menu": "Close menu"
+  },
+  "member": {
+    "header": {
+      "logout": "Logout"
+    },
+    "table": {
+      "name": "Name",
+      "size": "Size",
+      "date": "Date",
+      "share": "Share"
+    },
+    "page": {
+      "title": "Manage authorized files",
+      "description": "Only shows folders you have been granted access to by the leader.",
+      "upload": "Upload",
+      "create_folder": "Create folder",
+      "view_grid": "Grid view",
+      "view_table": "Table view",
+      "root_folder": "Root folder",
+      "loading": "Loading...",
+      "no_folders": "No folders",
+      "load_folders_error": "Cannot load folder list"
+    },
+    "modal": {
+      "create_folder_title": "Create new folder",
+      "folder_name_placeholder": "Folder name",
+      "cancel": "Cancel",
+      "create": "Create",
+      "rename_title": "Rename",
+      "new_name_placeholder": "New name",
+      "rename": "Rename",
+      "select_destination_title": "Select destination folder",
+      "select_destination_description": "Select the folder you want to move to",
+      "move_to_root": "Move outside all folders (Root folder)",
+      "move": "Move",
+      "confirm_delete_title": "Confirm delete",
+      "confirm_delete_message": "Are you sure you want to delete {count} selected items?",
+      "confirm_delete_warning": "This action cannot be undone!",
+      "delete": "Delete"
+    }
+  },
+  "job_management": {
+    "nav": {
+      "workspace": "Workspace",
+      "assigned": "Assigned to me",
+      "recent": "Recent",
+      "pinned": "Pinned boards",
+      "time_tracking": "Time tracking"
+    },
+      "pages": {
+      "pinned_boards": "Pinned boards",
+      "pinned_description": "Quick access to your important workspaces.",
+      "no_pinned_boards": "You haven't pinned any boards yet.",
+      "assigned_to_me": "Assigned to me",
+      "assigned_description": "Quickly track tasks you're responsible for across all boards.",
+      "no_assigned_tasks": "No tasks have been assigned to you.",
+      "recent_boards": "Recent boards",
+      "recent_description": "List of boards you recently opened, helping you get back to work quickly.",
+      "no_recent_boards": "You haven't accessed any boards recently.",
+      "accessed_at": "Accessed at:",
+      "not_set": "Not set",
+      "unknown": "Unknown",
+      "never_accessed": "Never accessed"
+    },
+    "board": {
+      "enter_title": "Enter title",
+      "add_card": "Add card",
+      "add_task": "Add task",
+      "add_list": "Add list",
+      "close": "Close",
+      "edit_card": "Edit card",
+      "edit_name": "Edit name",
+      "edit_list_name": "Edit list name",
+      "delete_list": "Delete list",
+      "click_to_edit_title": "Click to edit title",
+      "no_title": "No title",
+      "enter_title_ellipsis": "Enter title…",
+      "enter_list_name": "Enter list name…",
+      "enter_list_title": "Enter list title…",
+      "color": "Color",
+      "description": "Description",
+      "numbered_list": "Numbered list",
+      "delete_board": "Delete board",
+      "create_board": "Create board",
+      "create_new_board": "Create new board",
+      "back": "Back",
+      "drag_to_sort": "Drag to sort",
+      "open_menu": "Open menu",
+      "clear_search": "Clear search",
+      "no_cards_yet": "No cards yet",
+      "loading": "Loading…",
+      "empty": "Empty",
+      "your_workspace": "Your workspace",
+      "guest_workspace": "Guest workspace",
+      "open_board": "Open board",
+      "list": "List",
+      "due_date_label": "Due date",
+      "progress_label": "Progress",
+      "workspace_fallback": "Workspace",
+      "pin_board": "Pin board",
+      "unpin_board": "Unpin board",
+      "no_due_date": "No due date",
+      "drop_card_here": "Drop card here",
+      "time": "Time"
+    },
+    "card": {
+      "delete": "Delete",
+      "title": "Title",
+      "start_date": "Start date",
+      "due_date": "Due date",
+      "add_member": "Add member",
+      "select_color": "Select color",
+      "edit_start_date": "Edit start date",
+      "edit_due_date": "Edit date",
+      "write_comment": "Write a comment...",
+      "delete_comment": "Delete comment",
+      "search_by_title_or_board": "Search by title or board...",
+      "search_board": "Search board by title or creator…",
+      "members": "Members",
+      "search_members": "Search members",
+      "select_color_label": "Select color",
+      "board_members": "Board members",
+      "not_found": "Not found"
+    },
+    "checklist": {
+      "add_item": "Add an item…",
+      "add_checklist": "Add checklist",
+      "mark_complete": "Mark as complete",
+      "item_content": "Enter content…",
+      "item_content_label": "Item content",
+      "due_date": "Due date",
+      "add_date": "Add date",
+      "edit_member": "Edit member",
+      "assign": "Assign",
+      "delete_item": "Delete item",
+      "checklist_progress": "Checklist progress",
+      "tasks_to_do": "Tasks to do"
+    },
+    "time_tracking": {
+      "title": "Time tracking",
+      "start_work": "Start work",
+      "working": "Working",
+      "paused": "Paused",
+      "completed": "Completed",
+      "worked_for": "Worked: {minutes}m {seconds}s",
+      "total_time": "Total time: {hours}h {minutes}m",
+      "pause": "Pause",
+      "resume": "Resume",
+      "complete": "Finish",
+      "restart": "Restart",
+      "start_success": "Started working on task {taskName}",
+      "pause_success": "Paused. Total time: {minutes}m",
+      "resume_success": "Resumed",
+      "complete_success": "Completed. Total time: {hours}h {minutes}m",
+      "switch_task_confirm": "You are working on task {taskName}. Do you want to switch to this task?",
+      "switch_task": "Switch",
+      "cancel": "Cancel",
+      "no_active_session": "No active work session",
+      "page_title": "My time tracking",
+      "today": "Today",
+      "this_week": "This week",
+      "this_month": "This month",
+      "total_time_label": "Total time",
+      "total_tasks_label": "Tasks worked on",
+      "total_completed_label": "Tasks completed",
+      "work_sessions_today": "Work sessions today",
+      "no_sessions": "No work sessions yet",
+      "view_details": "View details",
+      "task": "Task",
+      "board": "Board",
+      "duration": "Duration",
+      "status": "Status",
+      "start_time": "Start time",
+      "end_time": "End time",
+      "work_too_long_warning": "You have been working for too long. Please take a break!"
+    },
+    "description": {
+      "close": "Close",
+      "paragraph_style": "Paragraph style (Paragraph/H1/H2/H3)",
+      "bold": "Bold",
+      "italic": "Italic",
+      "underline": "Underline",
+      "strikethrough": "Strikethrough",
+      "bullet_list": "Bullet list",
+      "blockquote": "Blockquote",
+      "link": "Link",
+      "unlink": "Unlink",
+      "clear_content": "Clear content",
+      "write_description_placeholder": "Write description... Type / for suggestions.",
+      "enter_url": "Enter URL:"
+    },
+    "modal": {
+      "close": "Close",
+      "board_name_placeholder": "E.g: Website Project, Marketing Q4…",
+      "add": "Add",
+      "cancel": "Cancel",
+      "save": "Save",
+      "edit": "Edit",
+      "no_description": "No description yet. Click \"Add\" to write.",
+      "add_member_by_email": "Add member by email",
+      "add_member_note": "Only emails already in the system can be added."
+    },
+    "errors": {
+      "unpin_error": "Error unpinning",
+      "save_order_error": "Cannot save order",
+      "save_order_failed": "Error saving order",
+      "move_card_error": "Cannot move card",
+      "load_list_error": "Cannot load card list",
+      "general_error": "Error",
+      "server_error": "Server error",
+      "update_failed": "Update failed",
+      "sort_failed": "Sort failed",
+      "move_failed": "Move failed",
+      "enter_email": "Please enter email",
+      "cannot_get_list": "Cannot get list",
+      "cannot_delete": "Cannot delete",
+      "cannot_edit": "Cannot edit",
+      "update_failed_short": "Update failed",
+      "update_error": "Update error",
+      "load_list_error_short": "Error loading list",
+      "enter_board_title": "Please enter board title",
+      "create_board_failed": "Failed to create board",
+      "cannot_delete_board": "Cannot delete",
+      "guest": "Guest",
+      "cannot_load_pinned": "Cannot load pinned list",
+      "cannot_pin": "Cannot pin board",
+      "cannot_unpin": "Cannot unpin board",
+      "delete_error": "Error deleting",
+      "cannot_load_tasks": "Cannot load tasks",
+      "cannot_add_member": "Error adding member",
+      "cannot_get_board": "Cannot get board",
+      "user": "User",
+      "moving": "Moving…"
+    },
+    "success": {
+      "card_moved": "Card moved",
+      "delete_success": "Deleted successfully",
+      "create_success": "Created successfully",
+      "add_success": "Added successfully",
+      "remove_success": "Removed successfully",
+      "create_card_success": "Card created successfully",
+      "sort_success": "Sorted successfully",
+      "update_success": "Updated successfully",
+      "delete_item_success": "Deleted",
+      "pin_success": "Board pinned",
+      "unpin_success": "Board unpinned"
+    }
+  },
+  "video_processor": {
+    "no_cover": "No cover",
+    "created_date": "Created on",
+    "open_menu": "Open menu",
+    "rename": "Rename",
+    "delete": "Delete",
+    "rename_project": "Rename project",
+    "enter_new_name": "Enter new name",
+    "cancel": "Cancel",
+    "save": "Save",
+    "create_video": "Create video",
+    "video": "Video",
+    "empty_canvas": "Empty canvas",
+    "all": "All",
+    "search_placeholder": "Search...",
+    "no_projects": "No projects yet. Click \"Create video\".",
+    "show_more": "Show more",
+    "platforms": {
+      "youtube_facebook": "YouTube, Facebook",
+      "tiktok_youtube_instagram": "TikTok, YouTube, Instagram",
+      "instagram_linkedin_facebook": "Instagram, LinkedIn, Facebook"
+    },
+    "inspector": {
+      "edit_audio": "Edit Audio",
+      "edit_video": "Edit Video",
+      "options": "Options",
+      "adjust_volume": "Adjust volume",
+      "volume": "Volume",
+      "adjust_speed": "Adjust playback speed",
+      "speed": "Speed",
+      "speed_description": "Audio playback speed (50% - 200%)",
+      "adjust_stability": "Adjust stability",
+      "stability": "Stability",
+      "stability_description": "Voice stability (0% - 100%).",
+      "processing_progress": "Processing progress",
+      "processing": "Processing...",
+      "ai_tools": "AI Tools",
+      "auto_subtitle": "Auto Subtitle",
+      "free": "Free",
+      "auto_subtitle_description": "Automatically recognize speech in video.",
+      "video_language": "Language used in video",
+      "create": "Create",
+      "extract_audio": "Extract Audio",
+      "extract_audio_description": "Export audio from video as a separate file (e.g., .wav, .mp3).",
+      "voiceover": {
+        "select_audio_for_subtitle": "Select Audio for Subtitle",
+        "regenerate_voice": "Regenerate Voice",
+        "generate_voice": "Generate Voice",
+        "regenerate_voice_tooltip": "Regenerate voice for segments that already have voice",
+        "generate_voice_tooltip": "Generate voice for all segments that have been assigned voice",
+        "no_segments_to_generate": "No segments need voice generation",
+        "cannot_generate_voice": "Cannot generate voice. Please try again.",
+        "started_generating": "Started {action} for {count} segments...",
+        "voice_library": "Voice Library",
+        "default_voice": "Default Voice",
+        "my_voice": "My Voice",
+        "upload_audio_file": "Upload audio file",
+        "voice_name": "Voice Name",
+        "voice_name_placeholder": "E.g: Male Voice A",
+        "uploading": "Uploading…",
+        "voice": "Voice",
+        "select_voice": "Select Voice",
+        "cloned_voice": "Cloned Voice",
+        "clone_voice_success": "Voice cloned successfully!",
+        "clone_voice_failed": "Voice cloning failed",
+        "please_enter_voice_name": "Please enter voice name",
+        "selected_voices": "Selected Voices",
+        "hide": "Hide",
+        "show": "Show",
+        "please_select_segment_for_settings": "Please select a segment to edit settings",
+        "please_select_segment": "Please select segment",
+        "apply": "Apply",
+        "assigned_voice_to_segment": "Voice assigned to segment",
+        "please_select_segment_first": "Please select a segment first",
+        "cannot_find_segment_id": "Cannot find segment ID",
+        "voice_config_updated": "Voice configuration updated",
+        "record_directly": "Record Directly",
+        "recording": "Recording…",
+        "paused": "Paused",
+        "recorded": "Recorded",
+        "ready": "Ready",
+        "start_recording": "Start Recording",
+        "stop": "Stop",
+        "listen_again": "Listen Again",
+        "record_again": "Record Again",
+        "save_upload": "Save & Upload",
+        "uploading_short": "Uploading…",
+        "select_voice_title": "Select Voice",
+        "search_voices_placeholder": "Search voices...",
+        "loading_voices": "Loading voices...",
+        "no_voices_found": "No voices found",
+        "no_voices_yet": "No voices yet",
+        "cloned_from": "Cloned from...",
+        "default_voice_label": "Default voice",
+        "pause": "Pause",
+        "preview": "Preview",
+        "back": "Back",
+        "customize_voice": "Customize Voice",
+        "model": "Model",
+        "voice_speed": "Speed",
+        "slower": "Slower",
+        "faster": "Faster",
+        "stability_label": "Stability",
+        "more_variation": "More Variation",
+        "more_stable": "More Stable",
+        "similarity": "Similarity",
+        "low": "Low",
+        "high": "High",
+        "style_exaggeration": "Style Exaggeration",
+        "none": "None",
+        "exaggerated": "Exaggerated",
+        "speaker_boost": "Speaker Boost",
+        "all_languages": "All Languages ({count}):",
+        "more_languages": "+{count} more",
+        "character_management": "Character Management",
+        "assign_segment_to_character": "Assign Segments to Character",
+        "cancel_quick_select": "Cancel Quick Select",
+        "quick_select_mode": "Quick Select Mode:",
+        "quick_select_instruction": "Click on segments on the left to assign to character",
+        "this": "this",
+        "quick_select": "Quick Select:",
+        "default_voice_with_count": "Default Voice ({count})",
+        "selected_segment": "Selected Segment:",
+        "use_default_voice": "— Use Default Voice —",
+        "using_voice_of": "Using voice of:",
+        "unassign": "Unassign",
+        "using_default_voice": "Using default voice",
+        "segment_list": "Segment List ({count})",
+        "no_segments": "No segments yet",
+        "character_management_title": "Character Management",
+        "character_management_description": "Create and manage characters, assign voices to each segment",
+        "close": "Close",
+        "assign_segment_to_character_title": "Assign Segments to Character",
+        "add": "Add",
+        "character_name": "Character Name",
+        "character_name_placeholder": "Character name",
+        "voice_label": "Voice:",
+        "edit": "Edit",
+        "delete": "Delete",
+        "save": "Save",
+        "cancel": "Cancel",
+        "no_characters": "No characters yet. Click \"Add\" to create a new character.",
+        "character_prefix": "Character",
+        "model_multilingual_desc": "Multilingual support, high quality",
+        "model_turbo_desc": "Fast speed, suitable for short videos",
+        "model_v3_name": "D2Mbox v3",
+        "model_v3_desc": "Expressive, 70+ languages. Alpha.",
+        "model_v25_name": "D2Mbox v2.5",
+        "model_v25_desc": "Low latency for conversation/real-time.",
+        "model_v2_name": "D2Mbox v2",
+        "model_v2_desc": "Stable, long content, supports cloning.",
+        "alpha": "Alpha",
+        "best": "Best"
+      },
+      "panel": {
+        "subtitle": {
+          "title": "Subtitles",
+          "processing": "Processing...",
+          "processing_progress": "Processing progress",
+          "auto_subtitle": "Auto Subtitle",
+          "auto_subtitle_description": "Automatically recognize speech in video.",
+          "video_language": "Language used in video",
+          "create": "Create",
+          "hardsub": "Fast Hardsub",
+          "hardsub_description": "Extract subtitles from video by selecting text region",
+          "box_color": "Box Color",
+          "auto_track": "Auto Track",
+          "language": "Language",
+          "enable_frame": "Enable Frame",
+          "disable": "Disable",
+          "extract_subtitle": "Extract Subtitle",
+          "hardsub_instruction": "Drag frame on preview to select text region, then select language and click \"Extract Subtitle\". System will automatically track and extract subtitles from entire video.",
+          "cannot_init_job": "Cannot initialize job",
+          "extract_success": "Successfully extracted {count} subtitles!",
+          "no_subtitles_found": "No subtitles found. Please try again with different region.",
+          "no_result_from_server": "No result received from server. Please try again.",
+          "error_getting_result": "Error getting result: {error}",
+          "error": "Error: {error}",
+          "error_processing_data": "Error processing data from server",
+          "connection_closed": "Connection closed. Please try again.",
+          "translate_subtitle": "Translate Subtitle",
+          "translate_subtitle_description": "Translate existing subtitles to another language.",
+          "to_language": "To (target)",
+          "source_based_on": "Source will be based on existing subtitles / selected track.",
+          "translate": "Translate",
+          "upload_subtitle": "Upload Subtitle",
+          "upload_subtitle_description": "Supports .srt, .vtt, .ass/.ssa",
+          "drag_drop_file": "Drag & drop subtitle file here or select file",
+          "select_file": "Select File",
+          "timecode_note": "Note: Subtitle timecode needs to match current video to display correctly.",
+          "subtitle_style": "Subtitle Style",
+          "subtitle_style_description": "Set font, size, color, background…",
+          "edit_subtitle": "Edit Subtitle",
+          "loading_subtitle": "Loading subtitle",
+          "subtitle_timeline": "Subtitle timeline",
+          "no_timeline": "No timeline",
+          "no_subtitle": "No subtitle",
+          "add_subtitle_to_timeline": "Add subtitle to timeline to start editing",
+          "modified_indicator": "Modified - needs voice regeneration",
+          "add_first_segment": "Add First Segment",
+          "add_new_segment": "Add New Segment",
+          "settings": {
+            "title": "Settings Configuration",
+            "classic": "Classic",
+            "modern": "Modern",
+            "cinematic": "Cinematic",
+            "reset_all": "Reset All",
+            "close": "Close",
+            "text": "Text",
+            "font": "Font",
+            "color": "Color",
+            "scale": "Scale",
+            "weight": "Weight",
+            "weight_normal": "Normal",
+            "weight_medium": "Medium",
+            "weight_semibold": "Semibold",
+            "weight_bold": "Bold",
+            "weight_extrabold": "Extrabold",
+            "style": "Style",
+            "style_normal": "Normal",
+            "style_italic": "Italic",
+            "align": "Alignment",
+            "align_left": "Left",
+            "align_center": "Center",
+            "align_right": "Right",
+            "background": "Background",
+            "enable": "Enable",
+            "opacity": "Opacity",
+            "karaoke": "Karaoke",
+            "karaoke_bg": "Background Color",
+            "layout": "Layout",
+            "horizontal_position": "Horizontal Position",
+            "vertical_position": "Vertical Position",
+            "top": "Top",
+            "middle": "Middle",
+            "bottom": "Bottom",
+            "auto_break": "Auto Line Break",
+            "max_lines": "Max Lines Per Section",
+            "max_words": "Max Words Per Line",
+            "reset": "Reset"
+          },
+          "style": {
+            "back": "Back",
+            "captions": "Captions",
+            "size": "Size",
+            "change_color": "Change color",
+            "reset": "Reset",
+            "settings": "Settings"
+          }
+        },
+        "audio": {
+          "title": "Music Library",
+          "description": "Find and add free royalty-free background music",
+          "refresh": "Refresh",
+          "search_placeholder": "Search music...",
+          "filter": "Filter",
+          "favorites": "Favorites",
+          "view_all": "View All",
+          "categories": "Categories",
+          "suggested": "Suggested",
+          "tracks_count": "{count} tracks",
+          "add": "Add",
+          "close": "Close",
+          "favorites_list": "Favorites List",
+          "categories_list": "Music Categories",
+          "suggested_tracks": "Suggested Tracks",
+          "click_to_view": "Click to view",
+          "no_preview_url": "Track has no preview URL",
+          "cannot_play_preview": "Cannot play this preview",
+          "added_to_timeline": "Added track to timeline"
+        },
+        "media": {
+          "import_media": "Import Media",
+          "drag_drop_instruction": "Drag and drop media files from your device to import.",
+          "view_large": "View Large",
+          "close": "Close",
+          "added": "Added",
+          "preview": {
+            "pause": "Pause",
+            "play": "Play",
+            "progress": "Progress",
+            "no_preview": "Subtitle preview not supported. You can use this file in timeline."
+          }
+        }
+      },
+      "rail": {
+        "media": "Media",
+        "audio": "Audio",
+        "subtitle": "Subtitle",
+        "voiceover": "Voiceover"
+      },
+      "stage": {
+        "untitled_project": "Untitled Project",
+        "aspect_ratio": "Aspect Ratio",
+        "aspect_ratio_title": "Aspect Ratio",
+        "export": "Export",
+        "loading": "Loading...",
+        "export_menu": {
+          "title": "Export Project",
+          "export_video": "Export Video",
+          "export_video_description": "Export complete video with text, audio,...",
+          "export_audio": "Export Audio",
+          "export_audio_description": "Export audio only, merge all audio clips",
+          "export_subtitle": "Export Subtitle",
+          "export_subtitle_description": "Export subtitle file (SRT, VTT)",
+          "video_options": "Video Export Options",
+          "audio_options": "Audio Export Options",
+          "subtitle_options": "Subtitle Export Options",
+          "resolution": "Resolution",
+          "quality": "Quality",
+          "quality_high": "High",
+          "quality_medium": "Medium",
+          "quality_low": "Low",
+          "format": "Format",
+          "bitrate": "Bitrate",
+          "processing": "Processing...",
+          "export_processing": "Processing export...",
+          "export_failed": "Export failed",
+          "cannot_start_export": "Cannot start export",
+          "download_success": "Download successful!",
+          "cannot_download": "Cannot download file"
+        }
+      },
+      "timeline": {
+        "split": "Split",
+        "split_with_shortcut": "Split (S)",
+        "split_at_playhead": "Split at playhead",
+        "delete": "Delete",
+        "delete_with_shortcut": "Delete (Del)",
+        "zoom": "Zoom",
+        "zoom_with_shortcut": "Zoom (Ctrl/Cmd + scroll)"
+      }
+    }
+  }
+}

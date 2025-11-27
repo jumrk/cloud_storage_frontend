@@ -1,0 +1,29 @@
+# *
+User-agent: *
+Allow: /
+Allow: /about
+Allow: /contact
+Allow: /faq
+Allow: /privacy_policy
+Allow: /terms_of_use
+Allow: /cookie_policy
+Disallow: /admin/
+Disallow: /member/
+Disallow: /Login
+Disallow: /ForgotPassword
+Disallow: /share/
+Disallow: /*/admin/
+Disallow: /*/member/
+Disallow: /*/leader/
+Disallow: /*/chat/
+Disallow: /*/file_management/
+Disallow: /*/infor_user/
+Disallow: /*/notification/
+Disallow: /*/user_management/
+Disallow: /*/tools/
+
+# Host
+Host: https://d2mbox.com
+
+# Sitemaps
+Sitemap: https://d2mbox.com/sitemap.xml

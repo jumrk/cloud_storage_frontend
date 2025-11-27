@@ -1,0 +1,1800 @@
+{
+  "hero": {
+    "solution": "GIẢI PHÁP",
+    "storage": "LƯU TRỮ",
+    "safe": "AN TOÀN",
+    "and": "VÀ",
+    "fast1": "TỐC ĐỘ CAO",
+    "fast2": "CÔNG NGHỆ AI",
+    "get_started": "Bắt đầu",
+    "view_pricing": "Xem giá",
+    "users": "Người dùng",
+    "files": "Tệp đã tải lên",
+    "capacity": "Dung lượng lưu trữ",
+    "desc": "D2MBox là một nền tảng lưu trữ dữ liệu mạnh mẽ, cung cấp tốc độ tải lên/tải xuống cao mà không giới hạn dung lượng lưu trữ. Hệ thống phân quyền linh hoạt giúp các nhóm và doanh nghiệp quản lý hiệu quả, đồng thời đảm bảo an toàn dữ liệu tuyệt đối với nhiều chế độ chia sẻ. Được xây dựng trên cơ sở hạ tầng Google, D2MBox cung cấp giao diện trực quan và các công cụ quản lý tệp tiện lợi, dễ sử dụng.",
+    "desc_1": "Không chỉ dừng lại ở lưu trữ, D2MBox còn tích hợp bộ công cụ AI cao cấp: tự động tải và xử lý video, tách – dịch – đồng bộ phụ đề đa ngôn ngữ, ghép nội dung media, chuyển đổi giọng nói AI toàn cầu,... Tất cả được tinh gọn trong một giao diện trực quan, hoạt động mượt mà trên mọi nền tảng.",
+    "desc_2": "Được xây dựng trên hạ tầng mạnh mẽ của Google và nâng tầm bằng công nghệ AI, D2MBox không chỉ là nơi lưu trữ – mà là trung tâm xử lý & vận hành dữ liệu thông minh của tương lai."
+  },
+  "description": {
+    "title": "PHÂN QUYỀN NGƯỜI DÙNG THÔNG MINH",
+    "feature_1_title": "Tự tạo & quản lý nhóm người dùng",
+    "feature_1_desc": "Tạo và quản lý người dùng trong nhóm của bạn mà không cần qua hệ thống trung tâm.",
+    "feature_2_title": "Lưu trữ chia sẻ & thao tác nhanh",
+    "feature_2_desc": "Các thành viên chia sẻ dung lượng lưu trữ, các thao tác chỉ cần vài cú nhấp chuột.",
+    "feature_3_title": "Phân quyền dạng cây",
+    "feature_3_desc": "Xây dựng mô hình phân quyền dạng cây, mỗi trưởng nhóm là một 'quản trị viên nhỏ' của hệ thống riêng.",
+    "feature_4_title": "Kiểm soát toàn diện nhóm",
+    "feature_4_desc": "Bạn có toàn quyền kiểm soát nhóm của mình – như một hệ thống riêng biệt trong hệ thống lớn hơn.",
+    "sync": "ĐỒNG BỘ & LƯU TRỮ TỐI ƯU",
+    "sync_title": "Tốc độ vượt trội, bảo mật tuyệt đối",
+    "sync_desc": "Chỉ với vài thao tác đơn giản, bạn có thể dễ dàng tải bất kỳ tệp nào từ thiết bị lên hệ thống. Mọi dữ liệu đều được lưu trữ an toàn, đồng bộ tức thời và sẵn sàng truy cập mọi lúc, mọi nơi – nhanh chóng, tiện lợi và bảo mật tối đa.",
+    "share": "CÔNG CỤ AI THÔNG MINH & LINH HOẠT",
+    "share_title": "Hỗ trợ toàn diện, xử lý nội dung media chỉ trong vài bước",
+    "share_desc": "Tích hợp bộ công cụ AI mạnh mẽ giúp bạn làm việc với video và ngôn ngữ dễ dàng hơn bao giờ hết: Từ tải phim, nối video, lấy và chỉnh phụ đề, đến dịch tự động đa ngôn ngữ và chuyển giọng nói bằng AI. Mọi thao tác đều nhanh chóng, chính xác và tối ưu cho công việc hậu kỳ, truyền thông hay học tập đa nền tảng.",
+    "ui": "GIAO DIỆN HIỆN ĐẠI & DỄ LÀM CHỦ",
+    "ui_title": "Trực quan, thân thiện – thao tác chỉ trong tích tắc",
+    "ui_desc": "Giao diện được thiết kế tối giản nhưng tinh tế, giúp người dùng dễ dàng làm quen và thao tác ngay từ lần đầu sử dụng. Mọi quy trình quản lý – từ tổ chức tệp đến kiểm soát người dùng – đều trở nên liền mạch, tiết kiệm thời gian và nâng cao hiệu suất công việc."
+  },
+  "plans": {
+    "title": "GÓI DỊCH VỤ",
+    "no_plan": "Không có gói dịch vụ nào khả dụng.",
+    "choose": "Chọn gói này",
+    "custom_storage_error": "Dung lượng tối thiểu là 20TB, chỉ chấp nhận số nguyên",
+    "custom_users_error": "Số lượng người dùng tối thiểu là 20, chỉ chấp nhận số nguyên",
+    "featured": "Phổ biến nhất",
+    "custom": "Tùy chỉnh",
+    "free": "Miễn phí",
+    "month": "/tháng",
+    "year": "Năm:",
+    "save": "Tiết kiệm {sale}%",
+    "users": "{users} người dùng",
+    "storage": "{storage}"
+  },
+  "faq": {
+    "title": "CÂU HỎI THƯỜNG GẶP",
+    "1_q": "1. Dữ liệu của tôi có thực sự an toàn không?",
+    "1_a": "Chúng tôi sử dụng công nghệ mã hóa hiện đại và xác minh thủ công để đảm bảo dữ liệu của bạn luôn được bảo vệ tối đa khỏi truy cập trái phép.",
+    "2_q": "2. Tôi có thể nâng cấp/hạ cấp gói dịch vụ bất kỳ lúc nào không?",
+    "2_a": "Bạn có thể thay đổi gói dịch vụ bất kỳ lúc nào chỉ với vài bước đơn giản trên trang quản lý tài khoản.",
+    "3_q": "3. Tôi thanh toán như thế nào? Có cung cấp hóa đơn không?",
+    "3_a": "Chúng tôi hỗ trợ nhiều phương thức thanh toán (chuyển khoản ngân hàng, ví điện tử, v.v.). Hóa đơn VAT sẽ được gửi đến bạn sau khi thanh toán thành công.",
+    "4_q": "4. Tôi có được hỗ trợ nhanh chóng nếu gặp vấn đề không?",
+    "4_a": "Đội ngũ hỗ trợ của chúng tôi luôn sẵn sàng 24/7 qua email, điện thoại, fanpage và các kênh trò chuyện trực tuyến.",
+    "5_q": "5. Có thể mở rộng dung lượng lưu trữ không?",
+    "5_a": "Bạn có thể liên hệ với chúng tôi để được tư vấn nâng cấp dung lượng lưu trữ phù hợp với nhu cầu."
+  },
+  "cta": {
+    "title": "Phát triển công việc nhóm của bạn với",
+    "desc": "D2MBox là nền tảng lưu trữ và cộng tác thông minh, giúp đội nhóm và doanh nghiệp vận hành hiệu quả, bảo mật và linh hoạt. Dù bạn là một startup nhỏ hay công ty đang phát triển, D2MBox mang đến không gian lưu trữ an toàn kết hợp hệ thống phân quyền mạnh mẽ, tạo nhiệm vụ, phân chia công việc và trao đổi trực tiếp ngay trên nền web. Bên cạnh đó, nền tảng còn tích hợp bộ Tool AI đa năng hỗ trợ tải phim, nối video, trích xuất và dịch phụ đề, chuyển giọng nói đa ngôn ngữ – tất cả giúp bạn rút ngắn thời gian xử lý và nâng cao hiệu quả công việc. Quản lý dễ dàng, vận hành mượt mà, minh bạch và chuyên nghiệp – tất cả đều sẵn sàng để nhóm của bạn tăng tốc.",
+    "btn": "Tìm hiểu thêm"
+  },
+  "footer": {
+    "tagline": "Công ty Bảo mật",
+    "description": "Dịch vụ mã hóa điện toán đám mây cho cộng đồng",
+    "copyright": "© D2MBox 2025 Mọi quyền được bảo lưu",
+    "follow_us": "Theo dõi D2MBox",
+    "support_title": "Hỗ trợ",
+    "policy_title": "Chính sách",
+    "privacy": "Chính sách Bảo mật",
+    "terms": "Điều khoản Sử dụng",
+    "cookie": "Chính sách Cookie",
+    "about": "Về D2MBox",
+    "support": "Liên hệ/Hỗ trợ",
+    "faq": "Câu hỏi thường gặp"
+  },
+  "header": {
+    "switch_language": "Đổi ngôn ngữ",
+    "file_management": "Quản lý tệp",
+    "job_management": "Quản lý công việc",
+    "video_processor": "Trình xử lý video",
+    "logout": "Đăng xuất",
+    "login": "Đăng nhập",
+    "logout_success": "Đăng xuất thành công!",
+    "notifications": "Thông báo"
+  },
+  "tour": {
+    "step": "Bước {current} / {total}",
+    "next": "Tiếp",
+    "previous": "Trước",
+    "skip": "Bỏ qua",
+    "finish": "Hoàn thành",
+    "home": {
+      "create_video": {
+        "title": "Tạo video mới",
+        "description": "Nhấn vào nút này để tạo một dự án video mới. Bạn có thể chọn từ canvas trống hoặc các tỷ lệ khung hình phổ biến như 16:9, 9:16, 1:1."
+      },
+      "filter": {
+        "title": "Lọc dự án",
+        "description": "Sử dụng bộ lọc này để xem các dự án theo tỷ lệ khung hình cụ thể. Chọn 'Tất cả' để xem tất cả dự án."
+      },
+      "search": {
+        "title": "Tìm kiếm dự án",
+        "description": "Nhập từ khóa vào ô tìm kiếm để tìm nhanh dự án bạn cần. Hệ thống sẽ tìm kiếm theo tên dự án."
+      }
+    },
+    "project": {
+      "left_rail": {
+        "title": "Thanh công cụ bên trái",
+        "description": "Đây là thanh điều hướng chính. Bạn có thể chuyển đổi giữa các panel: Phương tiện, Âm thanh, Phụ đề và Lồng tiếng."
+      },
+      "media_panel": {
+        "title": "Panel Phương tiện",
+        "description": "Tại đây bạn có thể tải lên và quản lý các file video, hình ảnh, audio và phụ đề. Kéo thả file vào đây hoặc nhấn nút 'Nhập phương tiện'."
+      },
+      "preview_stage": {
+        "title": "Khu vực xem trước",
+        "description": "Đây là nơi bạn xem trước video của mình. Bạn có thể thay đổi tỷ lệ khung hình và xuất video từ đây."
+      },
+      "timeline": {
+        "title": "Timeline",
+        "description": "Timeline là nơi bạn chỉnh sửa video. Kéo các clip vào đây, sắp xếp thứ tự, cắt và chỉnh sửa. Sử dụng các công cụ ở trên để tách hoặc xóa clip."
+      },
+      "inspector": {
+        "title": "Panel chỉnh sửa",
+        "description": "Khi chọn một clip, bạn sẽ thấy các tùy chọn chỉnh sửa ở đây. Bạn có thể điều chỉnh âm lượng, tốc độ, và nhiều thông số khác."
+      }
+    }
+  },
+
+  "common": {
+    "error": "Đã có lỗi xảy ra",
+    "server_error": "Lỗi máy chủ, vui lòng thử lại sau"
+  },
+  "auth": {
+    "not_logged_in": "Bạn chưa đăng nhập, vui lòng đăng nhập",
+    "login": {
+      "welcome_back": "Chào mừng trở lại",
+      "description": "Đăng nhập để bắt đầu quản lý dự án của bạn.",
+      "email": "Email",
+      "email_placeholder": "ví dụ: example@gmail.com",
+      "password": "Mật khẩu",
+      "password_placeholder": "Nhập mật khẩu",
+      "roleMember": "Thành viên",
+      "roleLeader": "Quản lý",
+      "forgot_password": "Quên mật khẩu?",
+      "login_button": "Đăng nhập",
+      "sign_in_with_google": "Đăng nhập bằng Google",
+      "role_prefix": "Đăng nhập với",
+      "register_button": "Đăng ký",
+      "otp_title": "Nhập mã xác thực",
+      "otp_description": "Chúng tôi đã gửi mã xác thực 6 chữ số đến email {email}. Vui lòng kiểm tra và nhập mã để hoàn tất đăng nhập.",
+      "otp_label": "Mã xác thực (6 chữ số)",
+      "otp_resend_countdown": "Gửi lại mã sau {countdown} giây",
+      "verify_and_login": "Xác thực và đăng nhập",
+      "back": "Quay lại",
+      "otp_sent_success": "Đã gửi mã xác thực đến email",
+      "otp_required_error": "Mã xác thực phải có 6 chữ số",
+      "login_success": "Đăng nhập thành công",
+      "general_error": "Có lỗi xảy ra",
+      "check_info_error": "Vui lòng kiểm tra lại thông tin"
+    },
+    "forgot_password": {
+      "title": "Quên mật khẩu",
+      "step1_description": "Nhập email của bạn để nhận mã xác minh.",
+      "step2_description": "Nhập mã xác minh được gửi tới email của bạn.",
+      "step3_description": "Nhập mật khẩu mới cho tài khoản.",
+      "step4_description": "Đổi mật khẩu thành công! Vui lòng đăng nhập lại.",
+      "email": "Email",
+      "email_placeholder": "ví dụ: example@gmail.com",
+      "email_required": "Vui lòng nhập email",
+      "send_code": "Gửi mã xác minh",
+      "send_code_failed": "Gửi mã thất bại",
+      "code_sent_success": "Mã xác minh đã được gửi tới email của bạn!",
+      "verify_code": "Xác minh mã",
+      "otp_required": "Vui lòng nhập đầy đủ mã xác minh",
+      "invalid_otp": "Mã xác minh không hợp lệ",
+      "otp_verified_success": "Xác minh thành công, vui lòng nhập mật khẩu mới!",
+      "new_password": "Mật khẩu mới",
+      "new_password_placeholder": "Nhập mật khẩu mới",
+      "confirm_password": "Xác nhận mật khẩu",
+      "confirm_password_placeholder": "Nhập lại mật khẩu",
+      "password_required": "Vui lòng nhập đầy đủ thông tin",
+      "password_mismatch": "Mật khẩu không khớp",
+      "reset_password": "Đặt lại mật khẩu",
+      "reset_failed": "Đặt lại mật khẩu thất bại",
+      "reset_success": "Đổi mật khẩu thành công! Vui lòng đăng nhập lại.",
+      "success_message": "Đổi mật khẩu thành công!",
+      "general_error": "Đã xảy ra lỗi, vui lòng thử lại sau"
+    },
+    "register": {
+      "title": "Tạo tài khoản",
+      "subtitle": "Nhập thông tin để bắt đầu",
+      "email": "Email",
+      "email_placeholder": "ví dụ: example@gmail.com",
+      "phone": "Số điện thoại",
+      "phone_placeholder": "09xx xxx xxx",
+      "password": "Mật khẩu",
+      "password_placeholder": "Nhập mật khẩu",
+      "confirm_password": "Xác nhận mật khẩu",
+      "confirm_password_placeholder": "Nhập lại mật khẩu",
+      "submit": "Đăng ký",
+      "to_login": "Đã có tài khoản? Đăng nhập",
+      "verify_title": "Xác minh email",
+      "verify_subtitle": "Nhập mã 6 chữ số đã gửi tới email của bạn",
+      "verify_submit": "Xác minh mã",
+      "resend_code": "Gửi lại mã",
+      "verify_hint": "Chúng tôi đã gửi mã xác minh 6 chữ số tới",
+      "otp_invalid": "Mã xác minh không hợp lệ hoặc đã hết hạn"
+    }
+  },
+
+  "modal": {
+    "close": "Đóng",
+    "registration_info": "Thông tin đăng ký",
+    "full_name": "Họ và tên",
+    "full_name_placeholder": "Nhập họ và tên của bạn",
+    "full_name_required": "Vui lòng nhập họ và tên",
+    "email": "Email",
+    "email_placeholder": "Nhập email đăng nhập",
+    "email_required": "Vui lòng nhập email",
+    "email_invalid": "Email không hợp lệ",
+    "email_exists": "Email đã tồn tại trong hệ thống",
+    "email_note": "* Email dùng để đăng nhập, vui lòng nhập email chính của bạn",
+    "phone": "Số điện thoại",
+    "phone_placeholder": "Nhập số điện thoại",
+    "phone_required": "Vui lòng nhập số điện thoại",
+    "slast_label": "Định danh cá nhân (gói dịch vụ)",
+    "slast_placeholder": "Nhập định danh cá nhân (ví dụ: tên không dấu, biệt danh, mã cá nhân...)",
+    "slast_required": "Vui lòng nhập định danh cá nhân",
+    "slast_invalid": "Chỉ sử dụng chữ cái, số, dấu gạch ngang hoặc gạch dưới",
+    "slast_exists": "Định danh này đã được sử dụng, vui lòng chọn định danh khác.",
+    "slast_note": "Định danh này sẽ xuất hiện trong đường dẫn truy cập cá nhân của bạn (ví dụ: cloudstorage.com/leader/slast/home). Mỗi người dùng phải có định danh duy nhất, không trùng lặp với người khác.",
+    "checking_slast": "Đang kiểm tra định danh...",
+    "discount_code": "Mã giảm giá (nếu có)",
+    "discount_code_placeholder": "Nhập mã giảm giá...",
+    "discount_invalid": "Mã giảm giá không hợp lệ",
+    "discount_applied": "Áp dụng giảm giá {percent}%",
+    "cancel": "Hủy",
+    "check": "Kiểm tra",
+    "checking": "Đang kiểm tra...",
+    "email_check_error": "Lỗi kiểm tra email",
+    "order_error": "Lỗi đơn hàng hoặc phương thức thanh toán",
+    "payment_info": "Thông tin thanh toán",
+    "pay_monthly": "Thanh toán hàng tháng",
+    "pay_yearly": "Thanh toán hàng năm",
+    "storage_label": "Dung lượng (TB)",
+    "storage_tooltip": "Giá dung lượng: 240.000₫ cho 10TB đầu tiên\n20.000₫ cho mỗi TB bổ sung\nDung lượng tối thiểu: 20TB",
+    "storage_min_error": "Dung lượng tối thiểu là 20TB, chỉ chấp nhận số nguyên",
+    "users_label": "Số lượng người dùng",
+    "users_tooltip": "Giá người dùng: 10.000₫ / người dùng / tháng\nSố lượng người dùng tối thiểu: 20",
+    "users_min_error": "Số lượng người dùng tối thiểu là 20, chỉ chấp nhận số nguyên",
+    "amount_to_pay": "Số tiền phải thanh toán",
+    "bank": "Ngân hàng",
+    "account_number": "Số tài khoản",
+    "account_name": "Chủ tài khoản",
+    "transfer_content": "Nội dung chuyển khoản",
+    "transfer_note": "Vui lòng chuyển khoản với nội dung chính xác để hệ thống xác nhận tự động.",
+    "scan_qr": "Quét mã QR để thanh toán",
+    "confirm_payment": "Xác nhận thanh toán",
+    "registering": "Đang đăng ký...",
+    "order_success": "Đặt hàng thành công!",
+    "order_success_desc": "Đơn hàng của bạn đã được ghi nhận và đang chờ phê duyệt.\nChúng tôi sẽ gửi thông tin tài khoản đến email bạn đã cung cấp.\nNếu bạn không nhận được email phản hồi từ hệ thống trong vòng 10 phút, vui lòng liên hệ với bộ phận chăm sóc khách hàng.",
+    "month": "Tháng",
+    "year": "Năm"
+  },
+  "home": {
+    "filter": {
+      "account": "Tài khoản",
+      "file": "Loại tệp",
+      "date": "Ngày tải lên",
+      "size": "Kích thước"
+    },
+    "table": {
+      "account": "Tài khoản",
+      "file": "Tệp & Thư mục",
+      "date": "Ngày tải lên",
+      "size": "Kích thước"
+    },
+    "empty": "Không có dữ liệu để hiển thị",
+    "sidebar": {
+      "overview": "Tổng quan",
+      "total_storage": "Tổng dung lượng",
+      "used": "Đã sử dụng",
+      "file_ratio": "Tỷ lệ tệp",
+      "account_info": "Thông tin tài khoản",
+      "total_files": "Tổng số tệp",
+      "sub_accounts": "Tài khoản phụ",
+      "remain": "Còn lại",
+      "plan": "Gói dịch vụ"
+    }
+  },
+  "file": {
+    "table": {
+      "name": "Tên tệp",
+      "size": "Kích thước",
+      "updated": "Ngày cập nhật",
+      "share": "Chia sẻ",
+      "date": "Ngày",
+      "downloads": "Lượt tải xuống"
+    },
+    "filter": {
+      "all": "Tất cả",
+      "folder": "Thư mục",
+      "image": "Tệp hình ảnh",
+      "video": "Tệp video",
+      "word": "Tệp Word"
+    },
+    "button": {
+      "load_more": "Tải thêm",
+      "loading": "Đang tải...",
+      "cancel": "Hủy",
+      "move": "Di chuyển",
+      "upload": "Tải lên",
+      "upload_files_folders": "Tải lên tệp và thư mục",
+      "create_folder": "Tạo thư mục",
+      "view_grid": "Chế độ lưới",
+      "view_list": "Chế độ danh sách",
+      "back": "Quay lại",
+      "view_more": "Xem thêm",
+      "create": "Tạo",
+      "import_link": "Tải bằng liên kết"
+    },
+    "action": {
+      "download": "Tải xuống"
+    },
+    "toast": {
+      "download_success": "Đã tải xuống các tệp đã chọn",
+      "loading_more": "Đang tải thêm..."
+    },
+    "search": {
+      "placeholder": "Tìm kiếm tệp của bạn"
+    },
+    "modal": {
+      "select_destination": "Chọn thư mục đích",
+      "go_to_root": "Ra ngoài tất cả thư mục (Thư mục gốc)",
+      "create_folder_title": "Tạo thư mục mới",
+      "create_folder_placeholder": "Tên thư mục",
+      "move_folder_title": "Chọn thư mục đích",
+      "move_outside_all": "Ra ngoài tất cả thư mục (Thư mục gốc)",
+      "move_folder_option": "📁 {folderName}"
+    },
+    "folder": {
+      "root": "Thư mục gốc"
+    },
+    "sidebar": {
+      "close_filter": "Đóng bộ lọc",
+      "open_filter": "Mở bộ lọc",
+      "type": "Loại",
+      "all": "Tất cả",
+      "file": "Tệp",
+      "folder": "Thư mục",
+      "account": "Tài khoản",
+      "file_types": "Loại tệp"
+    },
+    "error": {
+      "cannot_identify_permission_target": "Không thể xác định thư mục hoặc tệp để cấp quyền!"
+    },
+    "preview": {
+      "close": "Đóng",
+      "cannot_preview": "Không thể xem trước tệp này."
+    },
+    "select_all": "Chọn tất cả",
+    "select_all_current": "Chọn tất cả hiện tại",
+    "deselect_all": "Bỏ chọn tất cả"
+  },
+  "file_shared": {
+    "title": "Tệp đã chia sẻ",
+    "description": {
+      "me": "Danh sách các tệp bạn đang chia sẻ cho cộng sự của mình.",
+      "with_me": "Các tệp mà người khác chia sẻ cho bạn."
+    },
+    "tabs": {
+      "me": "Tôi chia sẻ",
+      "with_me": "Chia sẻ với tôi"
+    },
+    "table": {
+      "name": "Tên tệp",
+      "recipient": "Người nhận",
+      "owner": "Người chia sẻ",
+      "date": "Ngày chia sẻ",
+      "permission": "Quyền"
+    },
+    "empty": "Chưa có tệp nào trong mục này.",
+    "actions": {
+      "manage": "Quản lý chia sẻ"
+    }
+  },
+  "file_favorites": {
+    "title": "Tệp yêu thích",
+    "description": "Các mục bạn đã đánh dấu để truy cập nhanh.",
+    "empty": "Chưa có tệp nào được ghim.",
+    "card": {
+      "updated": "Cập nhật lần cuối",
+      "open": "Mở",
+      "remove": "Bỏ ghim"
+    }
+  },
+  "file_analytics": {
+    "title": "Báo cáo dung lượng",
+    "description": "Theo dõi mức sử dụng theo tài khoản và loại tệp.",
+    "usage": {
+      "total": "Dung lượng đã dùng",
+      "remaining": "Dung lượng còn lại",
+      "accounts": "Tài khoản liên kết"
+    },
+    "sections": {
+      "account_usage": "Sử dụng theo tài khoản",
+      "type_usage": "Phân bổ theo loại tệp",
+      "logs": "Nhật ký sử dụng gần đây"
+    },
+    "tables": {
+      "account": "Tài khoản",
+      "type": "Loại tệp",
+      "usage": "Dung lượng sử dụng",
+      "percent": "Tỷ lệ"
+    },
+    "logs": {
+      "sample1": "marketing@d2mbox.com tải lên 3 video (2.2 GB)",
+      "sample2": "production@d2mbox.com xóa 12 ảnh (430 MB)",
+      "sample3": "Bạn đã ghim 2 tài liệu quan trọng"
+    }
+  },
+  "hooks": {
+    "home_table": {
+      "rename_success": "Đổi tên thành công!",
+      "rename_failed": "Đổi tên thất bại: {message}"
+    },
+    "drive_actions": {
+      "load_data_error": "Lỗi tải dữ liệu",
+      "upload_success": "Tải lên thành công!",
+      "parse_response_error": "Lỗi phân tích phản hồi",
+      "process_response_error": "Lỗi xử lý phản hồi",
+      "upload_failed": "Tải lên thất bại",
+      "network_error": "Lỗi kết nối mạng",
+      "upload_timeout": "Hết thời gian tải lên",
+      "upload_error": "Lỗi khi tải lên",
+      "batch_upload_error": "Lỗi tải lên hàng loạt",
+      "move_success": "Di chuyển thành công!",
+      "move_failed": "Di chuyển thất bại",
+      "move_error": "Lỗi khi di chuyển",
+      "delete_success": "Xóa thành công!",
+      "delete_failed": "Xóa thất bại",
+      "delete_error": "Lỗi khi xóa",
+      "rename_success": "Đổi tên thành công!",
+      "rename_failed": "Đổi tên thất bại",
+      "rename_error": "Lỗi khi đổi tên"
+    }
+  },
+  "user_management": {
+    "load_members_error": "Lỗi tải danh sách thành viên",
+    "create_success": "Tạo thành viên thành công!",
+    "create_failed": "Tạo thành viên thất bại",
+    "update_success": "Cập nhật thành viên thành công!",
+    "delete_success": "Đã xóa thành viên!",
+    "title": "Quản lý thành viên và quyền tài khoản tại đây.",
+    "add_new": "Thêm thành viên mới",
+    "member_example": "thành viên (ví dụ:",
+    "member_unique": "). Mỗi thành viên phải có định danh duy nhất, không trùng lặp",
+    "edit_title": "Chỉnh sửa thành viên",
+    "no_members": "Không tìm thấy thành viên phù hợp",
+    "confirm_delete_title": "Xác nhận xóa thành viên",
+    "confirm_delete_message": "Bạn có chắc chắn muốn xóa thành viên {name}?",
+    "page_title": "Quản lý người dùng",
+    "search_placeholder": "Tìm kiếm",
+    "add_user": "Thêm người dùng",
+    "email_exists": "Email đã tồn tại trong hệ thống",
+    "slast_exists": "Định danh này đã được sử dụng, vui lòng chọn định danh khác.",
+    "connection_error": "Lỗi kết nối",
+    "update_failed": "Cập nhật thất bại",
+    "delete_failed": "Xóa thất bại",
+    "checking_email": "Đang kiểm tra email...",
+    "checking_slast": "Đang kiểm tra định danh...",
+    "slast_description": "Định danh này sẽ xuất hiện trong đường dẫn truy cập cá nhân của bạn",
+    "slast_path": "cloudstorage.com/leader/slast/home",
+    "slast_unique": "Phải là duy nhất và khác với những người khác.",
+    "email_placeholder": "Email",
+    "fullname_placeholder": "Họ và tên",
+    "password_placeholder": "Mật khẩu",
+    "slast_placeholder": "Định danh cá nhân (slast)",
+    "new_password_placeholder": "Mật khẩu mới (để trống nếu không thay đổi)",
+    "cancel": "Hủy",
+    "create": "Tạo",
+    "creating": "Đang tạo...",
+    "save": "Lưu",
+    "saving": "Đang lưu...",
+    "edit": "Chỉnh sửa",
+    "delete": "Xóa",
+    "user_name": "Tên người dùng",
+    "added_date": "Ngày thêm",
+    "folders_managed": "Thư mục quản lý",
+    "storage_used": "Dung lượng đã sử dụng",
+    "max_users": "Số người dùng tối đa",
+    "no_members_found": "Không tìm thấy thành viên phù hợp"
+  },
+  "permission": {
+    "grant_error": "Đã xảy ra lỗi khi cấp quyền",
+    "revoke_error": "Đã xảy ra lỗi khi thu hồi quyền",
+    "close": "Đóng",
+    "manage_access_permissions": "Quản lý quyền truy cập",
+    "folder": "Thư mục",
+    "member_list": "Danh sách thành viên",
+    "no_members": "Không có thành viên",
+    "permission_open": "Quyền mở",
+    "permission_locked": "Quyền bị khóa",
+    "lock_permission": "Khóa quyền",
+    "open_permission": "Mở quyền",
+    "revoke_permission_title": "Thu hồi hoàn toàn quyền",
+    "revoke": "Xóa"
+  },
+  "user_info": {
+    "update_success": "Cập nhật thông tin thành công!",
+    "update_failed": "Cập nhật thất bại",
+    "connection_error": "Lỗi kết nối",
+    "plan_expiring_title": "Gói dịch vụ của bạn sắp hết hạn!",
+    "plan_expiring": "Gói <b>{plan}</b> sẽ hết hạn vào ngày <b>{date}</b> (trong <b>{days}</b> ngày).\nVui lòng gia hạn để tránh gián đoạn dịch vụ.",
+    "detail_info": "Thông tin chi tiết",
+    "pending_order_title": "Đơn hàng đang chờ phê duyệt",
+    "pending_order": "Bạn đã gửi yêu cầu thay đổi/gia hạn gói dịch vụ. Vui lòng chờ phê duyệt từ quản trị viên trước khi thực hiện các hành động tiếp theo.",
+    "sub_accounts": "Tổng số tài khoản phụ:",
+    "sub_accounts_note": "(Số lượng tài khoản người dùng được phân bổ theo gói dịch vụ hiện tại)",
+    "current_plan": "Gói dịch vụ hiện tại:",
+    "cancel": "Hủy",
+    "save": "Lưu",
+    "saving": "Đang lưu...",
+    "edit": "Chỉnh sửa",
+    "cannot_load_user": "Không thể tải thông tin người dùng.",
+    "full_name": "Họ và tên:",
+    "date_of_birth": "Ngày sinh:",
+    "phone": "Số điện thoại:",
+    "total_files": "Tổng số tệp:",
+    "total_storage": "Tổng dung lượng:",
+    "used_storage": "Dung lượng đã sử dụng:"
+  },
+  "pages": {
+    "faq": {
+      "title": "Câu hỏi thường gặp",
+      "faqs": [
+        {
+          "q": "D2MBox là gì?",
+          "a": "D2MBox là một nền tảng lưu trữ đám mây hiện đại giúp bạn lưu trữ, đồng bộ và chia sẻ dữ liệu cá nhân và doanh nghiệp một cách an toàn, bảo mật và tiện lợi. Bạn có thể truy cập dữ liệu mọi lúc, mọi nơi, trên mọi thiết bị chỉ với một tài khoản. D2MBox phù hợp cho cá nhân, nhóm làm việc và doanh nghiệp muốn tối ưu hóa quản lý dữ liệu số."
+        },
+        {
+          "q": "Dữ liệu của tôi có an toàn không?",
+          "a": "Chúng tôi áp dụng nhiều lớp bảo mật: mã hóa dữ liệu trong quá trình truyền và lưu trữ, kiểm soát truy cập nghiêm ngặt, xác thực hai yếu tố (2FA) và kiểm tra bảo mật định kỳ. Chỉ bạn và những người được bạn ủy quyền mới có thể truy cập dữ liệu. D2MBox cam kết không chia sẻ dữ liệu cá nhân với bên thứ ba mà không có sự đồng ý của bạn."
+        },
+        {
+          "q": "Tôi có thể truy cập dữ liệu từ những thiết bị nào?",
+          "a": "Bạn có thể truy cập D2MBox từ máy tính, điện thoại, máy tính bảng thông qua trang web hoặc ứng dụng (nếu có). Dữ liệu được đồng bộ tức thì trên tất cả các thiết bị. Ví dụ: bạn tải tệp lên từ điện thoại, bạn có thể mở ngay lập tức trên máy tính xách tay mà không cần thao tác bổ sung."
+        },
+        {
+          "q": "Làm thế nào để khôi phục mật khẩu nếu tôi quên?",
+          "a": "Bạn chỉ cần nhấp vào 'Quên mật khẩu' trên trang đăng nhập, nhập email đã đăng ký. Hệ thống sẽ gửi mã xác minh đến email của bạn, bạn nhập mã này và đặt mật khẩu mới. Nếu gặp khó khăn, hãy liên hệ với đội ngũ hỗ trợ để được trợ giúp nhanh chóng."
+        },
+        {
+          "q": "D2MBox có hỗ trợ chia sẻ tệp với người ngoài hệ thống không?",
+          "a": "Có. Bạn có thể tạo liên kết chia sẻ cho tệp/thư mục cho bất kỳ ai, kể cả những người không có tài khoản D2MBox. Bạn có thể đặt mật khẩu, thời gian hết hạn hoặc chỉ cho phép xem mà không cho tải xuống để kiểm soát quyền truy cập."
+        },
+        {
+          "q": "Tôi có thể nâng cấp hoặc hạ cấp gói dịch vụ không?",
+          "a": "Bạn có thể nâng cấp/hạ cấp gói dịch vụ bất kỳ lúc nào trong phần quản lý tài khoản. Số dư hoặc thời gian sử dụng sẽ được tính tự động theo chính sách của D2MBox. Nếu cần tư vấn về gói phù hợp, hãy liên hệ với đội ngũ hỗ trợ để được giải đáp chi tiết."
+        },
+        {
+          "q": "Thanh toán trên D2MBox có an toàn không?",
+          "a": "Chúng tôi sử dụng các cổng thanh toán uy tín, mã hóa giao dịch và không lưu trữ thông tin thẻ của bạn trên hệ thống. Tất cả giao dịch được xác nhận qua email hoặc SMS để đảm bảo an toàn tuyệt đối cho người dùng."
+        },
+        {
+          "q": "Làm thế nào để liên hệ với bộ phận hỗ trợ?",
+          "a": "Bạn có thể liên hệ qua email contact-d2m@dammeviet.vn, hotline +84 911 930 807 hoặc gửi yêu cầu hỗ trợ trực tiếp trên trang web. Đội ngũ hỗ trợ của chúng tôi luôn sẵn sàng trả lời mọi câu hỏi và xử lý sự cố 24/7."
+        },
+        {
+          "q": "Dữ liệu đã xóa có thể khôi phục được không?",
+          "a": "Bạn có thể khôi phục các tệp đã xóa trong khoảng thời gian lưu trữ tạm thời (Thùng rác, thường là 15-30 ngày). Sau khoảng thời gian này, dữ liệu sẽ bị xóa vĩnh viễn khỏi hệ thống và không thể khôi phục. Vui lòng kiểm tra kỹ trước khi xóa dữ liệu quan trọng."
+        },
+        {
+          "q": "Tôi có thể sử dụng D2MBox cho doanh nghiệp không?",
+          "a": "D2MBox cung cấp các gói dịch vụ và tính năng chuyên biệt cho doanh nghiệp: quản lý nhóm, phân quyền chi tiết, báo cáo sử dụng, tích hợp API, hỗ trợ triển khai riêng. Liên hệ với chúng tôi để được tư vấn giải pháp phù hợp nhất cho doanh nghiệp của bạn."
+        }
+      ]
+    },
+    "contact": {
+      "title": "Liên hệ & Hỗ trợ",
+      "subtitle": "Nếu bạn cần hỗ trợ, tư vấn hoặc có bất kỳ câu hỏi nào về D2MBox, vui lòng liên hệ với chúng tôi qua các kênh dưới đây hoặc gửi yêu cầu trực tiếp qua biểu mẫu.",
+      "contact_info": "Thông tin liên hệ",
+      "address": "Địa chỉ",
+      "email": "Email",
+      "phone": "Số điện thoại",
+      "fanpage": "Fanpage",
+      "whatsapp": "Whatsapp/Wechat",
+      "send_request": "Gửi yêu cầu hỗ trợ",
+      "full_name": "Họ và tên",
+      "full_name_placeholder": "Nhập họ và tên của bạn",
+      "email_placeholder": "Nhập email liên hệ",
+      "support_content": "Nội dung hỗ trợ",
+      "support_content_placeholder": "Mô tả vấn đề bạn cần hỗ trợ...",
+      "send_request_btn": "Gửi yêu cầu",
+      "sending": "Đang gửi...",
+      "please_fill_all": "Vui lòng điền đầy đủ thông tin.",
+      "send_success": "Yêu cầu đã được gửi thành công!",
+      "send_failed": "Gửi yêu cầu thất bại."
+    },
+    "terms": {
+      "title": "Điều khoản Dịch vụ",
+      "last_updated": "Cập nhật lần cuối: 22/07/2025",
+      "sections": [
+        { "id": "intro", "label": "1. Giới thiệu" },
+        { "id": "register", "label": "2. Đăng ký & Sử dụng dịch vụ" },
+        {
+          "id": "googleauth",
+          "label": "2.1. Đăng nhập Google và Truy cập dữ liệu"
+        },
+        { "id": "data", "label": "3. Trách nhiệm dữ liệu" },
+        { "id": "user_rights", "label": "4. Quyền & Nghĩa vụ của người dùng" },
+        {
+          "id": "provider_rights",
+          "label": "5. Quyền & Trách nhiệm của D2MBox"
+        },
+        { "id": "payment", "label": "6. Thanh toán & Hoàn tiền" },
+        { "id": "suspend", "label": "7. Tạm ngưng/Chấm dứt dịch vụ" },
+        { "id": "liability", "label": "8. Giới hạn trách nhiệm" },
+        { "id": "changes", "label": "9. Thay đổi điều khoản" },
+        { "id": "contact", "label": "10. Liên hệ" }
+      ],
+      "content": {
+        "intro": {
+          "p1": "Khi sử dụng dịch vụ D2MBox, bạn đồng ý tuân thủ các điều khoản dưới đây. Các điều khoản này được thiết kế để đảm bảo quyền lợi, nghĩa vụ và trách nhiệm của cả người dùng và nhà cung cấp dịch vụ. Vui lòng đọc kỹ trước khi sử dụng.",
+          "p2": "Các điều khoản này áp dụng cho tất cả người dùng truy cập, đăng ký hoặc sử dụng bất kỳ sản phẩm, dịch vụ, trang web hoặc ứng dụng nào của D2MBox."
+        },
+        "register": {
+          "list": [
+            "Bạn phải cung cấp thông tin chính xác, đầy đủ khi đăng ký tài khoản.",
+            "Không sử dụng dịch vụ cho các mục đích bất hợp pháp, phân phối nội dung độc hại, spam, lừa đảo hoặc tấn công mạng.",
+            "Bạn chịu trách nhiệm bảo mật thông tin đăng nhập và không chia sẻ tài khoản với người khác.",
+            "Thông báo ngay cho D2MBox khi phát hiện truy cập trái phép hoặc nghi ngờ rò rỉ thông tin tài khoản."
+          ],
+          "example": "Ví dụ: Không sử dụng dịch vụ để lưu trữ/phân phối phần mềm độc hại, nội dung vi phạm bản quyền hoặc tài liệu bị cấm."
+        },
+        "googleauth": {
+          "list": [
+            "Khi sử dụng tính năng đăng nhập Google hoặc kết nối Google Drive, bạn đồng ý cho phép D2MBox truy cập thông tin và tệp trong phạm vi quyền bạn đã xác nhận với Google.",
+            "Bạn có quyền kiểm soát và thu hồi truy cập này bất kỳ lúc nào thông qua trang quản lý tài khoản Google của bạn.",
+            "D2MBox cam kết chỉ sử dụng dữ liệu Google của bạn để cung cấp các tính năng đã công bố, không sử dụng cho mục đích quảng cáo hoặc chia sẻ với bên thứ ba."
+          ]
+        },
+        "data": {
+          "list": [
+            "Bạn chịu trách nhiệm về nội dung dữ liệu tải lên, đảm bảo không vi phạm quyền sở hữu trí tuệ hoặc pháp luật.",
+            "D2MBox cam kết bảo vệ dữ liệu của bạn theo các tiêu chuẩn bảo mật cao nhất, nhưng không chịu trách nhiệm về nội dung dữ liệu.",
+            "Bạn có quyền xuất và xóa dữ liệu bất kỳ lúc nào. D2MBox sẽ xóa hoàn toàn dữ liệu khi bạn yêu cầu."
+          ]
+        },
+        "user_rights": {
+          "rights": "Quyền: Truy cập và sử dụng dịch vụ theo gói đã đăng ký, nhận hỗ trợ kỹ thuật, bảo mật dữ liệu.",
+          "obligations": "Nghĩa vụ: Tuân thủ điều khoản, không vi phạm pháp luật, bảo mật thông tin tài khoản, thanh toán đầy đủ.",
+          "limitations": "Hạn chế: Không sử dụng dịch vụ cho mục đích bất hợp pháp hoặc gây hại cho hệ thống hoặc người dùng khác."
+        },
+        "provider_rights": {
+          "rights": "Quyền: Tạm ngưng/khóa tài khoản vi phạm, thay đổi dịch vụ, thu phí theo gói đã thỏa thuận.",
+          "responsibilities": "Trách nhiệm: Cung cấp dịch vụ ổn định, bảo mật dữ liệu, hỗ trợ kỹ thuật, bảo hành theo cam kết.",
+          "limitations": "Hạn chế: Không chịu trách nhiệm về nội dung dữ liệu, lỗi của người dùng, sự cố ngoài tầm kiểm soát."
+        },
+        "payment": {
+          "list": [
+            "Thanh toán được thực hiện trước khi sử dụng dịch vụ theo gói đã chọn.",
+            "Hoàn tiền chỉ áp dụng khi D2MBox không thể cung cấp dịch vụ theo cam kết.",
+            "Không hoàn tiền cho người dùng tự nguyện hủy dịch vụ hoặc vi phạm điều khoản.",
+            "Tất cả giao dịch thanh toán được ghi lại và hóa đơn được phát hành theo quy định."
+          ]
+        },
+        "suspend": {
+          "suspend": "Tạm ngưng: Khi phát hiện vi phạm, chờ xác minh và xử lý theo quy định.",
+          "terminate": "Chấm dứt: Khi xảy ra vi phạm nghiêm trọng, không khắc phục sau cảnh báo hoặc theo yêu cầu của người dùng.",
+          "data_deletion": "Sau khi chấm dứt, dữ liệu sẽ bị xóa vĩnh viễn trong vòng 30 ngày.",
+          "export": "Người dùng có thể xuất dữ liệu trước khi chấm dứt dịch vụ."
+        },
+        "liability": {
+          "list": [
+            "D2MBox không chịu trách nhiệm về mất mát dữ liệu do lỗi kỹ thuật, thiên tai hoặc sự cố mạng.",
+            "Trách nhiệm bồi thường tối đa không vượt quá số tiền đã thanh toán trong 12 tháng gần nhất.",
+            "Không chịu trách nhiệm về thiệt hại gián tiếp, mất lợi nhuận hoặc mất dữ liệu.",
+            "Người dùng chịu rủi ro khi sử dụng dịch vụ và cần sao lưu dữ liệu quan trọng."
+          ]
+        },
+        "changes": {
+          "list": [
+            "D2MBox có quyền thay đổi các điều khoản này khi cần thiết để cải thiện dịch vụ hoặc tuân thủ pháp luật.",
+            "Thông báo thay đổi sẽ được gửi qua email hoặc đăng trên trang web ít nhất 30 ngày trước khi có hiệu lực.",
+            "Tiếp tục sử dụng dịch vụ sau khi thay đổi có hiệu lực được coi là đồng ý với các điều khoản mới.",
+            "Nếu không đồng ý với thay đổi, bạn có quyền hủy dịch vụ và xuất dữ liệu trước khi thay đổi có hiệu lực."
+          ]
+        },
+        "contact": {
+          "p1": "Nếu bạn có câu hỏi về các điều khoản này, vui lòng liên hệ với chúng tôi:",
+          "list": [
+            "Email: contact-d2m@dammeviet.vn",
+            "Điện thoại: +84 911 930 807",
+            "Địa chỉ: 205 Bình Đức 5, Phường Bình Đức, An Giang"
+          ],
+          "effective": "Các điều khoản này có hiệu lực từ ngày 22/07/2025 và thay thế tất cả các điều khoản trước đó."
+        }
+      },
+      "labels": {
+        "example": "Ví dụ:",
+        "rights": "Quyền:",
+        "obligations": "Nghĩa vụ:",
+        "limitations": "Hạn chế:",
+        "responsibilities": "Trách nhiệm:",
+        "suspend": "Tạm ngưng:",
+        "terminate": "Chấm dứt:",
+        "phone": "Điện thoại:"
+      }
+    },
+    "table_of_contents": "Mục lục",
+    "privacy": {
+      "title": "Chính sách Bảo mật",
+      "last_updated": "Cập nhật lần cuối: 22/07/2025",
+      "labels": {
+        "real_example": "Ví dụ thực tế",
+        "note": "Lưu ý",
+        "example": "Ví dụ",
+        "data_breach": "Trường hợp vi phạm dữ liệu"
+      },
+      "sections": [
+        { "id": "introduction", "label": "1. Giới thiệu" },
+        { "id": "collect", "label": "2. Thông tin chúng tôi thu thập" },
+        { "id": "personal", "label": "2.1. Thông tin cá nhân" },
+        { "id": "nonpersonal", "label": "2.2. Thông tin không cá nhân" },
+        { "id": "cookies", "label": "2.3. Cookie & Công nghệ tương tự" },
+        { "id": "googleapi", "label": "2.4. Dữ liệu từ Google API" },
+        { "id": "use", "label": "3. Cách chúng tôi sử dụng thông tin" },
+        { "id": "share", "label": "4. Chia sẻ & Tiết lộ" },
+        { "id": "rights", "label": "5. Quyền & Lựa chọn của người dùng" },
+        { "id": "security", "label": "6. Bảo mật dữ liệu" },
+        { "id": "storage", "label": "7. Lưu trữ & Xóa dữ liệu" },
+        { "id": "changes", "label": "8. Thay đổi chính sách" },
+        { "id": "contact", "label": "9. Liên hệ" }
+      ],
+      "content": {
+        "introduction": {
+          "p1": "D2MBox cam kết bảo vệ quyền riêng tư và dữ liệu cá nhân của bạn khi sử dụng dịch vụ lưu trữ đám mây của chúng tôi. Chính sách này giải thích chi tiết cách chúng tôi thu thập, sử dụng, lưu trữ, chia sẻ và bảo vệ thông tin của bạn. Việc sử dụng dịch vụ của chúng tôi đồng nghĩa với việc bạn đồng ý với các điều khoản trong chính sách này. Chúng tôi khuyến khích bạn đọc kỹ và cập nhật thường xuyên về các thay đổi.",
+          "p2": "Chính sách này áp dụng cho tất cả người dùng truy cập, đăng ký hoặc sử dụng bất kỳ dịch vụ, sản phẩm, trang web hoặc ứng dụng nào của D2MBox, bao gồm cả khách hàng cá nhân và doanh nghiệp."
+        },
+        "collect": {
+          "p1": "Chúng tôi thu thập các loại thông tin sau để cung cấp, vận hành, bảo vệ và cải thiện dịch vụ của mình:",
+          "list": [
+            "Thông tin cá nhân (Dữ liệu cá nhân)",
+            "Thông tin không cá nhân (Dữ liệu không cá nhân)",
+            "Cookie & Công nghệ tương tự"
+          ]
+        },
+        "personal": {
+          "p1": "Chúng tôi thu thập thông tin nhận dạng cá nhân mà bạn cung cấp trực tiếp khi đăng ký tài khoản, sử dụng dịch vụ, liên hệ hỗ trợ hoặc tham gia các chương trình khuyến mãi. Ví dụ bao gồm:",
+          "list": [
+            "Họ tên, email, số điện thoại, địa chỉ liên hệ.",
+            "Thông tin đăng nhập (tên người dùng, mật khẩu mã hóa).",
+            "Dữ liệu lưu trữ trên hệ thống của chúng tôi (tệp, thư mục, siêu dữ liệu liên quan).",
+            "Lịch sử giao dịch, hóa đơn, thông tin thanh toán (nếu sử dụng dịch vụ trả phí).",
+            "Nội dung liên lạc với bộ phận hỗ trợ, phản hồi, đánh giá.",
+            "Thông tin xác minh bổ sung (CMND, giấy phép kinh doanh) nếu yêu cầu cho tài khoản doanh nghiệp."
+          ],
+          "example": "Ví dụ thực tế: Khi bạn đăng ký tài khoản, chúng tôi yêu cầu email và số điện thoại để xác minh và hỗ trợ bảo mật tài khoản. Khi bạn liên hệ hỗ trợ, chúng tôi lưu nội dung liên lạc để cải thiện dịch vụ."
+        },
+        "nonpersonal": {
+          "p1": "Chúng tôi tự động thu thập một số thông tin không nhận dạng cá nhân khi bạn truy cập trang web hoặc sử dụng ứng dụng của chúng tôi, bao gồm:",
+          "list": [
+            "Địa chỉ IP, loại thiết bị, hệ điều hành, trình duyệt, độ phân giải màn hình.",
+            "Thời gian truy cập, trang đã xem, liên kết đã nhấp, nguồn giới thiệu.",
+            "Dữ liệu thống kê ẩn danh về hành vi sử dụng, hiệu suất hệ thống.",
+            "Thông tin vị trí địa lý (nếu bạn cho phép)."
+          ],
+          "note": "Lưu ý: Thông tin này giúp chúng tôi phân tích, tối ưu hóa hiệu suất, phát hiện lỗi, bảo vệ hệ thống khỏi truy cập trái phép và nâng cao trải nghiệm người dùng."
+        },
+        "cookies": {
+          "p1": "Chúng tôi sử dụng cookie, web beacon và các công nghệ tương tự để:",
+          "list": [
+            "Ghi nhớ thông tin đăng nhập, cá nhân hóa tùy chọn giao diện.",
+            "Phân tích lưu lượng truy cập, đo lường hiệu quả chiến dịch tiếp thị.",
+            "Hỗ trợ bảo mật, phát hiện hành vi bất thường."
+          ],
+          "p2": "Bạn có thể tùy chỉnh trình duyệt để từ chối hoặc xóa cookie, tuy nhiên một số tính năng có thể không hoạt động tối ưu nếu cookie bị tắt."
+        },
+        "googleapi": {
+          "p1": "Chúng tôi sử dụng các dịch vụ của Google, bao gồm Google Drive API, để cung cấp các tính năng như lưu trữ, truy xuất và quản lý tệp của bạn trên Google Drive. Khi bạn đăng nhập hoặc kết nối tài khoản Google với D2MBox, chúng tôi có thể thu thập và xử lý các thông tin sau (tùy thuộc vào quyền bạn cấp):",
+          "list": [
+            "Thông tin hồ sơ Google cơ bản (tên, email, ảnh hồ sơ).",
+            "Danh sách tệp và thư mục trên Google Drive của bạn.",
+            "Nội dung tệp (chỉ khi bạn thực hiện thao tác tải lên, tải xuống hoặc xem trước).",
+            "Thông tin về quyền truy cập và chia sẻ tệp."
+          ],
+          "commitment": "Chúng tôi cam kết:",
+          "commitment_list": [
+            "Chỉ truy cập và sử dụng dữ liệu Google Drive khi bạn đã cấp quyền rõ ràng.",
+            "Không chia sẻ, bán hoặc sử dụng dữ liệu Google Drive của bạn cho các mục đích ngoài phạm vi dịch vụ của chúng tôi.",
+            "Mã hóa dữ liệu lấy từ Google API trong quá trình truyền và lưu trữ.",
+            "Bạn có thể ngắt kết nối tài khoản Google bất kỳ lúc nào, và chúng tôi sẽ xóa các token truy cập liên quan khỏi hệ thống của mình.",
+            "Chúng tôi tuân thủ Chính sách Dữ liệu Người dùng Dịch vụ API của Google, bao gồm các yêu cầu về giới hạn sử dụng và bảo mật dữ liệu."
+          ],
+          "policy_link": "Chính sách Dữ liệu Người dùng Dịch vụ API của Google"
+        },
+        "use": {
+          "list": [
+            "Cung cấp, duy trì, phát triển và cá nhân hóa dịch vụ cho từng người dùng.",
+            "Quản lý tài khoản, xác thực, hỗ trợ khách hàng, xử lý yêu cầu và phản hồi.",
+            "Gửi thông báo, cập nhật, khuyến mãi, bản tin (nếu bạn đăng ký).",
+            "Phân tích, thống kê, nghiên cứu thị trường, cải thiện sản phẩm.",
+            "Phát hiện, ngăn chặn gian lận, bảo vệ hệ thống và an toàn người dùng.",
+            "Tuân thủ các quy định pháp luật, giải quyết tranh chấp, xử lý khiếu nại."
+          ],
+          "example": "Ví dụ: Chúng tôi sử dụng email của bạn để gửi thông báo về thay đổi dịch vụ, xác minh đăng nhập hoặc hỗ trợ khi bạn quên mật khẩu."
+        },
+        "share": {
+          "list": [
+            "Chúng tôi không bán, trao đổi hoặc chia sẻ thông tin cá nhân với bên thứ ba cho mục đích thương mại mà không có sự đồng ý của bạn.",
+            "Có thể chia sẻ với các đối tác kỹ thuật, nhà cung cấp dịch vụ thanh toán, lưu trữ, bảo mật, nhưng chỉ trong phạm vi cần thiết và có cam kết bảo mật.",
+            "Chia sẻ thông tin khi có yêu cầu pháp lý từ cơ quan chức năng hoặc để bảo vệ lợi ích hợp pháp của D2MBox và người dùng.",
+            "Chuyển giao dữ liệu trong trường hợp sáp nhập, mua lại doanh nghiệp (sẽ thông báo trước)."
+          ],
+          "example": "Ví dụ: Nếu bạn thanh toán qua cổng ngân hàng, chúng tôi sẽ chia sẻ thông tin cần thiết với đối tác thanh toán để xử lý giao dịch."
+        },
+        "rights": {
+          "list": [
+            "Yêu cầu truy cập, chỉnh sửa, cập nhật hoặc xóa thông tin cá nhân bất kỳ lúc nào.",
+            "Rút lại sự đồng ý xử lý dữ liệu cá nhân (có thể ảnh hưởng đến việc sử dụng dịch vụ).",
+            "Phản đối việc sử dụng dữ liệu cho mục đích tiếp thị.",
+            "Nhận bản sao dữ liệu cá nhân (theo quy định pháp luật).",
+            "Liên hệ với bộ phận hỗ trợ để thực hiện các quyền này."
+          ],
+          "note": "Lưu ý: Một số yêu cầu có thể cần xác minh danh tính để đảm bảo an toàn cho bạn."
+        },
+        "security": {
+          "list": [
+            "Dữ liệu được mã hóa trong quá trình truyền và lưu trữ trên các máy chủ tại các trung tâm dữ liệu đạt chứng nhận quốc tế.",
+            "Áp dụng các biện pháp bảo mật vật lý (kiểm soát truy cập, camera, bảo vệ), kỹ thuật (tường lửa, chống virus, IDS/IPS) và quản trị (quy trình nội bộ, đào tạo nhân viên).",
+            "Thường xuyên kiểm tra, đánh giá, cập nhật hệ thống để ngăn chặn rủi ro và lỗ hổng bảo mật.",
+            "Giới hạn truy cập thông tin cá nhân chỉ cho nhân viên cần thiết.",
+            "Hợp tác với các chuyên gia, đơn vị bảo mật độc lập để kiểm tra định kỳ."
+          ],
+          "breach": "Trong trường hợp vi phạm dữ liệu: Nếu xảy ra sự cố, chúng tôi sẽ nhanh chóng thông báo cho người dùng và cơ quan chức năng theo quy định."
+        },
+        "storage": {
+          "list": [
+            "Dữ liệu cá nhân được lưu trữ trong suốt thời gian bạn sử dụng dịch vụ của chúng tôi và/hoặc theo yêu cầu của pháp luật.",
+            "Bạn có thể yêu cầu xóa tài khoản và dữ liệu cá nhân bất kỳ lúc nào (trừ khi pháp luật yêu cầu lưu giữ).",
+            "Sau khi xóa, dữ liệu sẽ được xóa khỏi hệ thống chính và bản sao lưu trong thời gian hợp lý.",
+            "Một số dữ liệu không cá nhân, thống kê ẩn danh có thể được lưu giữ lâu hơn để phân tích và cải thiện dịch vụ."
+          ],
+          "example": "Ví dụ: Khi bạn xóa tài khoản, tất cả tệp và thông tin cá nhân sẽ được xóa khỏi hệ thống chính trong vòng 30 ngày."
+        },
+        "changes": {
+          "p1": "Chính sách bảo mật có thể được cập nhật để tuân thủ các quy định pháp luật, công nghệ mới hoặc nhu cầu vận hành. Tất cả thay đổi sẽ được thông báo trên trang web của chúng tôi và/hoặc qua email nếu cần thiết. Việc tiếp tục sử dụng dịch vụ của chúng tôi sau khi thay đổi chính sách có hiệu lực đồng nghĩa với việc bạn chấp nhận các điều khoản mới."
+        },
+        "contact": {
+          "p1": "Nếu bạn có câu hỏi, yêu cầu hoặc khiếu nại liên quan đến chính sách bảo mật, vui lòng liên hệ:",
+          "list": [
+            "Email: contact-d2m@dammeviet.vn",
+            "Hotline: +84 911 930 807",
+            "Địa chỉ: 205 Bình Đức 5, Phường Bình Đức, An Giang"
+          ],
+          "response": "Chúng tôi sẽ phản hồi trong vòng 3 ngày làm việc."
+        }
+      }
+    },
+    "cookie": {
+      "title": "Chính sách Cookie",
+      "last_updated": "Cập nhật lần cuối: 22/07/2025",
+      "sections": [
+        { "id": "intro", "label": "1. Giới thiệu" },
+        { "id": "what", "label": "2. Cookie là gì?" },
+        { "id": "types", "label": "3. Các loại cookie chúng tôi sử dụng" },
+        { "id": "purpose", "label": "4. Mục đích sử dụng cookie" },
+        { "id": "manage", "label": "5. Quản lý & Vô hiệu hóa cookie" },
+        { "id": "rights", "label": "6. Quyền của người dùng" },
+        { "id": "changes", "label": "7. Thay đổi chính sách" },
+        { "id": "contact", "label": "8. Liên hệ" }
+      ],
+      "content": {
+        "intro": {
+          "p1": "Trang này giải thích cách D2MBox sử dụng cookie và các công nghệ tương tự để nhận diện bạn khi truy cập trang web/dịch vụ của chúng tôi. Việc sử dụng dịch vụ của chúng tôi đồng nghĩa với việc bạn đồng ý với chính sách cookie này."
+        },
+        "what": {
+          "p1": "Cookie là các tệp nhỏ được lưu trữ trên thiết bị của bạn khi bạn truy cập một trang web. Cookie giúp các trang web ghi nhớ thông tin về bạn (như trạng thái đăng nhập, tùy chọn, lịch sử duyệt web) để cải thiện trải nghiệm người dùng."
+        },
+        "types": {
+          "list": [
+            {
+              "title": "Cookie thiết yếu:",
+              "desc": "Giúp trang web hoạt động bình thường (đăng nhập, bảo mật, điều hướng...)"
+            },
+            {
+              "title": "Cookie chức năng:",
+              "desc": "Ghi nhớ tùy chọn cá nhân hóa (ngôn ngữ, giao diện...)"
+            },
+            {
+              "title": "Cookie phân tích:",
+              "desc": "Thu thập dữ liệu ẩn danh về hành vi người dùng để cải thiện dịch vụ."
+            },
+            {
+              "title": "Cookie quảng cáo:",
+              "desc": "Hỗ trợ hiển thị quảng cáo phù hợp (nếu có)."
+            }
+          ]
+        },
+        "purpose": {
+          "list": [
+            "Ghi nhớ thông tin đăng nhập, tránh phải nhập lại mỗi lần truy cập.",
+            "Lưu trữ tùy chọn cá nhân hóa cho giao diện và ngôn ngữ.",
+            "Phân tích, đo lường hiệu quả trang web, phát hiện lỗi, tối ưu hóa trải nghiệm.",
+            "Hỗ trợ bảo mật, phát hiện truy cập bất thường.",
+            "Hiển thị quảng cáo phù hợp với sở thích (nếu có)."
+          ]
+        },
+        "manage": {
+          "p1": "Bạn có thể tùy chỉnh trình duyệt để từ chối hoặc xóa cookie bất kỳ lúc nào. Tuy nhiên, việc tắt cookie có thể ảnh hưởng đến một số tính năng của trang web (ví dụ: không đăng nhập tự động, mất tùy chọn cá nhân hóa).",
+          "list": [
+            "Hướng dẫn quản lý cookie thường nằm trong phần Cài đặt của trình duyệt của bạn.",
+            "Bạn cũng có thể sử dụng chế độ ẩn danh để hạn chế lưu trữ cookie."
+          ]
+        },
+        "rights": {
+          "list": [
+            "Quyền biết, kiểm soát, xóa cookie trên thiết bị của bạn.",
+            "Quyền từ chối cookie không cần thiết cho chức năng cơ bản của trang web.",
+            "Quyền liên hệ với D2MBox để hỏi về việc sử dụng cookie."
+          ]
+        },
+        "changes": {
+          "p1": "Chính sách cookie có thể được cập nhật để tuân thủ các quy định pháp luật hoặc nhu cầu vận hành. Tất cả thay đổi sẽ được thông báo trên trang web của chúng tôi."
+        },
+        "contact": {
+          "list": [
+            "Email: contact-d2m@dammeviet.vn",
+            "Hotline: +84 911 930 807",
+            "Địa chỉ: 205 Bình Đức 5, Phường Bình Đức, An Giang"
+          ],
+          "response": "Chúng tôi sẽ phản hồi trong vòng 3 ngày làm việc."
+        }
+      }
+    }
+  },
+  "table_of_contents": "Mục lục",
+  "notification": {
+    "title": "Thông báo",
+    "description": "Xem các thông báo mới nhất của bạn tại đây.",
+    "mark_all_read": "Đánh dấu tất cả là đã đọc",
+    "empty": "Không có thông báo.",
+    "new": "Mới",
+    "delete_tooltip": "Xóa thông báo",
+    "delete": "Xóa",
+    "load_more": "Tải thêm",
+    "loading": "Đang tải...",
+    "view_all": "Xem tất cả"
+  },
+  "change_password": {
+    "title": "Đổi mật khẩu",
+    "old_password_placeholder": "Mật khẩu hiện tại",
+    "new_password_placeholder": "Mật khẩu mới",
+    "confirm_password_placeholder": "Xác nhận mật khẩu mới",
+    "old_password_required": "Vui lòng nhập mật khẩu hiện tại",
+    "new_password_required": "Vui lòng nhập mật khẩu mới",
+    "password_min_length": "Mật khẩu mới phải có ít nhất 6 ký tự",
+    "password_mismatch": "Mật khẩu không khớp",
+    "change_success": "Đổi mật khẩu thành công!",
+    "general_error": "Đã xảy ra lỗi",
+    "cancel": "Hủy",
+    "confirm_change": "Xác nhận đổi mật khẩu",
+    "changing": "Đang thay đổi..."
+  },
+  "plan_change_summary": {
+    "owner_info_title": "Thông tin chủ sở hữu",
+    "current_plan": "Gói hiện tại:",
+    "new_plan": "Gói mới:",
+    "storage_label": "Dung lượng (TB):",
+    "users_label": "Số lượng người dùng:",
+    "storage_min_error": "Dung lượng tối thiểu là 20TB, phải là số nguyên",
+    "users_min_error": "Số lượng người dùng tối thiểu là 20, phải là số nguyên",
+    "select_type": "Chọn loại:",
+    "month": "Tháng",
+    "year": "Năm",
+    "current_expiry": "Ngày hết hạn hiện tại:",
+    "days_remaining": "Số ngày còn lại:",
+    "extra_days": "Số ngày bổ sung cho gói mới:",
+    "extra_days_tooltip": "Số ngày bổ sung = (Số ngày còn lại của gói cũ × giá gói cũ/ngày) chia cho giá gói mới/ngày.\n\nNếu gói mới đắt hơn, số ngày chuyển đổi sẽ ít hơn. Nếu gói mới rẻ hơn, số ngày chuyển đổi sẽ nhiều hơn.",
+    "pro_rata_payment": "Số tiền thanh toán được tính dựa trên số ngày còn lại (tỷ lệ thuận)",
+    "pro_rata_tooltip": "Khi thay đổi cùng loại (tháng → tháng hoặc năm → năm), thanh toán = (giá gói mới cho số ngày còn lại) trừ đi giá trị còn lại của gói cũ.\n\nBạn chỉ trả phần chênh lệch khi nâng cấp.",
+    "cannot_downgrade_title": "Không thể hạ cấp khi gói hiện tại vẫn còn hiệu lực.",
+    "cannot_downgrade": "Vui lòng chờ đến khi hết hạn để chuyển sang gói thấp hơn.",
+    "downgrade_year_to_month_title": "Hạ cấp từ gói năm sang gói tháng:",
+    "downgrade_year_to_month": "Số ngày còn lại của gói năm sẽ được chuyển thành {extraDays} ngày của gói tháng mới.",
+    "insufficient_value_title": "Giá trị còn lại của gói cũ không đủ để chuyển thành số ngày của gói mới.",
+    "insufficient_value": "Bạn sẽ bắt đầu gói mới mà không có thêm ngày bổ sung.",
+    "upgrade_renew_same_type_title": "Nâng cấp/Gia hạn cùng loại:",
+    "upgrade_renew_same_type": "Thanh toán = Giá gói mới - Giá trị còn lại của gói cũ.\nGiá trị còn lại: {amount}₫\nGiá gói mới: {newPrice}₫",
+    "upgrade_month_to_year_title": "Nâng cấp từ gói tháng sang gói năm:",
+    "upgrade_month_to_year": "Thanh toán = Giá gói năm - Giá trị còn lại của gói tháng.\nGiá trị còn lại: {amount}₫\nGiá gói năm: {yearPrice}₫",
+    "new_registration_title": "Đăng ký mới:",
+    "new_registration": "Thanh toán toàn bộ giá cho gói mới.",
+    "cannot_change_plan": "Bạn không thể hạ cấp hoặc thay đổi gói khi gói hiện tại vẫn còn hiệu lực. Vui lòng chờ đến khi hết hạn.",
+    "discount_code_label": "Mã giảm giá (nếu có):",
+    "discount_code_placeholder": "Nhập mã giảm giá...",
+    "apply": "Áp dụng",
+    "checking": "Đang kiểm tra...",
+    "discount_applied": "Đã áp dụng giảm giá {percent}%",
+    "payment_info_title": "Thông tin thanh toán",
+    "amount_to_pay": "Số tiền phải thanh toán:",
+    "scan_qr": "Quét mã QR để thanh toán:",
+    "bank": "Ngân hàng:",
+    "account_number": "Số tài khoản:",
+    "account_name": "Chủ tài khoản:",
+    "loading": "Đang tải...",
+    "cancel": "Hủy",
+    "confirm": "Xác nhận",
+    "sending": "Đang gửi...",
+    "order_success": "Đơn hàng đã được gửi thành công! Vui lòng chờ phê duyệt từ quản trị viên.",
+    "close": "Đóng"
+  },
+  "plan_list_in_user": {
+    "title": "Gói dịch vụ",
+    "no_plans": "Không có gói dịch vụ nào khả dụng.",
+    "custom": "Tùy chỉnh",
+    "free": "Miễn phí",
+    "per_month": "/tháng",
+    "year": "Năm:",
+    "save": "Tiết kiệm {sale}%",
+    "users": "{users} người dùng",
+    "renew": "Gia hạn",
+    "currently_using": "Đang sử dụng",
+    "cannot_buy_smaller": "Không thể mua gói nhỏ hơn",
+    "cannot_buy_smaller_tooltip": "Không thể mua gói nhỏ hơn gói tùy chỉnh hiện tại",
+    "choose_this_plan": "Chọn gói này",
+    "cannot_downgrade": "Không thể hạ cấp",
+    "cannot_downgrade_tooltip": "Chỉ được phép hạ cấp khi gói dịch vụ sắp hết hạn hoặc đã hết hạn",
+    "featured": "Phổ biến nhất"
+  },
+  "chat": {
+    "sidebar": {
+      "search_placeholder": "Tìm kiếm tin nhắn",
+      "search_user_placeholder": "Tìm kiếm theo email hoặc slast...",
+      "searching": "Đang tìm kiếm...",
+      "no_user_found": "Không tìm thấy người dùng",
+      "welcome": "Xin chào",
+      "title": "Hộp thư cộng tác",
+      "new_chat": "Tạo cuộc trò chuyện",
+      "filter_all": "Tất cả",
+      "filter_unread": "Chưa đọc",
+      "filter_pinned": "Được ghim"
+    },
+    "conversation": {
+      "select_conversation": "Chọn một cuộc trò chuyện",
+      "loading_more": "Đang tải thêm...",
+      "input_placeholder": "Nhập tin nhắn",
+      "search_placeholder": "Tìm trong cuộc trò chuyện",
+      "search_messages": "Tìm tin nhắn",
+      "no_results": "0 kết quả",
+      "members": "thành viên",
+      "pinned": "Tin nhắn ghim",
+      "view_detail": "Xem chi tiết",
+      "audio_call": "Gọi thoại",
+      "video_call": "Gọi video",
+      "info_title": "Thông tin liên hệ",
+      "email": "Email",
+      "phone": "Số điện thoại",
+      "role": "Vai trò",
+      "joined": "Ngày tham gia",
+      "add_attachment": "Đính kèm tệp",
+      "sending_attachment": "Đang gửi tệp...",
+      "download_attachment": "Tải xuống",
+      "attachment_label": "Tệp đính kèm",
+      "start_call": "Bắt đầu",
+      "end_call": "Kết thúc",
+      "pin": "Ghim tin nhắn",
+      "unpin": "Bỏ ghim",
+      "incoming": "Cuộc gọi đến",
+      "outgoing": "Đang gọi...",
+      "connecting": "Đang kết nối...",
+      "connected": "Đã kết nối",
+      "accept": "Chấp nhận",
+      "reject": "Từ chối",
+      "cancel": "Hủy cuộc gọi",
+      "unknown_user": "Người dùng"
+    },
+    "status": {
+      "online": "Trực tuyến",
+      "offline": "Ngoại tuyến"
+    },
+    "role": {
+      "admin": "Quản trị viên",
+      "leader": "Trưởng nhóm",
+      "member": "Thành viên"
+    }
+  },
+  "upload_status": {
+    "moving": "Đang di chuyển...",
+    "move_success": "Di chuyển thành công!",
+    "move_failed": "Di chuyển thất bại",
+    "creating_folder": "Đang tạo thư mục...",
+    "create_folder_success": "Tạo thư mục thành công!",
+    "create_folder_failed": "Tạo thư mục thất bại",
+    "create_folder_error": "Đã xảy ra lỗi khi tạo thư mục.",
+    "deleting": "Đang xóa...",
+    "delete_success": "Xóa thành công!",
+    "delete_failed": "Xóa thất bại",
+    "uploading": "Đang tải lên... {progress}%",
+    "has_error": "Một số tệp tải lên thất bại",
+    "upload_success": "Tải lên thành công!"
+  },
+  "upload_modal": {
+    "title": "Tải lên tệp hoặc thư mục",
+    "drag_drop": "Kéo và thả tệp/thư mục hoặc chọn từ thiết bị",
+    "drop_here": "Thả tệp/thư mục tại đây!",
+    "file_list": "Danh sách tệp ({count})",
+    "remove": "Xóa",
+    "uploading": "Đang tải lên...",
+    "choose_file": "Chọn tệp",
+    "choose_folder": "Chọn thư mục",
+    "upload_count": "Tải lên {count} mục",
+    "processing": "Đang xử lý, vui lòng chờ..."
+  },
+  "sidebar": {
+    "logout_success": "Đăng xuất thành công!",
+    "home": "Trang chủ",
+    "tool": "Công cụ",
+    "edit_video": "Chỉnh sửa video",
+    "download_video": "Tải video",
+    "file_management": "Quản lý tệp",
+    "shared": "Tệp đã chia sẻ",
+    "favorites": "Tệp yêu thích",
+    "analytics": "Thống kê dung lượng",
+    "job_management": "Quản lý công việc",
+    "user_management": "Quản lý thành viên",
+    "notification": "Thông báo",
+    "account_info": "Thông tin tài khoản",
+    "chat": "Trò chuyện",
+    "logout": "Đăng xuất",
+    "close_menu": "Đóng menu"
+  },
+  "member": {
+    "header": {
+      "logout": "Đăng xuất"
+    },
+    "table": {
+      "name": "Tên",
+      "size": "Kích thước",
+      "date": "Ngày",
+      "share": "Chia sẻ"
+    },
+    "page": {
+      "title": "Quản lý tệp được ủy quyền",
+      "description": "Chỉ hiển thị các thư mục bạn được trưởng nhóm cấp quyền truy cập.",
+      "upload": "Tải lên",
+      "create_folder": "Tạo thư mục",
+      "view_grid": "Chế độ lưới",
+      "view_table": "Chế độ bảng",
+      "root_folder": "Thư mục gốc",
+      "loading": "Đang tải...",
+      "no_folders": "Không có thư mục",
+      "load_folders_error": "Không thể tải danh sách thư mục"
+    },
+    "modal": {
+      "create_folder_title": "Tạo thư mục mới",
+      "folder_name_placeholder": "Tên thư mục",
+      "cancel": "Hủy",
+      "create": "Tạo",
+      "rename_title": "Đổi tên",
+      "new_name_placeholder": "Tên mới",
+      "rename": "Đổi tên",
+      "select_destination_title": "Chọn thư mục đích",
+      "select_destination_description": "Chọn thư mục bạn muốn di chuyển đến",
+      "move_to_root": "Di chuyển ra ngoài tất cả thư mục (Thư mục gốc)",
+      "move": "Di chuyển",
+      "confirm_delete_title": "Xác nhận xóa",
+      "confirm_delete_message": "Bạn có chắc chắn muốn xóa {count} mục đã chọn?",
+      "confirm_delete_warning": "Hành động này không thể hoàn tác!",
+      "delete": "Xóa"
+    }
+  },
+  "about": {
+    "hero": {
+      "title": "Khám phá sứ mệnh và giá trị cốt lõi của",
+      "subtitle": "D2MBox không chỉ là nền tảng lưu trữ, mà còn là giải pháp toàn diện cho chia sẻ và quản lý dữ liệu an toàn, linh hoạt và hiệu quả. Với sứ mệnh đồng hành cùng doanh nghiệp và cá nhân hiện đại, D2MBox mang đến trải nghiệm mượt mà, tối ưu hoá công việc và kết nối cộng tác thông minh trong kỷ nguyên số.",
+      "cta": "Bắt đầu ngay"
+    },
+    "values": {
+      "security": {
+        "title": "Bảo mật tuyệt đối",
+        "desc": "Dữ liệu mã hóa, bảo vệ nhiều lớp, cam kết an toàn tuyệt đối."
+      },
+      "storage": {
+        "title": "Lưu trữ linh hoạt",
+        "desc": "Tích hợp Google Drive, mở rộng không giới hạn, đồng bộ đa nền tảng."
+      },
+      "team": {
+        "title": "Quản lý nhóm thông minh",
+        "desc": "Phân quyền dạng cây, leader tự quản lý thành viên, bảo mật nội bộ."
+      },
+      "speed": {
+        "title": "Tốc độ vượt trội",
+        "desc": "Upload/download nhanh, thao tác mượt mà, tối ưu cho doanh nghiệp."
+      }
+    },
+    "partner": {
+      "title": "D2MBox – Người bạn đồng hành tin cậy trong công việc số",
+      "feature_1": "Lưu trữ & chia sẻ file, folder không giới hạn",
+      "feature_2": "Phân quyền chi tiết, kiểm soát truy cập an toàn",
+      "feature_3": "Trải nghiệm mượt mà trên mọi thiết bị",
+      "feature_4": "Chat & thông báo realtime, hỗ trợ 24/7",
+      "feature_5": "Công cụ AI mạnh mẽ"
+    },
+    "stats": {
+      "uptime": {
+        "value": "99.99%",
+        "label": "Uptime hệ thống"
+      },
+      "storage": {
+        "value": "1PB+",
+        "label": "Dung lượng lưu trữ"
+      },
+      "users": {
+        "value": "10,000+",
+        "label": "Người dùng tin tưởng"
+      }
+    },
+    "goals": {
+      "title": "Mục tiêu & cam kết của D2MBox",
+      "item_1": "Cung cấp nền tảng lưu trữ linh hoạt, bảo mật cao, đáp ứng nhu cầu từ cá nhân đến doanh nghiệp",
+      "item_2": "Đảm bảo quyền riêng tư tuyệt đối, kiểm soát truy cập chi tiết theo phân quyền",
+      "item_3": "Đồng hành cùng doanh nghiệp trong hành trình chuyển đổi số hiệu quả, hiện đại",
+      "item_4": "Tích hợp bộ Tool AI thông minh hỗ trợ xử lý video, phụ đề, dịch và chuyển giọng nói đa ngôn ngữ",
+      "item_5": "Dịch vụ chăm sóc khách hàng tận tâm, chuyên nghiệp 24/7 – luôn sẵn sàng khi bạn cần"
+    },
+    "vision": {
+      "title": "Định hướng phát triển của D2MBox",
+      "integration": {
+        "title": "Mở rộng tích hợp toàn diện",
+        "desc": "Kết nối linh hoạt với các nền tảng cloud, API, và hệ thống quản trị doanh nghiệp. D2MBox hướng tới trở thành trung tâm điều phối dữ liệu số – nơi mọi quy trình, công cụ và nền tảng được đồng bộ hoá thông minh cho doanh nghiệp quy mô lớn."
+      },
+      "ai": {
+        "title": "AI & Tự động hóa thông minh",
+        "desc": "Tích hợp các công cụ AI tiên tiến giúp tự động hoá quy trình quản lý, tra cứu và bảo mật dữ liệu. Từ dịch ngôn ngữ, tạo phụ đề, chuyển đổi giọng nói đến phân tích nội dung video – mọi thao tác đều trở nên nhanh chóng, chính xác và tiết kiệm nguồn lực."
+      },
+      "platform": {
+        "title": "Trải nghiệm đa nền tảng liền mạch",
+        "desc": "D2MBox được thiết kế để hoạt động trơn tru trên mọi thiết bị – từ trình duyệt web, ứng dụng di động, máy tính để bàn đến các hệ thống IoT. Dù bạn đang làm việc ở đâu, dữ liệu và công cụ của bạn luôn trong tầm tay."
+      }
+    },
+    "cta": {
+      "title": "Sẵn sàng trải nghiệm D2MBox?",
+      "subtitle": "Đăng ký tài khoản ngay để nhận ưu đãi và khám phá mọi tính năng tuyệt vời của chúng tôi!",
+      "button": "Trải nghiệm ngay"
+    }
+  },
+  "job_management": {
+    "nav": {
+      "workspace": "Không gian làm việc",
+      "assigned": "Được giao cho tôi",
+      "recent": "Gần đây",
+      "pinned": "Board đã ghim",
+      "time_tracking": "Chấm công"
+    },
+      "pages": {
+      "pinned_boards": "Bảng đã ghim",
+      "pinned_description": "Truy cập nhanh các không gian làm việc quan trọng của bạn.",
+      "no_pinned_boards": "Bạn chưa ghim bảng nào.",
+      "assigned_to_me": "Công việc được giao cho tôi",
+      "assigned_description": "Theo dõi nhanh các nhiệm vụ bạn đang phụ trách trên mọi bảng.",
+      "no_assigned_tasks": "Không có công việc nào được giao cho bạn.",
+      "recent_boards": "Bảng truy cập gần đây",
+      "recent_description": "Danh sách các bảng bạn vừa mở, giúp quay lại công việc nhanh chóng.",
+      "no_recent_boards": "Bạn chưa truy cập bảng nào gần đây.",
+      "accessed_at": "Truy cập lúc:",
+      "not_set": "Chưa đặt",
+      "unknown": "Không xác định",
+      "never_accessed": "Chưa truy cập"
+    },
+    "board": {
+      "enter_title": "Nhập tiêu đề",
+      "add_card": "Thêm thẻ",
+      "add_task": "Thêm công việc",
+      "add_list": "Thêm danh sách",
+      "close": "Đóng",
+      "edit_card": "Sửa thẻ",
+      "edit_name": "Sửa tên",
+      "edit_list_name": "Sửa tên danh sách",
+      "delete_list": "Xóa danh sách",
+      "click_to_edit_title": "Nhấn để chỉnh sửa tiêu đề",
+      "no_title": "Không có tiêu đề",
+      "enter_title_ellipsis": "Nhập tiêu đề…",
+      "enter_list_name": "Nhập tên danh sách…",
+      "enter_list_title": "Nhập tiêu đề danh sách…",
+      "color": "Màu",
+      "description": "Mô tả",
+      "numbered_list": "Danh sách số",
+      "delete_board": "Xóa bảng",
+      "create_board": "Tạo bảng",
+      "create_new_board": "Tạo bảng mới",
+      "back": "Quay lại",
+      "drag_to_sort": "Kéo để sắp xếp",
+      "open_menu": "Mở menu",
+      "clear_search": "Xoá tìm kiếm",
+      "no_cards_yet": "Chưa có thẻ nào",
+      "loading": "Đang tải…",
+      "empty": "Trống",
+      "your_workspace": "Không gian làm việc của bạn",
+      "guest_workspace": "Không gian làm việc với khách",
+      "open_board": "Mở board",
+      "list": "Danh sách",
+      "due_date_label": "Hạn chót",
+      "progress_label": "Tiến độ",
+      "workspace_fallback": "Không gian làm việc",
+      "pin_board": "Ghim board",
+      "unpin_board": "Bỏ ghim board",
+      "no_due_date": "Chưa có hạn",
+      "drop_card_here": "Thả thẻ vào đây",
+      "time": "Thời gian"
+    },
+    "card": {
+      "delete": "Xóa",
+      "title": "Tiêu đề",
+      "start_date": "Ngày bắt đầu",
+      "due_date": "Ngày hết hạn",
+      "add_member": "Thêm thành viên",
+      "select_color": "Chọn màu",
+      "edit_start_date": "Chỉnh ngày bắt đầu",
+      "edit_due_date": "Chỉnh ngày",
+      "write_comment": "Viết bình luận...",
+      "delete_comment": "Xóa bình luận",
+      "search_by_title_or_board": "Tìm theo tiêu đề hoặc bảng...",
+      "search_board": "Tìm kiếm board theo tiêu đề hoặc người tạo…",
+      "members": "Thành viên",
+      "search_members": "Tìm kiếm các thành viên",
+      "select_color_label": "Chọn màu",
+      "board_members": "Thành viên của bảng",
+      "not_found": "Không tìm thấy"
+    },
+    "checklist": {
+      "add_item": "Thêm một mục…",
+      "add_checklist": "Thêm danh sách công việc",
+      "mark_complete": "Đánh dấu hoàn thành",
+      "item_content": "Nhập nội dung…",
+      "item_content_label": "Nội dung mục",
+      "due_date": "Ngày hết hạn",
+      "add_date": "Thêm ngày",
+      "edit_member": "Chỉnh thành viên",
+      "assign": "Chỉ định",
+      "delete_item": "Xóa mục",
+      "checklist_progress": "Tiến độ checklist",
+      "tasks_to_do": "Việc cần làm"
+    },
+    "time_tracking": {
+      "title": "Theo dõi thời gian làm việc",
+      "start_work": "Bắt đầu làm việc",
+      "working": "Đang làm việc",
+      "paused": "Đã dừng",
+      "completed": "Đã hoàn thành",
+      "worked_for": "Đã làm: {minutes}m {seconds}s",
+      "total_time": "Tổng thời gian: {hours}h {minutes}m",
+      "pause": "Dừng",
+      "resume": "Tiếp tục",
+      "complete": "Kết thúc",
+      "restart": "Làm lại",
+      "start_success": "Đã bắt đầu làm việc trên task {taskName}",
+      "pause_success": "Đã dừng. Tổng thời gian: {minutes}m",
+      "resume_success": "Đã tiếp tục",
+      "complete_success": "Đã hoàn thành. Tổng thời gian: {hours}h {minutes}m",
+      "switch_task_confirm": "Bạn đang làm việc trên task {taskName}. Bạn có muốn chuyển sang task này không?",
+      "switch_task": "Chuyển",
+      "cancel": "Hủy",
+      "no_active_session": "Chưa có công việc đang làm",
+      "page_title": "Chấm công của tôi",
+      "today": "Hôm nay",
+      "this_week": "Tuần này",
+      "this_month": "Tháng này",
+      "total_time_label": "Tổng thời gian",
+      "total_tasks_label": "Số task đã làm",
+      "total_completed_label": "Task hoàn thành",
+      "work_sessions_today": "Công việc hôm nay",
+      "no_sessions": "Chưa có phiên làm việc nào",
+      "view_details": "Xem chi tiết",
+      "task": "Task",
+      "board": "Board",
+      "duration": "Thời gian",
+      "status": "Trạng thái",
+      "start_time": "Bắt đầu",
+      "end_time": "Kết thúc",
+      "work_too_long_warning": "Bạn đã làm việc quá lâu. Hãy nghỉ ngơi!"
+    },
+    "description": {
+      "close": "Đóng",
+      "paragraph_style": "Kiểu đoạn (Paragraph/H1/H2/H3)",
+      "bold": "Đậm",
+      "italic": "Nghiêng",
+      "underline": "Gạch chân",
+      "strikethrough": "Gạch ngang",
+      "bullet_list": "Danh sách chấm",
+      "blockquote": "Trích dẫn",
+      "link": "Liên kết",
+      "unlink": "Bỏ liên kết",
+      "clear_content": "Xóa nhanh nội dung",
+      "write_description_placeholder": "Viết mô tả... Gõ / để xem gợi ý.",
+      "enter_url": "Nhập URL:"
+    },
+    "modal": {
+      "close": "Đóng",
+      "board_name_placeholder": "VD: Dự án Website, Marketing Q4…",
+      "add": "Thêm",
+      "cancel": "Hủy",
+      "save": "Lưu",
+      "edit": "Chỉnh sửa",
+      "no_description": "Chưa có mô tả. Nhấn \"Thêm\" để viết.",
+      "add_member_by_email": "Thêm thành viên bằng email",
+      "add_member_note": "Chỉ email đã có trong hệ thống mới thêm được ."
+    },
+    "errors": {
+      "unpin_error": "Lỗi khi gỡ",
+      "save_order_error": "Không lưu được thứ tự",
+      "save_order_failed": "Lỗi lưu thứ tự",
+      "move_card_error": "Không thể di chuyển thẻ",
+      "load_list_error": "Không tải được danh sách thẻ",
+      "general_error": "Lỗi",
+      "server_error": "Lỗi server",
+      "update_failed": "Cập nhật thất bại",
+      "sort_failed": "Sắp xếp thất bại",
+      "move_failed": "Di chuyển thất bại",
+      "enter_email": "Vui lòng nhập email",
+      "cannot_get_list": "Không lấy được danh sách",
+      "cannot_delete": "Lỗi không thể xóa",
+      "cannot_edit": "Lỗi không thể sửa",
+      "update_failed_short": "Cập nhật không thành công",
+      "update_error": "Lỗi cập nhật",
+      "load_list_error_short": "Lỗi tải danh sách",
+      "enter_board_title": "Vui lòng nhập tiêu đề bảng",
+      "create_board_failed": "Tạo bảng thất bại",
+      "cannot_delete_board": "Không xóa được",
+      "guest": "Khách",
+      "cannot_load_pinned": "Không tải được danh sách ghim",
+      "cannot_pin": "Không thể ghim bảng",
+      "cannot_unpin": "Không thể bỏ ghim bảng",
+      "delete_error": "Lỗi khi xóa",
+      "cannot_load_tasks": "Không tải được công việc",
+      "cannot_add_member": "Lỗi khi thêm thành viên",
+      "cannot_get_board": "Không lấy được board",
+      "user": "Người dùng",
+      "moving": "Đang chuyển…"
+    },
+    "success": {
+      "card_moved": "Đã di chuyển thẻ",
+      "delete_success": "Xóa thành công",
+      "create_success": "Tạo thành công",
+      "add_success": "Thêm thành công",
+      "remove_success": "Gỡ thành công",
+      "create_card_success": "Tạo thẻ thành công",
+      "sort_success": "Sắp xếp thành công",
+      "update_success": "Cập nhật thành công",
+      "delete_item_success": "Đã xóa",
+      "pin_success": "Đã ghim bảng",
+      "unpin_success": "Đã bỏ ghim bảng"
+    }
+  },
+  "video_processor": {
+    "no_cover": "Không có ảnh bìa",
+    "created_date": "Tạo ngày",
+    "open_menu": "Mở menu",
+    "rename": "Đổi tên",
+    "delete": "Xóa",
+    "rename_project": "Đổi tên dự án",
+    "enter_new_name": "Nhập tên mới",
+    "cancel": "Hủy",
+    "save": "Lưu",
+    "create_video": "Tạo video",
+    "video": "Video",
+    "empty_canvas": "Canvas trống",
+    "all": "Tất cả",
+    "search_placeholder": "Tìm kiếm...",
+    "no_projects": "Chưa có project nào. Bấm \"Tạo video\".",
+    "show_more": "Hiển thị thêm",
+    "platforms": {
+      "youtube_facebook": "YouTube, Facebook",
+      "tiktok_youtube_instagram": "TikTok, YouTube, Instagram",
+      "instagram_linkedin_facebook": "Instagram, LinkedIn, Facebook"
+    },
+    "inspector": {
+      "edit_audio": "Chỉnh sửa Audio",
+      "edit_video": "Chỉnh sửa Video",
+      "options": "Tùy chọn",
+      "adjust_volume": "Điều chỉnh âm lượng",
+      "volume": "Âm lượng",
+      "adjust_speed": "Điều chỉnh tốc độ phát",
+      "speed": "Tốc độ",
+      "speed_description": "Tốc độ phát lại audio (50% - 200%)",
+      "adjust_stability": "Điều chỉnh độ ổn định",
+      "stability": "Độ ổn định",
+      "stability_description": "Độ ổn định của giọng nói (0% - 100%).",
+      "processing_progress": "Tiến độ xử lý",
+      "processing": "Đang xử lý...",
+      "ai_tools": "Công cụ AI",
+      "auto_subtitle": "Phụ đề tự động",
+      "free": "Miễn phí",
+      "auto_subtitle_description": "Tự động nhận dạng giọng nói trong video.",
+      "video_language": "Ngôn ngữ dùng trong video",
+      "create": "Tạo",
+      "extract_audio": "Tách Audio",
+      "extract_audio_description": "Xuất phần âm thanh từ video thành tệp riêng (ví dụ: .wav, .mp3).",
+      "voiceover": {
+        "select_audio_for_subtitle": "Chọn Audio cho Phụ đề",
+        "regenerate_voice": "Làm lại giọng",
+        "generate_voice": "Tạo giọng",
+        "regenerate_voice_tooltip": "Làm lại giọng cho các đoạn text đã có giọng",
+        "generate_voice_tooltip": "Tạo giọng cho tất cả các đoạn text đã gán giọng",
+        "no_segments_to_generate": "Không có đoạn text nào cần tạo giọng",
+        "cannot_generate_voice": "Không thể tạo giọng. Vui lòng thử lại.",
+        "started_generating": "Đã bắt đầu {action} cho {count} đoạn text...",
+        "voice_library": "Kho giọng",
+        "default_voice": "Giọng mặc định",
+        "my_voice": "Giọng của tôi",
+        "upload_audio_file": "Tải file audio",
+        "voice_name": "Tên giọng",
+        "voice_name_placeholder": "Ví dụ: Giọng Nam A",
+        "uploading": "Đang tải lên…",
+        "voice": "Giọng (voice)",
+        "select_voice": "Chọn giọng",
+        "cloned_voice": "Giọng đã clone",
+        "clone_voice_success": "Clone giọng thành công!",
+        "clone_voice_failed": "Clone giọng thất bại",
+        "please_enter_voice_name": "Vui lòng nhập tên giọng",
+        "selected_voices": "Giọng đã chọn",
+        "hide": "Ẩn",
+        "show": "Hiện",
+        "please_select_segment_for_settings": "Vui lòng chọn một đoạn text để chỉnh sửa settings",
+        "please_select_segment": "Vui lòng chọn đoạn text",
+        "apply": "Áp dụng",
+        "assigned_voice_to_segment": "Đã gán giọng cho đoạn text",
+        "please_select_segment_first": "Vui lòng chọn một đoạn text trước",
+        "cannot_find_segment_id": "Không tìm thấy ID của đoạn text",
+        "voice_config_updated": "Đã cập nhật cấu hình giọng",
+        "record_directly": "Ghi âm trực tiếp",
+        "recording": "Đang ghi…",
+        "paused": "Tạm dừng",
+        "recorded": "Đã ghi xong",
+        "ready": "Sẵn sàng",
+        "start_recording": "Bắt đầu ghi",
+        "stop": "Dừng",
+        "listen_again": "Nghe lại",
+        "record_again": "Ghi lại",
+        "save_upload": "Lưu lên",
+        "uploading_short": "Đang tải…",
+        "select_voice_title": "Chọn giọng",
+        "search_voices_placeholder": "Search voices...",
+        "loading_voices": "Đang tải giọng...",
+        "no_voices_found": "Không tìm thấy giọng nào",
+        "no_voices_yet": "Chưa có giọng nào",
+        "cloned_from": "Cloned from...",
+        "default_voice_label": "Default voice",
+        "pause": "Tạm dừng",
+        "preview": "Nghe thử",
+        "back": "Quay lại",
+        "customize_voice": "Tùy chỉnh giọng",
+        "model": "Model",
+        "voice_speed": "Tốc độ",
+        "slower": "Chậm hơn",
+        "faster": "Nhanh hơn",
+        "stability_label": "Sự ổn định",
+        "more_variation": "Biến đổi nhiều",
+        "more_stable": "Ổn định hơn",
+        "similarity": "Độ giống nhau",
+        "low": "Thấp",
+        "high": "Cao",
+        "style_exaggeration": "Phóng đại phong cách",
+        "none": "Không",
+        "exaggerated": "Phóng đại",
+        "speaker_boost": "Tăng cường loa",
+        "all_languages": "Tất cả ngôn ngữ ({count}):",
+        "more_languages": "+{count} nữa",
+        "character_management": "Quản lý nhân vật",
+        "assign_segment_to_character": "Gán đoạn text cho nhân vật",
+        "cancel_quick_select": "Hủy chọn nhanh",
+        "quick_select_mode": "Chế độ chọn nhanh:",
+        "quick_select_instruction": "Nhấp vào các đoạn text bên trái để gán cho nhân vật",
+        "this": "này",
+        "quick_select": "Chọn nhanh:",
+        "default_voice_with_count": "Giọng mặc định ({count})",
+        "selected_segment": "Đoạn đang chọn:",
+        "use_default_voice": "— Dùng giọng mặc định —",
+        "using_voice_of": "Đang dùng giọng của:",
+        "unassign": "Bỏ gán",
+        "using_default_voice": "Đang dùng giọng mặc định",
+        "segment_list": "Danh sách đoạn text ({count})",
+        "no_segments": "Chưa có đoạn text nào",
+        "character_management_title": "Quản lý Nhân vật",
+        "character_management_description": "Tạo và quản lý nhân vật, gán giọng cho từng đoạn text",
+        "close": "Đóng",
+        "assign_segment_to_character_title": "Gán đoạn text cho Nhân vật",
+        "add": "Thêm",
+        "character_name": "Tên nhân vật",
+        "character_name_placeholder": "Tên nhân vật",
+        "voice_label": "Giọng:",
+        "edit": "Chỉnh sửa",
+        "delete": "Xóa",
+        "save": "Lưu",
+        "cancel": "Hủy",
+        "no_characters": "Chưa có nhân vật. Nhấn \"Thêm\" để tạo nhân vật mới.",
+        "character_prefix": "Nhân vật",
+        "model_multilingual_desc": "Hỗ trợ đa ngôn ngữ, chất lượng cao",
+        "model_turbo_desc": "Tốc độ nhanh, phù hợp cho video ngắn",
+        "model_v3_name": "D2Mbox v3",
+        "model_v3_desc": "Diễn cảm, 70+ ngôn ngữ. Alpha.",
+        "model_v25_name": "D2Mbox v2.5",
+        "model_v25_desc": "Độ trễ thấp cho hội thoại/thời gian thực.",
+        "model_v2_name": "D2Mbox v2",
+        "model_v2_desc": "Ổn định, nội dung dài, hỗ trợ clone.",
+        "alpha": "Alpha",
+        "best": "Tốt nhất"
+      },
+      "panel": {
+        "subtitle": {
+          "title": "Phụ đề",
+          "processing": "Đang xử lý...",
+          "processing_progress": "Tiến độ xử lý",
+          "auto_subtitle": "Phụ đề tự động",
+          "auto_subtitle_description": "Tự động nhận dạng giọng nói trong video.",
+          "video_language": "Ngôn ngữ dùng trong video",
+          "create": "Tạo",
+          "hardsub": "Hardsub siêu tốc",
+          "hardsub_description": "Tách phụ đề từ video bằng cách chọn vùng text",
+          "box_color": "Màu khung",
+          "auto_track": "Theo dõi tự động",
+          "language": "Ngôn ngữ",
+          "enable_frame": "Bật khung",
+          "disable": "Tắt",
+          "extract_subtitle": "Tách phụ đề",
+          "hardsub_instruction": "Kéo khung trên preview để chọn vùng text, sau đó chọn ngôn ngữ và nhấn \"Tách phụ đề\". Hệ thống sẽ tự động theo dõi và tách phụ đề từ toàn bộ video.",
+          "cannot_init_job": "Không thể khởi tạo job",
+          "extract_success": "Đã tách thành công {count} phụ đề!",
+          "no_subtitles_found": "Không tìm thấy phụ đề nào. Vui lòng thử lại với vùng chọn khác.",
+          "no_result_from_server": "Không nhận được kết quả từ server. Vui lòng thử lại.",
+          "error_getting_result": "Lỗi khi lấy kết quả: {error}",
+          "error": "Lỗi: {error}",
+          "error_processing_data": "Lỗi khi xử lý dữ liệu từ server",
+          "connection_closed": "Kết nối bị đóng. Vui lòng thử lại.",
+          "translate_subtitle": "Dịch phụ đề",
+          "translate_subtitle_description": "Chuyển phụ đề hiện có sang ngôn ngữ khác.",
+          "to_language": "Sang (đích)",
+          "source_based_on": "Nguồn sẽ dựa vào phụ đề hiện có / track đang chọn.",
+          "translate": "Dịch",
+          "upload_subtitle": "Tải lên phụ đề",
+          "upload_subtitle_description": "Hỗ trợ .srt, .vtt, .ass/.ssa",
+          "drag_drop_file": "Kéo & thả tệp phụ đề vào đây hoặc chọn tệp",
+          "select_file": "Chọn tệp",
+          "timecode_note": "Lưu ý: Timecode của phụ đề cần khớp với video hiện tại để hiển thị chính xác.",
+          "subtitle_style": "Style phụ đề",
+          "subtitle_style_description": "Thiết lập font, kích cỡ, màu, nền…",
+          "edit_subtitle": "Chỉnh sửa phụ đề",
+          "loading_subtitle": "Đang tải phụ đề",
+          "subtitle_timeline": "Timeline phụ đề",
+          "no_timeline": "Chưa có timeline",
+          "no_subtitle": "Chưa có phụ đề",
+          "add_subtitle_to_timeline": "Thêm phụ đề vào timeline để bắt đầu chỉnh sửa",
+          "modified_indicator": "Đã được sửa - cần làm lại giọng",
+          "add_first_segment": "Thêm đoạn đầu tiên",
+          "add_new_segment": "Thêm đoạn mới",
+          "settings": {
+            "title": "Cấu hình thiết lập",
+            "classic": "Cổ điển",
+            "modern": "Hiện đại",
+            "cinematic": "Điện ảnh",
+            "reset_all": "Đặt lại tất cả",
+            "close": "Đóng",
+            "text": "Văn bản",
+            "font": "Phông chữ",
+            "color": "Màu sắc",
+            "scale": "Tỷ lệ",
+            "weight": "Độ đậm",
+            "weight_normal": "Thường",
+            "weight_medium": "Trung bình",
+            "weight_semibold": "Bán đậm",
+            "weight_bold": "Đậm",
+            "weight_extrabold": "Cực đậm",
+            "style": "Kiểu",
+            "style_normal": "Bình thường",
+            "style_italic": "Nghiêng",
+            "align": "Căn chỉnh",
+            "align_left": "Trái",
+            "align_center": "Giữa",
+            "align_right": "Phải",
+            "background": "Nền",
+            "enable": "Bật",
+            "opacity": "Độ trong suốt",
+            "karaoke": "Karaoke",
+            "karaoke_bg": "Màu nền",
+            "layout": "Bố cục",
+            "horizontal_position": "Vị trí ngang",
+            "vertical_position": "Vị trí dọc",
+            "top": "Trên",
+            "middle": "Giữa",
+            "bottom": "Dưới",
+            "auto_break": "Tự động xuống dòng",
+            "max_lines": "Số dòng tối đa mỗi phần",
+            "max_words": "Số từ tối đa mỗi dòng",
+            "reset": "Đặt lại"
+          },
+          "style": {
+            "back": "Back",
+            "captions": "Captions",
+            "size": "Kích cỡ",
+            "change_color": "Change color",
+            "reset": "Reset",
+            "settings": "Settings"
+          }
+        },
+        "audio": {
+          "title": "Kho nhạc",
+          "description": "Tìm và thêm nhạc nền bản quyền miễn phí",
+          "refresh": "Làm mới",
+          "search_placeholder": "Tìm kiếm nhạc...",
+          "filter": "Lọc",
+          "favorites": "Yêu thích",
+          "view_all": "Xem tất cả",
+          "categories": "Danh mục",
+          "suggested": "Được đề xuất",
+          "tracks_count": "{count} bài nhạc",
+          "add": "Thêm",
+          "close": "Đóng",
+          "favorites_list": "Danh sách yêu thích",
+          "categories_list": "Danh mục nhạc",
+          "suggested_tracks": "Bản nhạc gợi ý",
+          "click_to_view": "Nhấn để xem",
+          "no_preview_url": "Bản nhạc không có đường dẫn preview",
+          "cannot_play_preview": "Không thể phát bản preview này",
+          "added_to_timeline": "Đã thêm bản nhạc vào timeline"
+        },
+        "media": {
+          "import_media": "Nhập phương tiện",
+          "drag_drop_instruction": "Kéo và thả các tệp phương tiện từ thiết bị của bạn để nhập.",
+          "view_large": "Xem lớn",
+          "close": "Đóng",
+          "added": "Đã thêm",
+          "preview": {
+            "pause": "Tạm dừng",
+            "play": "Phát",
+            "progress": "Tiến độ",
+            "no_preview": "Không hỗ trợ xem trước phụ đề. Bạn có thể sử dụng tệp này trong timeline."
+          }
+        }
+      },
+      "rail": {
+        "media": "Phương tiện",
+        "audio": "Âm thanh",
+        "subtitle": "Phụ đề",
+        "voiceover": "Lồng tiếng"
+      },
+      "stage": {
+        "untitled_project": "Dự án chưa có tên",
+        "aspect_ratio": "Tỷ lệ khung",
+        "aspect_ratio_title": "Tỷ lệ khung hình",
+        "export": "Xuất",
+        "loading": "Đang tải...",
+        "export_menu": {
+          "title": "Xuất dự án",
+          "export_video": "Xuất Video",
+          "export_video_description": "Xuất video hoàn chỉnh với text, audio,...",
+          "export_audio": "Xuất Audio",
+          "export_audio_description": "Chỉ xuất audio, ghép tất cả audio clips",
+          "export_subtitle": "Xuất Subtitle",
+          "export_subtitle_description": "Xuất file phụ đề (SRT, VTT)",
+          "video_options": "Tùy chọn xuất video",
+          "audio_options": "Tùy chọn xuất audio",
+          "subtitle_options": "Tùy chọn xuất subtitle",
+          "resolution": "Độ phân giải",
+          "quality": "Chất lượng",
+          "quality_high": "Cao",
+          "quality_medium": "Trung bình",
+          "quality_low": "Thấp",
+          "format": "Định dạng",
+          "bitrate": "Bitrate",
+          "processing": "Đang xử lý...",
+          "export_processing": "Đang xử lý xuất...",
+          "export_failed": "Xuất thất bại",
+          "cannot_start_export": "Không thể bắt đầu xuất",
+          "download_success": "Tải xuống thành công!",
+          "cannot_download": "Không thể tải xuống file"
+        }
+      },
+      "timeline": {
+        "split": "Tách",
+        "split_with_shortcut": "Tách (S)",
+        "split_at_playhead": "Tách tại playhead",
+        "delete": "Xoá",
+        "delete_with_shortcut": "Xoá (Del)",
+        "zoom": "Zoom",
+        "zoom_with_shortcut": "Zoom (Ctrl/Cmd + cuộn)"
+      }
+    }
+  }
+}
