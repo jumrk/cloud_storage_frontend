@@ -1,13 +1,13 @@
 "use client";
 
-import React from "react";
+import React, { Suspense } from "react";
 import Hero from "@/features/marketing/components/Hero";
 import Description from "@/features/marketing/components/Description";
 import ScrollReveal from "@/shared/ui/ScrollReveal";
 import PlanListWithUser from "@/features/plans/components/PlanListWithUser";
 import useMarketingPage from "@/features/marketing/hooks/useMarketingPage";
 
-export default function Home() {
+function HomeContent() {
   const { t } = useMarketingPage();
 
   return (
@@ -109,5 +109,30 @@ export default function Home() {
         </div>
       </main>
     </>
+  );
+}
+
+function HomeLoading() {
+  return (
+    <main className="relative w-full overflow-hidden pt-20">
+      <div className="mx-auto max-w-screen-xl p-4">
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-12 h-12 border-4 border-[var(--color-brand-500)] border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm text-[var(--color-text-muted)]">
+              Đang tải...
+            </p>
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<HomeLoading />}>
+      <HomeContent />
+    </Suspense>
   );
 }

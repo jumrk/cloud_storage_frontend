@@ -1,7 +1,7 @@
 "use client";
 import ScrollReveal from "@/shared/ui/ScrollReveal";
 import Input from "@/shared/ui/Input";
-import Button from "@/shared/ui/Button";
+import Button from "@/shared/ui/button";
 import Link from "next/link";
 import Image from "next/image";
 import useRegisterForm from "../hooks/useRegisterForm";

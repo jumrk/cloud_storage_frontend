@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import Skeleton from "react-loading-skeleton";
@@ -16,7 +16,7 @@ import {
 } from "@/features/pricing/hooks";
 import { formatMoney } from "@/features/pricing/utils";
 
-export default function CheckoutPage() {
+function CheckoutContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const planSlug = searchParams.get("plan");
@@ -746,5 +746,37 @@ export default function CheckoutPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Loading fallback component
+function CheckoutLoading() {
+  return (
+    <div className="min-h-screen bg-[var(--color-surface-soft)] py-12 px-4">
+      <div className="max-w-6xl mx-auto space-y-6">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <Skeleton width={150} height={16} />
+            <Skeleton width={300} height={32} className="mt-2" />
+          </div>
+        </div>
+        <div className="grid lg:grid-cols-2 gap-6">
+          <div className="bg-white rounded-3xl shadow-card border border-[var(--color-border)] p-6">
+            <Skeleton height={400} />
+          </div>
+          <div className="bg-white rounded-3xl shadow-card border border-[var(--color-border)] p-6">
+            <Skeleton height={400} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={<CheckoutLoading />}>
+      <CheckoutContent />
+    </Suspense>
   );
 }
