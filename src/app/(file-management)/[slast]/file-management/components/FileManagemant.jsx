@@ -499,7 +499,6 @@ export default function FileManagement() {
           setShowShareModal(true);
         }}
         onDownload={handleDownload}
-        onShare={() => {}}
         onGrantPermission={handleGrantPermission}
       />
 

@@ -118,6 +118,16 @@ export default function ActionZone({
             onDropAction={onGrantPermission}
           />
         )}
+        {/* Chia sẻ - chỉ hiện khi chọn 1 item */}
+        {draggedItems.length === 1 && (
+          <Button_icon
+            text="Chia sẻ"
+            icon={<FiShare2 size={26} />}
+            bg="bg-blue-500"
+            draggedItems={draggedItems}
+            onDropAction={(items) => onShare && onShare(items[0])}
+          />
+        )}
         <Button_icon
           text="Di chuyển"
           icon={<IoMoveOutline size={28} />}

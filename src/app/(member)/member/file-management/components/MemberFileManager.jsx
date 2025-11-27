@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Table from "@/features/file-management/components/TableFile";
 import Card_file from "@/features/file-management/components/CardFile";
@@ -11,10 +11,13 @@ import Modal from "@/shared/ui/Modal";
 import EmptyState from "@/shared/ui/EmptyState";
 import useManagement from "../hooks/useManagement";
 import FilePreviewModal from "@/features/file-management/components/FilePreviewModal";
+import ShareModal from "@/features/file-management/components/ShareModal";
 import { toast } from "react-hot-toast";
 
 export default function MemberFileManager() {
   const searchParams = useSearchParams();
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareItem, setShareItem] = useState(null);
   const {
     t,
     folders,
@@ -212,6 +215,10 @@ export default function MemberFileManager() {
               handleChecked={() => {}}
               onPreviewFile={handlePreview}
               loadingMore={false}
+              onShare={(item) => {
+                setShareItem(item);
+                setShowShareModal(true);
+              }}
             />
           ) : (
             <div className="w-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
@@ -239,6 +246,10 @@ export default function MemberFileManager() {
                   onPreviewFile={
                     item.type === "file" ? () => handlePreview(item) : undefined
                   }
+                  onShare={(item) => {
+                    setShareItem(item);
+                    setShowShareModal(true);
+                  }}
                 />
               ))}
             </div>
@@ -337,10 +348,23 @@ export default function MemberFileManager() {
             onMove={openMoveModal}
             onDownload={handleDownload}
             onDelete={handleDelete}
-            onShare={() => {}}
+            onShare={(item) => {
+              setShareItem(item);
+              setShowShareModal(true);
+            }}
             onGrantPermission={() => {}}
             canGrantPermission={false}
           />
+
+          {showShareModal && shareItem && (
+            <ShareModal
+              item={shareItem}
+              onClose={() => {
+                setShowShareModal(false);
+                setShareItem(null);
+              }}
+            />
+          )}
 
           {uploadBatches.map((batch, idx) => (
             <MiniStatus
