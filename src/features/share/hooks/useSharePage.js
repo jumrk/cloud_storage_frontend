@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import toast from "react-hot-toast";
 import shareService from "../services/shareService";
 
@@ -14,9 +14,8 @@ function formatSize(size) {
 }
 
 export default function useSharePage() {
-  const { id } = useParams();
-  const router = useRouter();
-
+  const { id } = useParams(); // This is the share token
+  
   const [item, setItem] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -24,21 +23,34 @@ export default function useSharePage() {
   const [breadcrumb, setBreadcrumb] = useState([]);
   const [downloadingId, setDownloadingId] = useState(null);
   const [downloadBatch, setDownloadBatch] = useState(null);
+  const [currentFolderId, setCurrentFolderId] = useState(null); // Track current subfolder
+  const [rootFolderId, setRootFolderId] = useState(null); // Track root shared folder
   const downloadBatchIdRef = useRef(0);
 
-  const fetchShareInfo = useCallback(async () => {
+  // Fetch share info or subfolder info
+  const fetchShareInfo = useCallback(async (subfolderId = null) => {
     if (!id) return;
     setLoading(true);
     try {
-      const res = await shareService.getShareInfo(id);
+      let res;
+      if (subfolderId) {
+        // Fetch subfolder content
+        res = await shareService.getShareSubfolderInfo(id, subfolderId);
+      } else {
+        // Fetch root share info
+        res = await shareService.getShareInfo(id);
+      }
+      
       const data = res.data;
       setItem(data);
+      setCurrentFolderId(subfolderId);
+      
       if (data.type === "folder") {
-        setBreadcrumb((prev) => {
-          const idx = prev.findIndex((b) => b.id === data.id);
-          if (idx !== -1) return prev.slice(0, idx + 1);
-          return [...prev, { id: data.id, name: data.name }];
-        });
+        // Set root folder ID if this is the first load
+        if (!subfolderId) {
+          setRootFolderId(data.id);
+          setBreadcrumb([{ id: data.id, name: data.name }]);
+        }
       }
     } catch (err) {
       let msg = "Không tìm thấy file hoặc thư mục";
@@ -54,31 +66,77 @@ export default function useSharePage() {
     }
   }, [id]);
 
+  // Enter a subfolder
   const handleEnterFolder = useCallback(
-    (folder) => {
-      router.push(`/share/${folder.id}`);
+    async (folder) => {
+      setLoading(true);
+      try {
+        const res = await shareService.getShareSubfolderInfo(id, folder.id);
+        const data = res.data;
+        setItem(data);
+        setCurrentFolderId(folder.id);
+        
+        // Update breadcrumb
+        setBreadcrumb((prev) => [...prev, { id: folder.id, name: folder.name }]);
+      } catch (err) {
+        let msg = "Không thể mở thư mục";
+        if (err.response && err.response.data && err.response.data.error) {
+          msg = err.response.data.error;
+        }
+        toast.error(msg);
+      } finally {
+        setLoading(false);
+      }
     },
-    [router]
+    [id]
   );
 
+  // Navigate via breadcrumb
   const handleBreadcrumbClick = useCallback(
-    (idx) => {
-      if (idx === breadcrumb.length - 1) return;
+    async (idx) => {
+      if (idx === breadcrumb.length - 1) return; // Already at this folder
+      
       const target = breadcrumb[idx];
-      router.push(`/share/${target.id}`);
-      setBreadcrumb(breadcrumb.slice(0, idx + 1));
+      setLoading(true);
+      
+      try {
+        let res;
+        if (idx === 0) {
+          // Go back to root
+          res = await shareService.getShareInfo(id);
+          setCurrentFolderId(null);
+        } else {
+          // Go to a subfolder
+          res = await shareService.getShareSubfolderInfo(id, target.id);
+          setCurrentFolderId(target.id);
+        }
+        
+        const data = res.data;
+        setItem(data);
+        setBreadcrumb(breadcrumb.slice(0, idx + 1));
+      } catch (err) {
+        let msg = "Không thể mở thư mục";
+        if (err.response && err.response.data && err.response.data.error) {
+          msg = err.response.data.error;
+        }
+        toast.error(msg);
+      } finally {
+        setLoading(false);
+      }
     },
-    [breadcrumb, router]
+    [breadcrumb, id]
   );
 
   const copyShareLink = useCallback(async () => {
-    await navigator.clipboard.writeText(window.location.href);
+    // Always copy the original share link (without subfolder path)
+    const baseUrl = window.location.origin + `/share/${id}`;
+    await navigator.clipboard.writeText(baseUrl);
     setCopied(true);
     toast.success("Đã copy link chia sẻ!");
     setTimeout(() => setCopied(false), 1500);
-  }, []);
+  }, [id]);
 
-  // Tải xuống một file
+  // Download a single file
   const downloadSingleFile = useCallback(
     async (file, relativePath = "") => {
       try {
@@ -103,13 +161,13 @@ export default function useSharePage() {
     [id]
   );
 
-  // Tải xuống folder (từng file)
+  // Download folder (all files)
   const downloadFolder = useCallback(
     async (folderItem) => {
       try {
         setDownloadingId(folderItem.id);
 
-        // Lấy danh sách file trong folder
+        // Get list of files in folder
         const res = await shareService.getShareFolderFiles(id);
         if (
           !res.data?.success ||
@@ -124,7 +182,7 @@ export default function useSharePage() {
         const files = res.data.files;
         const folderName = res.data.folderName || folderItem.name;
 
-        // Tạo batch download
+        // Create batch download
         const batchId = `share-download-${Date.now()}-${++downloadBatchIdRef.current}`;
         const downloadFiles = files.map((file) => ({
           file: {
@@ -150,17 +208,15 @@ export default function useSharePage() {
           status: "downloading",
         });
 
-        // Tải từng file
+        // Download each file
         let successCount = 0;
         let errorCount = 0;
 
-        // Đảm bảo downloadBatch được set trước khi bắt đầu tải
         await new Promise((resolve) => setTimeout(resolve, 100));
 
         for (let i = 0; i < downloadFiles.length; i++) {
           const fileState = downloadFiles[i];
 
-          // Cập nhật trạng thái đang tải
           setDownloadBatch((prev) => {
             if (!prev) return prev;
             return {
@@ -222,13 +278,11 @@ export default function useSharePage() {
             });
           }
 
-          // Delay nhỏ giữa các file để tránh quá tải
           if (i < downloadFiles.length - 1) {
             await new Promise((resolve) => setTimeout(resolve, 300));
           }
         }
 
-        // Hoàn thành
         setTimeout(() => {
           setDownloadBatch(null);
           setDownloadingId(null);
@@ -258,20 +312,18 @@ export default function useSharePage() {
 
   const handleDownload = useCallback(
     async (targetItem) => {
-      if (!targetItem.canDownload) {
+      // Check download permission from current item (which has canDownload from share)
+      if (!item?.canDownload) {
         toast.error("Bạn không có quyền tải xuống nội dung này");
         return;
       }
 
       if (targetItem.type === "folder") {
-        // Tải folder (từng file)
         await downloadFolder(targetItem);
       } else {
-        // Tải file đơn - cũng hiển thị progress
         try {
           setDownloadingId(targetItem.id);
 
-          // Tạo batch download cho file đơn
           const batchId = `share-download-${Date.now()}-${++downloadBatchIdRef.current}`;
           const downloadFiles = [
             {
@@ -290,10 +342,8 @@ export default function useSharePage() {
             status: "downloading",
           });
 
-          // Đảm bảo downloadBatch được set trước khi bắt đầu tải
           await new Promise((resolve) => setTimeout(resolve, 100));
 
-          // Cập nhật trạng thái đang tải
           setDownloadBatch((prev) => {
             if (!prev) return prev;
             return {
@@ -353,7 +403,7 @@ export default function useSharePage() {
         }
       }
     },
-    [downloadFolder, downloadSingleFile]
+    [downloadFolder, downloadSingleFile, item?.canDownload]
   );
 
   const clearDownloadBatch = useCallback(() => {
@@ -369,6 +419,8 @@ export default function useSharePage() {
     breadcrumb,
     downloadingId,
     downloadBatch,
+    currentFolderId,
+    rootFolderId,
     formatSize,
     fetchShareInfo,
     handleEnterFolder,

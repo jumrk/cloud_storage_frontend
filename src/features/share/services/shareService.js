@@ -6,6 +6,11 @@ const shareService = {
     return axiosClient.get(`/api/share/${token}`);
   },
 
+  // Lấy nội dung subfolder trong shared folder (public)
+  getShareSubfolderInfo: (token, folderId) => {
+    return axiosClient.get(`/api/share/${token}/folder/${folderId}`);
+  },
+
   // Lấy danh sách file trong folder qua share token (public)
   getShareFolderFiles: (token) => {
     return axiosClient.get(`/api/share/${token}/files`);
