@@ -50,6 +50,8 @@ const useFileManagementPage = () => {
     type: "all",
     memberId: null,
     fileType: null,
+    sortBy: "none", // none, name, size, date
+    showFavorites: false,
   });
   const [members, setMembers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -67,10 +69,14 @@ const useFileManagementPage = () => {
       favoriteAbortRef.current = new AbortController();
       const signal = favoriteAbortRef.current.signal;
       const response = await fetchFavorites(signal);
+      // Handle both response.favorites and direct array response
+      const favoritesList = response.favorites || response || [];
       const ids = new Set(
-        (response.favorites || []).map((item) =>
-          String(item.resourceId || item.id)
-        )
+        favoritesList.map((item) => {
+          // Prefer resourceId as it's the actual file/folder ID
+          const id = item.resourceId || item.id;
+          return id ? String(id) : null;
+        }).filter(Boolean)
       );
       setFavoriteIds(ids);
     } catch (err) {
@@ -314,11 +320,19 @@ const useFileManagementPage = () => {
           item.mimeType !== filter.fileType
         )
           return false;
+        // Apply favorite filter
+        if (filter.showFavorites) {
+          const resourceId = item._id || item.id;
+          const resourceIdStr = resourceId ? String(resourceId) : null;
+          if (!resourceIdStr || !favoriteIds.has(resourceIdStr)) {
+            return false;
+          }
+        }
         return true;
       }
       return false;
     });
-  }, [data, filter]);
+  }, [data, filter, favoriteIds]);
 
   const foldersBase =
     filter.type === "all" &&
@@ -336,25 +350,72 @@ const useFileManagementPage = () => {
 
   const searchLower = searchTerm.trim().toLowerCase();
 
-  const foldersToShowFiltered = useMemo(
-    () =>
-      searchLower
-        ? foldersBase.filter((f) =>
-            (f.name || "").toLowerCase().includes(searchLower)
-          )
-        : foldersBase,
-    [foldersBase, searchLower]
-  );
+  // Helper function to sort items
+  const sortItems = useCallback((items) => {
+    if (!filter.sortBy || filter.sortBy === "none") return items;
+    
+    const sorted = [...items];
+    switch (filter.sortBy) {
+      case "name":
+        sorted.sort((a, b) => {
+          const nameA = (a.name || "").toLowerCase();
+          const nameB = (b.name || "").toLowerCase();
+          return nameA.localeCompare(nameB);
+        });
+        break;
+      case "size":
+        sorted.sort((a, b) => (b.size || 0) - (a.size || 0));
+        break;
+      case "date":
+        sorted.sort((a, b) => {
+          const dateA = new Date(a.date || a.createdAt || 0);
+          const dateB = new Date(b.date || b.createdAt || 0);
+          return dateB - dateA;
+        });
+        break;
+      default:
+        break;
+    }
+    return sorted;
+  }, [filter.sortBy]);
 
-  const filesToShowFiltered = useMemo(
-    () =>
-      searchLower
-        ? filesBase.filter((f) =>
-            (f.name || "").toLowerCase().includes(searchLower)
-          )
-        : filesBase,
-    [filesBase, searchLower]
-  );
+  // Apply favorite filter to base results
+  const foldersAfterFavoriteFilter = useMemo(() => {
+    if (!filter.showFavorites) return foldersBase;
+    // Folders typically don't have favorites, but check anyway
+    return foldersBase.filter((item) => {
+      const resourceId = item._id || item.id;
+      if (!resourceId) return false;
+      return favoriteIds.has(String(resourceId));
+    });
+  }, [foldersBase, filter.showFavorites, favoriteIds]);
+
+  const filesAfterFavoriteFilter = useMemo(() => {
+    if (!filter.showFavorites) return filesBase;
+    return filesBase.filter((item) => {
+      const resourceId = item._id || item.id;
+      if (!resourceId) return false;
+      return favoriteIds.has(String(resourceId));
+    });
+  }, [filesBase, filter.showFavorites, favoriteIds]);
+
+  const foldersToShowFiltered = useMemo(() => {
+    let result = searchLower
+      ? foldersAfterFavoriteFilter.filter((f) =>
+          (f.name || "").toLowerCase().includes(searchLower)
+        )
+      : foldersAfterFavoriteFilter;
+    return sortItems(result);
+  }, [foldersAfterFavoriteFilter, searchLower, sortItems]);
+
+  const filesToShowFiltered = useMemo(() => {
+    let result = searchLower
+      ? filesAfterFavoriteFilter.filter((f) =>
+          (f.name || "").toLowerCase().includes(searchLower)
+        )
+      : filesAfterFavoriteFilter;
+    return sortItems(result);
+  }, [filesAfterFavoriteFilter, searchLower, sortItems]);
 
   const handlePreview = useCallback((file) => {
     setPreviewFile(file);

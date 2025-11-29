@@ -345,11 +345,26 @@ export default function SubtitlePanel({ visible = true, onUploadFiles }) {
                           }
                           onClick={async () => {
                             if (!hardsub || !hardsub.boxRect) return;
-                            // Reset progress to 0 when starting a new job
+                            
+                            // Validate boxRect before sending
+                            const { x, y, width, height } = hardsub.boxRect;
+                            if (
+                              typeof x !== "number" ||
+                              typeof y !== "number" ||
+                              typeof width !== "number" ||
+                              typeof height !== "number" ||
+                              width <= 0 ||
+                              height <= 0
+                            ) {
+                              toast.error(
+                                t("video_processor.inspector.panel.subtitle.invalid_box_rect")
+                              );
+                              return;
+                            }
+                            
                             hardsub.setProgress(0);
                             hardsub.setIsProcessing(true);
                             try {
-                              // Call backend API
                               const axiosClient = (
                                 await import("@/shared/lib/axiosClient")
                               ).default;
@@ -358,16 +373,17 @@ export default function SubtitlePanel({ visible = true, onUploadFiles }) {
                                   /\/project\/([^\/]+)/
                                 )?.[1];
 
-                              // Get preview frame size for scaling
                               const previewSize = hardsub.boxRect
                                 ?.previewSize || { width: 1920, height: 1080 };
 
-                              // Start extraction
                               const startResponse = await axiosClient.post(
                                 `/api/video-processor/project/${projectId}/hardsub/extract`,
                                 {
                                   boxRect: {
-                                    ...hardsub.boxRect,
+                                    x: Number(x),
+                                    y: Number(y),
+                                    width: Number(width),
+                                    height: Number(height),
                                     previewWidth: previewSize.width,
                                     previewHeight: previewSize.height,
                                   },
@@ -384,20 +400,14 @@ export default function SubtitlePanel({ visible = true, onUploadFiles }) {
                               }
 
                               const jobId = startResponse.data.jobId;
-
-                              // Listen to progress via SSE
-                              // Use API base URL (not frontend origin) for SSE
                               const apiBaseUrl =
                                 process.env.NEXT_PUBLIC_API_BASE ||
                                 "http://localhost:5000";
-
-                              // Get token for SSE (EventSource doesn't support custom headers)
                               let token = null;
                               if (typeof window !== "undefined") {
                                 token = localStorage.getItem("token");
                               }
 
-                              // Build SSE URL with token if available
                               const sseUrl = new URL(
                                 `${apiBaseUrl}/api/video-processor/project/${projectId}/hardsub/progress`
                               );
@@ -410,40 +420,28 @@ export default function SubtitlePanel({ visible = true, onUploadFiles }) {
                                 sseUrl.toString()
                               );
 
-                              eventSource.onopen = () => {
-                                // Connection opened
-                              };
-
                               eventSource.onmessage = (e) => {
                                 try {
-                                  // Skip heartbeat messages
                                   if (e.data.trim() === ":") {
                                     return;
                                   }
 
                                   const data = JSON.parse(e.data);
 
-                                  // Update progress in context if available
-                                  // Always update progress from server (server is source of truth)
                                   if (hardsub?.setProgress) {
                                     const newProgress = Math.max(
                                       0,
                                       Math.min(100, data.progress || 0)
                                     );
-                                    // Always update progress from server to ensure consistency
-                                    // Server will send progress from 0 to 100, so we should always accept it
                                     hardsub.setProgress(newProgress);
                                   }
-                                  // Remove message display - only show percentage
                                   if (hardsub?.setProgressMessage) {
-                                    hardsub.setProgressMessage("");
+                                    hardsub.setProgressMessage(data.message || "");
                                   }
 
                                   if (data.status === "done") {
                                     eventSource.close();
-                                    // Wait a bit to ensure job is fully completed
                                     setTimeout(() => {
-                                      // Get result
                                       axiosClient
                                         .get(
                                           `/api/video-processor/project/${projectId}/hardsub/result/${jobId}`
@@ -460,7 +458,6 @@ export default function SubtitlePanel({ visible = true, onUploadFiles }) {
                                               : [];
 
                                             if (clipsArray.length > 0) {
-                                              // Add clips to timeline
                                               const event = new CustomEvent(
                                                 "timeline.addClips",
                                                 {
@@ -515,7 +512,7 @@ export default function SubtitlePanel({ visible = true, onUploadFiles }) {
                                           );
                                           hardsub.setIsProcessing(false);
                                         });
-                                    }, 500); // Wait 500ms before fetching result
+                                    }, 500);
                                   } else if (data.status === "error") {
                                     eventSource.close();
                                     toast.error(
@@ -568,13 +565,18 @@ export default function SubtitlePanel({ visible = true, onUploadFiles }) {
                         {t("video_processor.inspector.panel.subtitle.hardsub_instruction")}
                       </p>
                       {hardsub?.isProcessing && (
-                        <div className="mt-2">
+                        <div className="mt-2 space-y-1">
                           <div className="h-2 bg-surface-100 rounded-full overflow-hidden">
                             <div
                               className="h-full bg-brand-600 transition-all duration-300"
                               style={{ width: `${hardsub.progress || 0}%` }}
                             />
                           </div>
+                          {hardsub?.progressMessage && (
+                            <p className="text-[10px] text-text-muted truncate">
+                              {hardsub.progressMessage}
+                            </p>
+                          )}
                         </div>
                       )}
                     </>

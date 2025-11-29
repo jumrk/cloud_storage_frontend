@@ -40,6 +40,8 @@ export default function useManagement() {
   const [filter, setFilter] = useState({
     type: "all",
     fileType: null,
+    sortBy: "none", // none, name, size, date
+    showFavorites: false,
   });
 
   // Favorites state
@@ -62,10 +64,14 @@ export default function useManagement() {
       favoriteAbortRef.current = new AbortController();
       const signal = favoriteAbortRef.current.signal;
       const response = await fetchFavorites(signal);
+      // Handle both response.favorites and direct array response
+      const favoritesList = response.favorites || response || [];
       const ids = new Set(
-        (response.favorites || []).map((item) =>
-          String(item.resourceId || item.id)
-        )
+        favoritesList.map((item) => {
+          // Prefer resourceId as it's the actual file/folder ID
+          const id = item.resourceId || item.id;
+          return id ? String(id) : null;
+        }).filter(Boolean)
       );
       setFavoriteIds(ids);
     } catch (err) {
@@ -287,11 +293,23 @@ export default function useManagement() {
     
     if (!list || !list.length) return;
 
+    // Filter out folders - only download files
+    const filesOnly = list.filter(item => item.type === "file");
+    if (!filesOnly.length) {
+      toast.error("Chỉ có thể tải xuống file, không thể tải xuống thư mục");
+      return;
+    }
+
     // For single file, show download progress
-    if (list.length === 1) {
-      const item = list[0];
-      const rawUrl = getPreferredDownloadUrl(item);
-      if (!rawUrl) return;
+    if (filesOnly.length === 1) {
+      const item = filesOnly[0];
+      if (!item._id && !item.id) {
+        toast.error("Không thể tải xuống file này");
+        return;
+      }
+
+      // Always use API endpoint for downloads
+      const downloadUrl = `/api/download/file/${item._id || item.id}`;
 
       // Create batch download for progress tracking
       const batchId = `member-download-${Date.now()}-${++downloadBatchIdRef.current}`;
@@ -318,72 +336,112 @@ export default function useManagement() {
           files: prev.files.map((f) => ({
             ...f,
             status: "downloading",
-            progress: 50,
+            progress: 0,
           })),
         };
       });
 
+      // For large files, show a simulated progress to indicate processing
+      const fileSize = item.size || 0;
+      const isLargeFile = fileSize > 100 * 1024 * 1024; // > 100MB
+      let simulatedProgressInterval = null;
+      
+      if (isLargeFile) {
+        // Simulate initial progress (0-5%) to show that download is starting
+        let simulatedProgress = 0;
+        simulatedProgressInterval = setInterval(() => {
+          simulatedProgress = Math.min(simulatedProgress + 0.5, 5);
+          setDownloadBatch((prev) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              files: prev.files.map((f) => ({
+                ...f,
+                progress: simulatedProgress,
+              })),
+            };
+          });
+          if (simulatedProgress >= 5) {
+            clearInterval(simulatedProgressInterval);
+          }
+        }, 200);
+      }
+
       try {
-        if (isTempApi(rawUrl)) {
-          const res = await axiosClient.get(rawUrl, { responseType: "blob" });
-          const cd = res.headers?.["content-disposition"] || "";
-          const m = /filename\*?=UTF-8''([^;]+)|filename="?([^"]+)"?/i.exec(cd);
-          const headerName = decodeURIComponent(m?.[1] || m?.[2] || "");
-          const fileName =
-            headerName || item?.name || item?.originalName || "download";
+        const res = await axiosClient.get(downloadUrl, {
+          responseType: "blob",
+          onDownloadProgress: (progressEvent) => {
+            // Clear simulated progress when real progress starts
+            if (simulatedProgressInterval) {
+              clearInterval(simulatedProgressInterval);
+              simulatedProgressInterval = null;
+            }
+            
+            if (progressEvent.total) {
+              const percentCompleted = Math.round(
+                (progressEvent.loaded * 100) / progressEvent.total
+              );
+              setDownloadBatch((prev) => {
+                if (!prev) return prev;
+                return {
+                  ...prev,
+                  files: prev.files.map((f) => ({
+                    ...f,
+                    progress: percentCompleted,
+                  })),
+                };
+              });
+            } else if (progressEvent.loaded > 0 && fileSize > 0) {
+              // Fallback: calculate progress from loaded bytes and known file size
+              const percentCompleted = Math.round(
+                (progressEvent.loaded * 100) / fileSize
+              );
+              setDownloadBatch((prev) => {
+                if (!prev) return prev;
+                return {
+                  ...prev,
+                  files: prev.files.map((f) => ({
+                    ...f,
+                    progress: Math.min(percentCompleted, 99), // Cap at 99% until complete
+                  })),
+                };
+              });
+            }
+          },
+        });
+        const cd = res.headers?.["content-disposition"] || "";
+        const m = /filename\*?=UTF-8''([^;]+)|filename="?([^"]+)"?/i.exec(cd);
+        const headerName = decodeURIComponent(m?.[1] || m?.[2] || "");
+        const fileName =
+          headerName || item?.name || item?.originalName || "download";
 
-          const objectUrl = URL.createObjectURL(res.data);
-          const a = document.createElement("a");
-          a.href = objectUrl;
-          a.download = fileName;
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-          URL.revokeObjectURL(objectUrl);
+        const objectUrl = URL.createObjectURL(res.data);
+        const a = document.createElement("a");
+        a.href = objectUrl;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(objectUrl);
 
-          setDownloadBatch((prev) => {
-            if (!prev) return prev;
-            return {
-              ...prev,
-              files: prev.files.map((f) => ({
-                ...f,
-                status: "success",
-                progress: 100,
-              })),
-            };
-          });
+        setDownloadBatch((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            files: prev.files.map((f) => ({
+              ...f,
+              status: "success",
+              progress: 100,
+            })),
+          };
+        });
 
-          setTimeout(() => {
-            setDownloadBatch(null);
-            toast.success("Tải xuống thành công!");
-          }, 1500);
-        } else {
-          const a = document.createElement("a");
-          a.href = rawUrl;
-          a.rel = "noopener";
-          a.target = "_blank";
-          a.download = item?.name || item?.originalName || "";
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-
-          setDownloadBatch((prev) => {
-            if (!prev) return prev;
-            return {
-              ...prev,
-              files: prev.files.map((f) => ({
-                ...f,
-                status: "success",
-                progress: 100,
-              })),
-            };
-          });
-
-          setTimeout(() => {
-            setDownloadBatch(null);
-          }, 1500);
-        }
+        setTimeout(() => {
+          setDownloadBatch(null);
+          toast.success("Tải xuống thành công!");
+        }, 1500);
       } catch (e) {
+        const errorMsg = e?.response?.data?.error || e.message || "Lỗi tải xuống";
         setDownloadBatch((prev) => {
           if (!prev) return prev;
           return {
@@ -391,7 +449,7 @@ export default function useManagement() {
             files: prev.files.map((f) => ({
               ...f,
               status: "error",
-              error: e.message,
+              error: errorMsg,
               progress: 0,
             })),
           };
@@ -399,7 +457,7 @@ export default function useManagement() {
 
         setTimeout(() => {
           setDownloadBatch(null);
-          toast.error("Tải xuống thất bại");
+          toast.error(errorMsg);
         }, 2000);
       }
       return;
@@ -412,40 +470,30 @@ export default function useManagement() {
       return raw || "download";
     };
 
-    for (const item of list) {
-      const rawUrl = getPreferredDownloadUrl(item);
-      if (!rawUrl) continue;
+    for (const item of filesOnly) {
+      if (!item._id && !item.id) continue;
+      
+      // Always use API endpoint for downloads
+      const downloadUrl = `/api/download/file/${item._id || item.id}`;
 
-      if (isTempApi(rawUrl)) {
-        try {
-          const res = await axiosClient.get(rawUrl, { responseType: "blob" });
-          const cd = res.headers?.["content-disposition"] || "";
-          const headerName = getNameFromCD(cd);
-          const fileName =
-            headerName || item?.name || item?.originalName || "download";
+      try {
+        const res = await axiosClient.get(downloadUrl, { responseType: "blob" });
+        const cd = res.headers?.["content-disposition"] || "";
+        const headerName = getNameFromCD(cd);
+        const fileName =
+          headerName || item?.name || item?.originalName || "download";
 
-          const objectUrl = URL.createObjectURL(res.data);
-          const a = document.createElement("a");
-          a.href = objectUrl;
-          a.download = fileName;
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-          URL.revokeObjectURL(objectUrl);
-        } catch (e) {
-          toast.error("Tải xuống thất bại");
-        }
-        continue;
+        const objectUrl = URL.createObjectURL(res.data);
+        const a = document.createElement("a");
+        a.href = objectUrl;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(objectUrl);
+      } catch (e) {
+        toast.error(`Tải xuống thất bại: ${item?.name || item?.originalName || "file"}`);
       }
-
-      const a = document.createElement("a");
-      a.href = rawUrl;
-      a.rel = "noopener";
-      a.target = "_blank";
-      a.download = item?.name || item?.originalName || "";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
     }
   };
 
@@ -487,8 +535,43 @@ export default function useManagement() {
       });
     }
 
+    // Apply favorite filter
+    if (filter.showFavorites) {
+      result = result.filter((item) => {
+        const resourceId = item._id || item.id;
+        if (!resourceId) return false;
+        return favoriteIds.has(String(resourceId));
+      });
+    }
+
+    // Apply sorting
+    if (filter.sortBy && filter.sortBy !== "none") {
+      result = [...result];
+      switch (filter.sortBy) {
+        case "name":
+          result.sort((a, b) => {
+            const nameA = (a.name || "").toLowerCase();
+            const nameB = (b.name || "").toLowerCase();
+            return nameA.localeCompare(nameB);
+          });
+          break;
+        case "size":
+          result.sort((a, b) => (b.size || 0) - (a.size || 0));
+          break;
+        case "date":
+          result.sort((a, b) => {
+            const dateA = new Date(a.date || a.createdAt || 0);
+            const dateB = new Date(b.date || b.createdAt || 0);
+            return dateB - dateA;
+          });
+          break;
+        default:
+          break;
+      }
+    }
+
     return result;
-  }, [data, searchTerm, filter]);
+  }, [data, searchTerm, filter, favoriteIds]);
 
   const renderFolderTree = (list, level = 0) =>
     list

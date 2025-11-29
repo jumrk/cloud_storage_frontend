@@ -17,9 +17,10 @@ const shareService = {
   },
 
   // Tải xuống một file cụ thể qua share token (public)
-  downloadShareFile: (token, fileId) => {
+  downloadShareFile: (token, fileId, onDownloadProgress) => {
     return axiosClient.get(`/api/share/${token}/file/${fileId}`, {
       responseType: "blob",
+      onDownloadProgress: onDownloadProgress || undefined,
     });
   },
 

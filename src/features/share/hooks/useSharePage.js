@@ -138,9 +138,14 @@ export default function useSharePage() {
 
   // Download a single file
   const downloadSingleFile = useCallback(
-    async (file, relativePath = "") => {
+    async (file, relativePath = "", onProgress) => {
       try {
-        const res = await shareService.downloadShareFile(id, file.id);
+        const res = await shareService.downloadShareFile(id, file.id, (progressEvent) => {
+          if (onProgress && progressEvent.total) {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            onProgress(percentCompleted);
+          }
+        });
         const blob = new Blob([res.data]);
         const link = document.createElement("a");
         link.href = window.URL.createObjectURL(blob);
@@ -222,15 +227,56 @@ export default function useSharePage() {
             return {
               ...prev,
               files: prev.files.map((f, idx) =>
-                idx === i ? { ...f, status: "downloading", progress: 50 } : f
+                idx === i ? { ...f, status: "downloading", progress: 0 } : f
               ),
             };
           });
 
+          // For large files, show a simulated progress to indicate processing
+          const fileSize = fileState.size || 0;
+          const isLargeFile = fileSize > 100 * 1024 * 1024; // > 100MB
+          let simulatedProgressInterval = null;
+          
+          if (isLargeFile) {
+            // Simulate initial progress (0-5%) to show that download is starting
+            let simulatedProgress = 0;
+            simulatedProgressInterval = setInterval(() => {
+              simulatedProgress = Math.min(simulatedProgress + 0.5, 5);
+              setDownloadBatch((prev) => {
+                if (!prev) return prev;
+                return {
+                  ...prev,
+                  files: prev.files.map((f, idx) =>
+                    idx === i ? { ...f, progress: simulatedProgress } : f
+                  ),
+                };
+              });
+              if (simulatedProgress >= 5) {
+                clearInterval(simulatedProgressInterval);
+              }
+            }, 200);
+          }
+
           try {
             const result = await downloadSingleFile(
               { id: fileState.id, name: fileState.name },
-              fileState.relativePath
+              fileState.relativePath,
+              (progress) => {
+                // Clear simulated progress when real progress starts
+                if (simulatedProgressInterval) {
+                  clearInterval(simulatedProgressInterval);
+                  simulatedProgressInterval = null;
+                }
+                setDownloadBatch((prev) => {
+                  if (!prev) return prev;
+                  return {
+                    ...prev,
+                    files: prev.files.map((f, idx) =>
+                      idx === i ? { ...f, progress: progress } : f
+                    ),
+                  };
+                });
+              }
             );
 
             if (result.success) {
@@ -351,12 +397,54 @@ export default function useSharePage() {
               files: prev.files.map((f) => ({
                 ...f,
                 status: "downloading",
-                progress: 50,
+                progress: 0,
               })),
             };
           });
 
-          const result = await downloadSingleFile(targetItem);
+          // For large files, show a simulated progress to indicate processing
+          const fileSize = targetItem.size || 0;
+          const isLargeFile = fileSize > 100 * 1024 * 1024; // > 100MB
+          let simulatedProgressInterval = null;
+          
+          if (isLargeFile) {
+            // Simulate initial progress (0-5%) to show that download is starting
+            let simulatedProgress = 0;
+            simulatedProgressInterval = setInterval(() => {
+              simulatedProgress = Math.min(simulatedProgress + 0.5, 5);
+              setDownloadBatch((prev) => {
+                if (!prev) return prev;
+                return {
+                  ...prev,
+                  files: prev.files.map((f) => ({
+                    ...f,
+                    progress: simulatedProgress,
+                  })),
+                };
+              });
+              if (simulatedProgress >= 5) {
+                clearInterval(simulatedProgressInterval);
+              }
+            }, 200);
+          }
+
+          const result = await downloadSingleFile(targetItem, "", (progress) => {
+            // Clear simulated progress when real progress starts
+            if (simulatedProgressInterval) {
+              clearInterval(simulatedProgressInterval);
+              simulatedProgressInterval = null;
+            }
+            setDownloadBatch((prev) => {
+              if (!prev) return prev;
+              return {
+                ...prev,
+                files: prev.files.map((f) => ({
+                  ...f,
+                  progress: progress,
+                })),
+              };
+            });
+          });
 
           if (result.success) {
             setDownloadBatch((prev) => {

@@ -65,7 +65,7 @@ const FileManagementService = () => {
       })
       .then((r) => r.data);
 
-  const downloadInternal = (rawUrl, token, signal) => {
+  const downloadInternal = (rawUrl, token, signal, onDownloadProgress) => {
     const url = rawUrl?.startsWith("http")
       ? rawUrl
       : `${process.env.NEXT_PUBLIC_API_BASE || ""}${rawUrl}`;
@@ -73,6 +73,7 @@ const FileManagementService = () => {
       responseType: "blob",
       signal,
       headers: authHeaders(token),
+      onDownloadProgress: onDownloadProgress || undefined,
     });
   };
 

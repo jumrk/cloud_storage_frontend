@@ -80,6 +80,17 @@ const Table = ({
   const [newName, setNewName] = useState("");
   const [copiedId, setCopiedId] = useState(null);
 
+  // State để lưu độ rộng các cột (resizable)
+  const [columnWidths, setColumnWidths] = useState({
+    name: 300, // Tên tệp
+    size: 120, // Kích thước
+    date: 120, // Ngày
+    actions: 150, // Thao tác
+  });
+  const [resizingColumn, setResizingColumn] = useState(null);
+  const [resizeStartX, setResizeStartX] = useState(0);
+  const [resizeStartWidth, setResizeStartWidth] = useState(0);
+
   // Xóa state draggedItem local
   // const [draggedItem, setDraggedItem] = useState(null);
 
@@ -146,6 +157,11 @@ const Table = ({
 
   // Xử lý drag start
   const handleRowDragStart = (e, item) => {
+    // Không cho phép drag khi đang resize
+    if (resizingColumn) {
+      e.preventDefault();
+      return;
+    }
     if (onDragStart) onDragStart(item);
     // Lấy danh sách items sẽ drag
     const items = selectedItems.find((i) => i.id === item.id)
@@ -210,6 +226,39 @@ const Table = ({
     return favoriteLoadingId === String(resourceId);
   };
 
+  // Xử lý bắt đầu resize
+  const handleResizeStart = (e, columnKey) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setResizingColumn(columnKey);
+    setResizeStartX(e.clientX);
+    setResizeStartWidth(columnWidths[columnKey]);
+
+    // Thêm event listeners
+    const handleMove = (moveEvent) => {
+      moveEvent.preventDefault();
+      const diff = moveEvent.clientX - e.clientX;
+      const newWidth = Math.max(100, columnWidths[columnKey] + diff); // Min width 100px
+      setColumnWidths((prev) => ({
+        ...prev,
+        [columnKey]: newWidth,
+      }));
+    };
+
+    const handleEnd = () => {
+      setResizingColumn(null);
+      document.removeEventListener("mousemove", handleMove);
+      document.removeEventListener("mouseup", handleEnd);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+
+    document.addEventListener("mousemove", handleMove);
+    document.addEventListener("mouseup", handleEnd);
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+  };
+
   return (
     <div className="overflow-x-auto">
       {data.length === 0 ? (
@@ -269,17 +318,64 @@ const Table = ({
               </tbody>
             </table>
 
-            <table className="min-w-[90%] border-separate border-spacing-y-2">
+            <table
+              className="min-w-[90%] border-separate border-spacing-y-2"
+              style={{ tableLayout: "fixed", width: "100%" }}
+            >
               <thead className="bg-[#E5E7EB]">
                 <tr>
-                  {header.map((value, idx) => (
-                    <th
-                      key={value}
-                      className="font-bold text-primary text-xm px-4 py-3 text-left"
-                    >
-                      {value === "Lượt tải" ? "Thao tác" : value}
-                    </th>
-                  ))}
+                  {header.map((value, idx) => {
+                    let columnKey = "";
+                    let width = 200;
+                    if (value === "Tên tệp" || value === "Tên") {
+                      columnKey = "name";
+                      width = columnWidths.name;
+                    } else if (value === "Kích thước" || value === "Size") {
+                      columnKey = "size";
+                      width = columnWidths.size;
+                    } else if (value === "Ngày" || value === "Date") {
+                      columnKey = "date";
+                      width = columnWidths.date;
+                    } else if (
+                      value === "Lượt tải" ||
+                      value === "Thao tác" ||
+                      value === "Actions"
+                    ) {
+                      columnKey = "actions";
+                      width = columnWidths.actions;
+                    }
+
+                    return (
+                      <th
+                        key={value}
+                        className="font-bold text-primary text-xm px-4 py-3 text-left relative"
+                        style={{ width: width, position: "relative" }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span>
+                            {value === "Lượt tải" ? "Thao tác" : value}
+                          </span>
+                        </div>
+                        {columnKey && (
+                          <div
+                            className="absolute top-0 right-0 h-full cursor-col-resize hover:bg-blue-400 transition-colors group"
+                            style={{
+                              width: "6px",
+                              cursor: "col-resize",
+                              zIndex: 10,
+                              marginRight: "-3px",
+                            }}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleResizeStart(e, columnKey);
+                            }}
+                            title="Kéo để điều chỉnh độ rộng cột"
+                          />
+                        )}
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody>
@@ -306,14 +402,17 @@ const Table = ({
                     onDragOver={(e) => handleDragOver(e, value)}
                     onDrop={(e) => handleDrop(e, value)}
                   >
-                    <td className="px-4 py-3 rounded-l-lg flex items-center gap-2">
+                    <td
+                      className="px-4 py-3 rounded-l-lg flex items-center gap-2"
+                      style={{ width: columnWidths.name, overflow: "hidden" }}
+                    >
                       <Image
                         src={getFileIcon({
                           type: value.type,
                           name: value.name,
                         })}
                         alt="icon"
-                        className="w-6 h-6 object-contain mr-2"
+                        className="w-6 h-6 object-contain mr-2 flex-shrink-0"
                         style={{ minWidth: 24 }}
                         width={24}
                         height={24}
@@ -326,7 +425,7 @@ const Table = ({
                           (() => {
                             const { base, ext } = splitFileName(value.name);
                             return (
-                              <div className="flex items-center gap-1 w-full">
+                              <div className="flex items-center gap-1 w-full min-w-0">
                                 <input
                                   type="text"
                                   value={newName}
@@ -337,15 +436,14 @@ const Table = ({
                                     if (e.key === "Enter") confirmEditName();
                                     if (e.key === "Escape") cancelEditName();
                                   }}
-                                  className="bg-white px-2 py-1 text-black rounded border border-gray-300 w-full"
-                                  style={{ minWidth: 0 }}
+                                  className="bg-white px-2 py-1 text-black rounded border border-gray-300 flex-1 min-w-0"
                                 />
-                                <span className="text-xs text-gray-500 select-none">
+                                <span className="text-xs text-gray-500 select-none flex-shrink-0">
                                   {ext}
                                 </span>
                                 <button
                                   onClick={confirmEditName}
-                                  className="ml-1 text-green-600"
+                                  className="ml-1 text-green-600 flex-shrink-0"
                                 >
                                   {/* loading is handled by parent */}
                                   <svg
@@ -389,7 +487,8 @@ const Table = ({
                             );
                           }}
                           title={value.name}
-                          className="max-w-[180px] overflow-hidden text-ellipsis whitespace-nowrap inline-block align-middle cursor-pointer"
+                          className="overflow-hidden text-ellipsis whitespace-nowrap inline-block align-middle cursor-pointer min-w-0 flex-1"
+                          style={{ maxWidth: "100%" }}
                         >
                           {value.type === "file"
                             ? splitFileName(value.name).base
@@ -408,11 +507,24 @@ const Table = ({
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3">{formatSize(value.size)}</td>
-                    <td className="px-4 py-3">{formatDate(value.date)}</td>
+                    <td
+                      className="px-4 py-3"
+                      style={{ width: columnWidths.size }}
+                    >
+                      {formatSize(value.size)}
+                    </td>
+                    <td
+                      className="px-4 py-3"
+                      style={{ width: columnWidths.date }}
+                    >
+                      {formatDate(value.date)}
+                    </td>
                     <td
                       className="px-4 py-3 rounded-r-lg"
-                      style={{ position: "relative" }}
+                      style={{
+                        position: "relative",
+                        width: columnWidths.actions,
+                      }}
                     >
                       <div className="flex items-center gap-3">
                         {value.type === "file" && (
@@ -448,7 +560,7 @@ const Table = ({
                             )}
                           </button>
                         )}
-                        {onDownload && (
+                        {onDownload && value.type === "file" && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();

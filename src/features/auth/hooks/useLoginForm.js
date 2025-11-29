@@ -131,25 +131,56 @@ function useLoginForm() {
   };
 
   const handelSubmit = async (e) => {
-    if (otpSent) {
-      await handleVerifyOTP(e);
-    } else {
-      await handleSendOTP(e);
+    e.preventDefault();
+    const validationError = validateForm({
+      email: formData.email,
+      password: formData.password,
+    });
+
+    setErrors(validationError);
+
+    if (!validationError.email && !validationError.password) {
+      try {
+        setLoading(true);
+        const res = await loginService(formData);
+        setErrors({});
+
+        const token = res.data.token;
+        if (token) {
+          localStorage.setItem("token", token);
+        }
+        const { role } = res.data.user;
+        if (role === "admin") {
+          router.push("/admin");
+        } else {
+          router.push(`/`);
+        }
+        toast.success(res.data.message || t("auth.login.login_success"));
+      } catch (error) {
+        console.log(error);
+        const errorMessage = error?.response?.data?.error || t("auth.login.general_error");
+        if (typeof errorMessage === "string") {
+          toast.error(errorMessage);
+        } else if (typeof errorMessage === "object") {
+          setErrors(errorMessage);
+          toast.error(t("auth.login.check_info_error"));
+        } else {
+          toast.error(t("auth.login.general_error"));
+        }
+        setLoading(false);
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
   return {
     formData,
-    otp,
     errors,
     loading,
     t,
     handelSubmit,
     handelChange,
-    handleOtpChange,
-    otpSent,
-    countdown,
-    handleBackToLogin,
   };
 }
 
