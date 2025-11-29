@@ -8,6 +8,7 @@ import {
   FiLoader,
   FiCheck,
   FiUpload,
+  FiFolder,
 } from "react-icons/fi";
 import axiosClient from "@/shared/lib/axiosClient";
 
@@ -33,6 +34,14 @@ export default function ImportByLinkModal({
   const [error, setError] = useState("");
   const [items, setItems] = useState([]);
   const [started, setStarted] = useState(false);
+  const [sessionId, setSessionId] = useState(null);
+  const [selectedFolderId, setSelectedFolderId] = useState(null);
+  const [selectedFolderName, setSelectedFolderName] = useState("Thư mục gốc");
+  const [showFolderPicker, setShowFolderPicker] = useState(false);
+  const [folders, setFolders] = useState([]);
+  const [folderLoading, setFolderLoading] = useState(false);
+  const [currentFolderId, setCurrentFolderId] = useState(null);
+  const [folderPath, setFolderPath] = useState([]);
 
   const controllerRef = useRef(null);
   const bufferRef = useRef("");
@@ -43,6 +52,57 @@ export default function ImportByLinkModal({
     if (!isOpen) resetState();
   }, [isOpen]);
 
+  // Fetch folders
+  const fetchFolders = async (folderId = null) => {
+    setFolderLoading(true);
+    try {
+      const params = folderId ? { folderId } : {};
+      const response = await axiosClient.get("/api/files/browse", { params });
+      if (response.data?.success) {
+        setFolders(response.data.folders || []);
+      }
+    } catch (err) {
+      console.error("Error fetching folders:", err);
+    } finally {
+      setFolderLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showFolderPicker) {
+      fetchFolders(currentFolderId);
+    }
+  }, [showFolderPicker, currentFolderId]);
+
+  const handleFolderSelect = (folder) => {
+    setSelectedFolderId(folder?._id || null);
+    setSelectedFolderName(folder?.name || "Thư mục gốc");
+    setShowFolderPicker(false);
+    setCurrentFolderId(null);
+    setFolderPath([]);
+  };
+
+  const navigateToFolder = (folder) => {
+    setCurrentFolderId(folder._id);
+    setFolderPath((prev) => [...prev, { id: folder._id, name: folder.name }]);
+    fetchFolders(folder._id);
+  };
+
+  const navigateBack = () => {
+    if (folderPath.length === 0) {
+      setCurrentFolderId(null);
+      setFolderPath([]);
+      fetchFolders(null);
+      return;
+    }
+    const newPath = [...folderPath];
+    newPath.pop();
+    setFolderPath(newPath);
+    const parentId = newPath.length > 0 ? newPath[newPath.length - 1].id : null;
+    setCurrentFolderId(parentId);
+    fetchFolders(parentId);
+  };
+
   function resetState() {
     setLink("");
     setNoteOpen(true);
@@ -50,6 +110,13 @@ export default function ImportByLinkModal({
     setError("");
     setItems([]);
     setStarted(false);
+    setSessionId(null);
+    setSelectedFolderId(null);
+    setSelectedFolderName("Thư mục gốc");
+    setShowFolderPicker(false);
+    setFolders([]);
+    setCurrentFolderId(null);
+    setFolderPath([]);
     bufferRef.current = "";
     prevTextLenRef.current = 0;
     closedBySuccessRef.current = false;
@@ -74,6 +141,7 @@ export default function ImportByLinkModal({
           driveFileId: null,
           url: null,
           done: false,
+                error: null,
         };
       }
       return next;
@@ -100,6 +168,10 @@ export default function ImportByLinkModal({
 
         if (evt.event === "start") {
           setStarted(true);
+          setIsSubmitting(true);
+          if (evt.sessionId) {
+            setSessionId(evt.sessionId);
+          }
           if (evt.totalFiles && evt.totalFiles > 1) {
             setItems(
               Array.from({ length: evt.totalFiles }, (_, i) => ({
@@ -116,9 +188,21 @@ export default function ImportByLinkModal({
                 driveFileId: null,
                 url: null,
                 done: false,
+                error: null,
               }))
             );
           }
+          continue;
+        }
+
+        if (evt.event === "fileStart") {
+          const i = evt.index ?? 0;
+          ensureItem(i);
+          // Initialize file item when it starts processing
+          patchItem(i, {
+            fileId: evt.fileId || "",
+            name: evt.fileName || `Tệp #${i + 1}`,
+          });
           continue;
         }
 
@@ -162,7 +246,14 @@ export default function ImportByLinkModal({
         }
 
         if (evt.event === "done") {
-          if (!closedBySuccessRef.current) {
+          setIsSubmitting(false);
+          if (evt.sessionId) {
+            setSessionId(evt.sessionId);
+          }
+          
+          const allDone = items.length > 0 && items.every((it) => it.done);
+          
+          if ((allDone || items.length === 0) && started && !closedBySuccessRef.current) {
             closedBySuccessRef.current = true;
             onImported?.();
             onClose?.();
@@ -172,6 +263,27 @@ export default function ImportByLinkModal({
 
         if (evt.event === "error") {
           setError(evt.error || "Có lỗi xảy ra.");
+          setIsSubmitting(false);
+          if (evt.sessionId) {
+            setSessionId(evt.sessionId);
+          }
+          break;
+        }
+
+        if (evt.event === "fileWarning") {
+          const i = evt.index ?? 0;
+          ensureItem(i);
+          // Warning doesn't stop the process, just log it
+          continue;
+        }
+
+        if (evt.event === "fileError") {
+          const i = evt.index ?? 0;
+          ensureItem(i);
+          patchItem(i, {
+            error: evt.error || "Lỗi không xác định",
+          });
+          // Don't stop the entire process, continue with next file
           continue;
         }
 
@@ -191,6 +303,7 @@ export default function ImportByLinkModal({
   async function handleSubmit(e) {
     e?.preventDefault?.();
     setError("");
+
     if (!link.trim()) {
       setError("Vui lòng dán liên kết Google Drive.");
       return;
@@ -199,6 +312,7 @@ export default function ImportByLinkModal({
     setIsSubmitting(true);
     setItems([]);
     setStarted(false);
+    setSessionId(null);
     bufferRef.current = "";
     prevTextLenRef.current = 0;
     closedBySuccessRef.current = false;
@@ -208,7 +322,11 @@ export default function ImportByLinkModal({
 
       const resp = await axiosClient.post(
         `${endpoint}?progress=ndjson`,
-        { link: link.trim(), ...requestExtras },
+        {
+          link: link.trim(),
+          folderId: selectedFolderId,
+          ...requestExtras,
+        },
         {
           signal: controllerRef.current.signal,
           responseType: "text",
@@ -290,8 +408,22 @@ export default function ImportByLinkModal({
 
   const overall = useMemo(() => {
     if (!items.length) return { percent: 0 };
-    const pct =
-      items.reduce((s, it) => s + filePerc(it), 0) / Math.max(1, items.length);
+    
+    // Calculate progress based on ALL files in the items array
+    // This ensures progress doesn't drop when new files start
+    // Formula: (sum of all file progress) / total files
+    const totalProgress = items.reduce((sum, it) => {
+      // If file is done, count as 100%
+      if (it.done) return sum + 100;
+      // Otherwise, use the actual progress percentage (0% if not started yet)
+      return sum + filePerc(it);
+    }, 0);
+    
+    // Calculate average progress across all files
+    // This way, when a file finishes (100%) and a new one starts (0%),
+    // the overall progress reflects the true average
+    const pct = totalProgress / items.length;
+    
     return { percent: clampPct(pct) };
   }, [items]);
 
@@ -350,10 +482,29 @@ export default function ImportByLinkModal({
               </p>
             </div>
 
+            <div className="shrink-0">
+              <label className="block text-sm font-medium text-text-strong mb-1">
+                Thư mục đích
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowFolderPicker(true)}
+                className="w-full px-4 py-2.5 rounded-xl border border-border bg-white hover:bg-surface-50 flex items-center justify-between text-left"
+              >
+                <span className="flex items-center gap-2">
+                  <FiFolder className="text-brand" />
+                  <span className="text-text-strong">{selectedFolderName}</span>
+                </span>
+                <FiChevronDown className="text-text-muted" />
+              </button>
+            </div>
+
             {error && (
-              <div className="shrink-0 flex items-start gap-2 text-danger-700 bg-danger-50 border border-danger-200 rounded-xl p-3">
-                <FiAlertCircle className="mt-0.5" />
-                <p className="text-sm">{error}</p>
+              <div className="shrink-0 flex flex-col gap-2 text-danger-700 bg-danger-50 border border-danger-200 rounded-xl p-3">
+                <div className="flex items-start gap-2">
+                  <FiAlertCircle className="mt-0.5" />
+                  <p className="text-sm flex-1">{error}</p>
+                </div>
               </div>
             )}
 
@@ -414,6 +565,11 @@ export default function ImportByLinkModal({
                                 <FiUpload /> DONE
                               </span>
                             )}
+                            {it.error && (
+                              <span className="text-[10px] uppercase tracking-wide bg-danger-50 text-danger-600 px-2 py-0.5 rounded inline-flex items-center gap-1">
+                                <FiAlertCircle /> LỖI
+                              </span>
+                            )}
                           </div>
                           <div className="text-xs text-text-muted mt-0.5">
                             {it.size != null
@@ -421,6 +577,16 @@ export default function ImportByLinkModal({
                               : ""}
                             {it.mimeType || "application/octet-stream"}
                           </div>
+                          {it.error && (
+                            <div className="mt-2 text-xs text-danger-600 bg-danger-50 border border-danger-200 rounded-lg p-2">
+                              <div className="flex items-start gap-2">
+                                <FiAlertCircle className="mt-0.5 shrink-0" />
+                                <div className="flex-1">
+                                  <div className="font-medium">Lỗi: {it.error}</div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
 
                           <div className="mt-3">
                             <div className="w-full h-2.5 bg-surface-50 rounded-full overflow-hidden">
@@ -548,26 +714,170 @@ export default function ImportByLinkModal({
                 <button
                   type="button"
                   onClick={handleCancel}
-                  className="px-4 py-2.5 rounded-xl bg-warning text-white hover:opacity-95"
+                  className="px-4 py-2.5 rounded-xl bg-danger text-white hover:opacity-95"
                 >
                   Hủy tiến trình
                 </button>
               )}
-              <button
-                onClick={handleSubmit}
-                disabled={isSubmitting || !link.trim()}
-                className="px-4 py-2.5 rounded-xl bg-brand text-white hover:opacity-95 disabled:opacity-50 inline-flex items-center gap-2 shadow-sm"
-              >
-                {isSubmitting ? (
-                  <FiLoader className="animate-spin" />
-                ) : (
+              {!isSubmitting && (
+                <button
+                  onClick={handleSubmit}
+                  disabled={!link.trim()}
+                  className="px-4 py-2.5 rounded-xl bg-brand text-white hover:opacity-95 disabled:opacity-50 inline-flex items-center gap-2 shadow-sm"
+                >
                   <FiLink />
-                )}
-                Bắt đầu tải
-              </button>
+                  Bắt đầu tải
+                </button>
+              )}
             </div>
           </div>
         </form>
+
+        {/* Folder Picker Modal */}
+        {showFolderPicker && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 px-3">
+            <div className="w-full max-w-md bg-white rounded-2xl overflow-hidden shadow-xl flex flex-col max-h-[80vh]">
+              <div className="relative bg-gradient-brand p-5 shrink-0">
+                <h3 className="text-brand text-xl font-semibold">
+                  Chọn thư mục đích
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowFolderPicker(false);
+                    setCurrentFolderId(null);
+                    setFolderPath([]);
+                  }}
+                  className="absolute top-4 right-4 p-2 rounded-lg bg-white/15 text-white hover:bg-white/25 transition"
+                >
+                  <FiX />
+                </button>
+              </div>
+
+              {/* Breadcrumb */}
+              <div className="flex items-center gap-2 px-5 py-3 bg-surface-50 border-b border-border shrink-0">
+                <button
+                  onClick={() => {
+                    setCurrentFolderId(null);
+                    setFolderPath([]);
+                    fetchFolders(null);
+                  }}
+                  className="text-sm text-brand hover:underline"
+                >
+                  Thư mục gốc
+                </button>
+                {folderPath.map((folder, index) => (
+                  <React.Fragment key={folder.id}>
+                    <span className="text-text-muted">/</span>
+                    <button
+                      onClick={() => {
+                        const newPath = folderPath.slice(0, index + 1);
+                        setFolderPath(newPath);
+                        setCurrentFolderId(folder.id);
+                        fetchFolders(folder.id);
+                      }}
+                      className="text-sm text-brand hover:underline"
+                    >
+                      {folder.name}
+                    </button>
+                  </React.Fragment>
+                ))}
+              </div>
+
+              {/* Folder List */}
+              <div className="flex-1 overflow-y-auto p-4">
+                {folderLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <FiLoader className="animate-spin text-brand text-2xl" />
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    {currentFolderId !== null && (
+                      <button
+                        onClick={navigateBack}
+                        className="w-full p-3 rounded-lg border border-border hover:bg-surface-50 flex items-center gap-3 text-left"
+                      >
+                        <FiChevronDown className="rotate-90 text-text-muted" />
+                        <span className="text-text-strong">.. (Quay lại)</span>
+                      </button>
+                    )}
+                    {currentFolderId === null && (
+                      <button
+                        onClick={() => handleFolderSelect(null)}
+                        className={`w-full p-3 rounded-lg border ${
+                          selectedFolderId === null
+                            ? "border-brand bg-brand-50"
+                            : "border-border hover:bg-surface-50"
+                        } flex items-center gap-3 text-left`}
+                      >
+                        <FiFolder className="text-brand" />
+                        <span className="text-text-strong">Thư mục gốc</span>
+                        {selectedFolderId === null && (
+                          <FiCheck className="ml-auto text-brand" />
+                        )}
+                      </button>
+                    )}
+                    {folders.map((folder) => (
+                      <button
+                        key={folder._id}
+                        onClick={() => navigateToFolder(folder)}
+                        className="w-full p-3 rounded-lg border border-border hover:bg-surface-50 flex items-center gap-3 text-left"
+                      >
+                        <FiFolder className="text-brand" />
+                        <span className="text-text-strong flex-1">
+                          {folder.name}
+                        </span>
+                        <FiChevronDown className="text-text-muted rotate-[-90deg]" />
+                      </button>
+                    ))}
+                    {folders.length === 0 && currentFolderId !== null && (
+                      <div className="text-center py-8 text-text-muted">
+                        Không có thư mục con
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="p-4 border-t border-border shrink-0 flex gap-2">
+                <button
+                  onClick={() => {
+                    setShowFolderPicker(false);
+                    setCurrentFolderId(null);
+                    setFolderPath([]);
+                  }}
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-surface-50 hover:bg-white text-text-strong border border-border"
+                >
+                  Hủy
+                </button>
+                {currentFolderId !== null && (
+                  <button
+                    onClick={() => {
+                      const folder = folders.find(
+                        (f) => f._id === currentFolderId
+                      );
+                      if (folder) {
+                        handleFolderSelect(folder);
+                      } else {
+                        // Select current folder from path
+                        const currentFolder = folderPath[folderPath.length - 1];
+                        if (currentFolder) {
+                          handleFolderSelect({
+                            _id: currentFolder.id,
+                            name: currentFolder.name,
+                          });
+                        }
+                      }
+                    }}
+                    className="px-4 py-2.5 rounded-xl bg-brand text-white hover:opacity-95"
+                  >
+                    Chọn thư mục này
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
