@@ -11,6 +11,7 @@ import {
   FiFolder,
 } from "react-icons/fi";
 import axiosClient from "@/shared/lib/axiosClient";
+import toast from "react-hot-toast";
 
 function formatBytes(bytes) {
   if (bytes == null) return "--";
@@ -47,10 +48,82 @@ export default function ImportByLinkModal({
   const bufferRef = useRef("");
   const prevTextLenRef = useRef(0);
   const closedBySuccessRef = useRef(false);
+  const doneEventReceivedRef = useRef(false);
 
   useEffect(() => {
     if (!isOpen) resetState();
   }, [isOpen]);
+
+  // Check if all files are done and close modal
+  useEffect(() => {
+    // Only check completion if:
+    // 1. Process has started
+    // 2. Done event has been received (backend finished processing)
+    // 3. Modal hasn't been closed yet
+    if (!started || closedBySuccessRef.current || !doneEventReceivedRef.current) return;
+    
+    // Small delay to ensure all fileDone/fileError events have been processed
+    const timeoutId = setTimeout(() => {
+      // Check if all items are done (either successfully or with error)
+      // An item is considered done if it has done: true OR error is set
+      const allDone = items.length > 0 && items.every((it) => it.done === true || it.error);
+      const successCount = items.filter((it) => it.done && !it.error).length;
+      const errorCount = items.filter((it) => it.error).length;
+      
+      // Close modal if:
+      // 1. All items are done, OR
+      // 2. No items but done event was received (empty folder or all files failed before being tracked)
+      if ((allDone || (items.length === 0 && doneEventReceivedRef.current)) && !closedBySuccessRef.current) {
+        closedBySuccessRef.current = true;
+        
+        // Show success/error notification
+        if (successCount > 0) {
+          if (errorCount > 0) {
+            // Some files succeeded, some failed
+            toast.success(
+              `Đã tải lên thành công ${successCount} file${successCount > 1 ? "s" : ""}${errorCount > 0 ? `, ${errorCount} file lỗi` : ""}`,
+              { duration: 3000 }
+            );
+          } else {
+            // All files succeeded
+            toast.success(
+              `Đã tải lên thành công ${successCount} file${successCount > 1 ? "s" : ""}!`,
+              { duration: 3000 }
+            );
+          }
+          // Delay to ensure DB writes are complete before refreshing
+          setTimeout(() => {
+            onImported?.();
+            onClose?.();
+          }, 1000);
+        } else {
+          // All files failed or no files processed
+          if (errorCount > 0) {
+            toast.error(
+              `Không thể tải lên ${errorCount} file${errorCount > 1 ? "s" : ""}. Vui lòng kiểm tra quyền truy cập file/thư mục.`,
+              { duration: 4000 }
+            );
+          } else if (items.length === 0) {
+            // No files were processed (empty folder or error before fileStart)
+            toast.error(
+              "Không có file nào được tải lên. Vui lòng kiểm tra lại link hoặc quyền truy cập.",
+              { duration: 4000 }
+            );
+          } else {
+            toast.error(
+              "Không thể tải lên file. Vui lòng kiểm tra lại.",
+              { duration: 4000 }
+            );
+          }
+          setTimeout(() => {
+            onClose?.();
+          }, 1000);
+        }
+      }
+    }, 500);
+    
+    return () => clearTimeout(timeoutId);
+  }, [items, started, onImported, onClose]);
 
   // Fetch folders
   const fetchFolders = async (folderId = null) => {
@@ -120,6 +193,7 @@ export default function ImportByLinkModal({
     bufferRef.current = "";
     prevTextLenRef.current = 0;
     closedBySuccessRef.current = false;
+    doneEventReceivedRef.current = false;
     controllerRef.current?.abort?.();
   }
 
@@ -141,7 +215,7 @@ export default function ImportByLinkModal({
           driveFileId: null,
           url: null,
           done: false,
-                error: null,
+          error: null,
         };
       }
       return next;
@@ -199,9 +273,12 @@ export default function ImportByLinkModal({
           const i = evt.index ?? 0;
           ensureItem(i);
           // Initialize file item when it starts processing
+          // Backend sends fileName, size, mimeType in fileStart event
           patchItem(i, {
             fileId: evt.fileId || "",
             name: evt.fileName || `Tệp #${i + 1}`,
+            size: evt.size ?? null,
+            mimeType: evt.mimeType || "",
           });
           continue;
         }
@@ -230,33 +307,52 @@ export default function ImportByLinkModal({
         if (evt.event === "fileDone") {
           const i = evt.index ?? 0;
           ensureItem(i);
-          patchItem(i, {
-            fileDbId: evt.fileDbId || null,
-            driveFileId: evt.driveFileId || null,
-            url: evt.url || null,
-            done: true,
-            ulUploaded:
-              (items[i]?.ulTotal || items[i]?.dlTotal || items[i]?.size) ??
-              items[i]?.ulUploaded,
-            ulTotal:
-              (items[i]?.ulTotal || items[i]?.dlTotal || items[i]?.size) ??
-              items[i]?.ulTotal,
+          // Use functional update to avoid stale closure
+          setItems((prev) => {
+            const next = [...prev];
+            if (!next[i]) {
+              next[i] = {
+                index: i,
+                name: `Tệp #${i + 1}`,
+                fileId: "",
+                size: null,
+                mimeType: "",
+                dlReceived: 0,
+                dlTotal: null,
+                ulUploaded: 0,
+                ulTotal: null,
+                fileDbId: null,
+                driveFileId: null,
+                url: null,
+                done: false,
+                error: null,
+              };
+            }
+            const current = next[i];
+            next[i] = {
+              ...current,
+              fileDbId: evt.fileDbId || current.fileDbId || null,
+              driveFileId: evt.driveFileId || current.driveFileId || null,
+              url: evt.url || current.url || null,
+              done: true,
+              // Ensure progress is set to 100% when done
+              ulUploaded: current.ulTotal || current.dlTotal || current.size || current.ulUploaded || 0,
+              ulTotal: current.ulTotal || current.dlTotal || current.size || current.ulTotal || null,
+              // Update name, size, mimeType if provided in fileDone event
+              name: evt.fileName || current.name,
+              size: evt.size ?? current.size,
+              mimeType: evt.mimeType || current.mimeType,
+            };
+            return next;
           });
           continue;
         }
 
         if (evt.event === "done") {
           setIsSubmitting(false);
+          doneEventReceivedRef.current = true;
           if (evt.sessionId) {
             setSessionId(evt.sessionId);
-          }
-          
-          const allDone = items.length > 0 && items.every((it) => it.done);
-          
-          if ((allDone || items.length === 0) && started && !closedBySuccessRef.current) {
-            closedBySuccessRef.current = true;
-            onImported?.();
-            onClose?.();
           }
           continue;
         }
@@ -264,9 +360,18 @@ export default function ImportByLinkModal({
         if (evt.event === "error") {
           setError(evt.error || "Có lỗi xảy ra.");
           setIsSubmitting(false);
+          doneEventReceivedRef.current = true; // Mark as done so modal can close
           if (evt.sessionId) {
             setSessionId(evt.sessionId);
           }
+          // Mark all items as done with error so completion check works
+          setItems((prev) =>
+            prev.map((it) => ({
+              ...it,
+              done: true,
+              error: it.error || evt.error || "Lỗi không xác định",
+            }))
+          );
           break;
         }
 
@@ -274,14 +379,34 @@ export default function ImportByLinkModal({
           const i = evt.index ?? 0;
           ensureItem(i);
           // Warning doesn't stop the process, just log it
+          // Could optionally show a warning indicator in UI
+          continue;
+        }
+
+        // Handle folder events (for folder imports)
+        if (evt.event === "folderStart") {
+          // Folder processing started - could show folder name in UI
+          continue;
+        }
+
+        if (evt.event === "folderError") {
+          // Folder processing error - log but continue
+          console.warn("Folder error:", evt.error);
+          continue;
+        }
+
+        if (evt.event === "folderDone") {
+          // Folder processing completed - log but continue
           continue;
         }
 
         if (evt.event === "fileError") {
           const i = evt.index ?? 0;
           ensureItem(i);
+          // Mark file as done with error so UI can properly handle completion
           patchItem(i, {
             error: evt.error || "Lỗi không xác định",
+            done: true, // Mark as done so it's counted in completion check
           });
           // Don't stop the entire process, continue with next file
           continue;
@@ -316,6 +441,7 @@ export default function ImportByLinkModal({
     bufferRef.current = "";
     prevTextLenRef.current = 0;
     closedBySuccessRef.current = false;
+    doneEventReceivedRef.current = false; // Reset done flag
 
     try {
       controllerRef.current = new AbortController();
@@ -347,37 +473,36 @@ export default function ImportByLinkModal({
         }
       );
 
+      // Handle non-stream mode response (shouldn't happen with progress=ndjson, but handle gracefully)
       if (!started && items.length === 0) {
         try {
           const data =
             typeof resp.data === "string" ? JSON.parse(resp.data) : resp.data;
           if (data?.success === false) {
             setError(data?.error || "Có lỗi xảy ra khi tải bằng liên kết.");
-          } else if (data?.items) {
-            setItems(
-              (data.items || []).map((it, i) => ({
-                index: i,
-                name: it.fileName || it.name || `Tệp #${i + 1}`,
-                fileId: it.fileId || "",
-                size: it.size ?? null,
-                mimeType: it.mimeType || "application/octet-stream",
-                dlReceived: it.size ?? null,
-                dlTotal: it.size ?? null,
-                ulUploaded: it.size ?? null,
-                ulTotal: it.size ?? null,
-                fileDbId: it.fileDbId || null,
-                driveFileId: it.driveFileId || null,
-                url: it.url || null,
-                done: true,
-              }))
+            doneEventReceivedRef.current = true; // Mark as done so modal can close
+          } else if (data?.items && data.items.length > 0) {
+            const successCount = data.items.length;
+            toast.success(
+              `Đã tải lên thành công ${successCount} file${successCount > 1 ? "s" : ""}!`,
+              { duration: 3000 }
             );
             if (!closedBySuccessRef.current) {
               closedBySuccessRef.current = true;
-              onImported?.();
-              onClose?.();
+              doneEventReceivedRef.current = true;
+              setTimeout(() => {
+                onImported?.();
+                onClose?.();
+              }, 1000);
             }
           }
-        } catch {}
+        } catch (parseErr) {
+          // If parsing fails, it might be NDJSON stream - that's expected
+          // Only log if it's a real error
+          if (resp.data && typeof resp.data === "string" && !resp.data.includes("\n")) {
+            console.warn("Failed to parse response:", parseErr);
+          }
+        }
       }
     } catch (err) {
       if (err?.name !== "CanceledError" && err?.code !== "ERR_CANCELED") {
@@ -385,6 +510,17 @@ export default function ImportByLinkModal({
           err?.response?.data?.error ||
             err?.message ||
             "Không thể kết nối máy chủ."
+        );
+        doneEventReceivedRef.current = true; // Mark as done so modal can close on error
+        // Mark all items as done with error
+        setItems((prev) =>
+          prev.length > 0
+            ? prev.map((it) => ({
+                ...it,
+                done: true,
+                error: it.error || err?.message || "Lỗi kết nối",
+              }))
+            : []
         );
       }
     } finally {

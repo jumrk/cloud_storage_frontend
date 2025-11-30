@@ -367,9 +367,69 @@ export default function useManagement() {
         }, 200);
       }
 
+      // Helper function to get Google Drive download URL
+      const getDriveDownloadUrl = (item) => {
+        if (!item) return null;
+        const driveUrl = item.driveUrl || item.url;
+        if (!driveUrl) return null;
+        
+        const patterns = [
+          /\/d\/([\w-]+)\//,
+          /[?&]id=([\w-]+)/,
+          /\/file\/d\/([\w-]+)/,
+        ];
+        
+        for (const pattern of patterns) {
+          const match = driveUrl.match(pattern);
+          if (match && match[1]) {
+            return `https://drive.google.com/uc?export=download&id=${match[1]}`;
+          }
+        }
+        
+        return driveUrl;
+      };
+
+      const downloadViaDriveUrl = (driveUrl, fileName) => {
+        const a = document.createElement("a");
+        a.href = driveUrl;
+        a.rel = "noopener noreferrer";
+        a.target = "_blank";
+        a.download = fileName || item?.name || item?.originalName || "download";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      };
+
+      let downloadTimeout = null;
+      let progressStalledTimeout = null;
+      let lastProgressTime = Date.now();
+      let lastProgressValue = 0;
+
       try {
+        const timeoutMs = fileSize > 100 * 1024 * 1024 ? 5 * 60 * 1000 : 2 * 60 * 1000;
+        
+        const downloadController = new AbortController();
+        downloadTimeout = setTimeout(() => {
+          downloadController.abort();
+        }, timeoutMs);
+
+        // Monitor for stalled progress
+        const checkProgressStall = () => {
+          const now = Date.now();
+          const timeSinceLastProgress = now - lastProgressTime;
+          const progressDelta = Math.abs(lastProgressValue - (downloadBatch?.files?.[0]?.progress || 0));
+          
+          if (timeSinceLastProgress > 30000 && progressDelta < 1) {
+            downloadController.abort();
+            throw new Error("Download stalled - switching to direct download");
+          }
+        };
+
+        progressStalledTimeout = setInterval(checkProgressStall, 5000);
+
         const res = await axiosClient.get(downloadUrl, {
           responseType: "blob",
+          signal: downloadController.signal,
           onDownloadProgress: (progressEvent) => {
             // Clear simulated progress when real progress starts
             if (simulatedProgressInterval) {
@@ -377,10 +437,13 @@ export default function useManagement() {
               simulatedProgressInterval = null;
             }
             
+            lastProgressTime = Date.now();
+            
             if (progressEvent.total) {
               const percentCompleted = Math.round(
                 (progressEvent.loaded * 100) / progressEvent.total
               );
+              lastProgressValue = percentCompleted;
               setDownloadBatch((prev) => {
                 if (!prev) return prev;
                 return {
@@ -396,6 +459,7 @@ export default function useManagement() {
               const percentCompleted = Math.round(
                 (progressEvent.loaded * 100) / fileSize
               );
+              lastProgressValue = percentCompleted;
               setDownloadBatch((prev) => {
                 if (!prev) return prev;
                 return {
@@ -409,6 +473,11 @@ export default function useManagement() {
             }
           },
         });
+        
+        // Clear timeouts on success
+        if (downloadTimeout) clearTimeout(downloadTimeout);
+        if (progressStalledTimeout) clearInterval(progressStalledTimeout);
+        
         const cd = res.headers?.["content-disposition"] || "";
         const m = /filename\*?=UTF-8''([^;]+)|filename="?([^"]+)"?/i.exec(cd);
         const headerName = decodeURIComponent(m?.[1] || m?.[2] || "");
@@ -441,6 +510,59 @@ export default function useManagement() {
           toast.success("Tải xuống thành công!");
         }, 1500);
       } catch (e) {
+        // Clear timeouts on error
+        if (downloadTimeout) clearTimeout(downloadTimeout);
+        if (progressStalledTimeout) clearInterval(progressStalledTimeout);
+        if (simulatedProgressInterval) clearInterval(simulatedProgressInterval);
+
+        // Check if we should fallback to Google Drive URL
+        const driveUrl = getDriveDownloadUrl(item);
+        const isTimeoutOrStalled = e?.code === "ECONNABORTED" || 
+                                    e?.name === "AbortError" ||
+                                    e?.message?.includes("stalled") ||
+                                    e?.message?.includes("timeout");
+
+        if (driveUrl && (isTimeoutOrStalled || e?.response?.status >= 500)) {
+          // Fallback to Google Drive direct download
+          setDownloadBatch((prev) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              files: prev.files.map((f) => ({
+                ...f,
+                status: "downloading",
+                progress: 50,
+                error: null,
+              })),
+            };
+          });
+
+          toast.info("Đang chuyển sang tải trực tiếp từ Google Drive...", { duration: 2000 });
+          
+          setTimeout(() => {
+            downloadViaDriveUrl(driveUrl, item?.name || item?.originalName || "download");
+            
+            setDownloadBatch((prev) => {
+              if (!prev) return prev;
+              return {
+                ...prev,
+                files: prev.files.map((f) => ({
+                  ...f,
+                  status: "success",
+                  progress: 100,
+                })),
+              };
+            });
+
+            setTimeout(() => {
+              setDownloadBatch(null);
+              toast.success("Đã mở link tải xuống từ Google Drive!");
+            }, 1500);
+          }, 500);
+          return;
+        }
+
+        // No fallback available or other error
         const errorMsg = e?.response?.data?.error || e.message || "Lỗi tải xuống";
         setDownloadBatch((prev) => {
           if (!prev) return prev;
@@ -463,11 +585,43 @@ export default function useManagement() {
       return;
     }
 
-    // Multiple files - download one by one
+    // Multiple files - download one by one with fallback
     const getNameFromCD = (cd = "") => {
       const m = /filename\*?=UTF-8''([^;]+)|filename="?([^"]+)"?/i.exec(cd);
       const raw = decodeURIComponent(m?.[1] || m?.[2] || "");
       return raw || "download";
+    };
+
+    const getDriveDownloadUrl = (item) => {
+      if (!item) return null;
+      const driveUrl = item.driveUrl || item.url;
+      if (!driveUrl) return null;
+      
+      const patterns = [
+        /\/d\/([\w-]+)\//,
+        /[?&]id=([\w-]+)/,
+        /\/file\/d\/([\w-]+)/,
+      ];
+      
+      for (const pattern of patterns) {
+        const match = driveUrl.match(pattern);
+        if (match && match[1]) {
+          return `https://drive.google.com/uc?export=download&id=${match[1]}`;
+        }
+      }
+      
+      return driveUrl;
+    };
+
+    const downloadViaDriveUrl = (driveUrl, fileName) => {
+      const a = document.createElement("a");
+      a.href = driveUrl;
+      a.rel = "noopener noreferrer";
+      a.target = "_blank";
+      a.download = fileName || "download";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
     };
 
     for (const item of filesOnly) {
@@ -475,9 +629,22 @@ export default function useManagement() {
       
       // Always use API endpoint for downloads
       const downloadUrl = `/api/download/file/${item._id || item.id}`;
+      const fileSize = item.size || 0;
+      const timeoutMs = fileSize > 100 * 1024 * 1024 ? 5 * 60 * 1000 : 2 * 60 * 1000;
 
       try {
-        const res = await axiosClient.get(downloadUrl, { responseType: "blob" });
+        const downloadController = new AbortController();
+        const timeout = setTimeout(() => {
+          downloadController.abort();
+        }, timeoutMs);
+
+        const res = await axiosClient.get(downloadUrl, { 
+          responseType: "blob",
+          signal: downloadController.signal,
+        });
+        
+        clearTimeout(timeout);
+        
         const cd = res.headers?.["content-disposition"] || "";
         const headerName = getNameFromCD(cd);
         const fileName =
@@ -492,7 +659,16 @@ export default function useManagement() {
         a.remove();
         URL.revokeObjectURL(objectUrl);
       } catch (e) {
-        toast.error(`Tải xuống thất bại: ${item?.name || item?.originalName || "file"}`);
+        // Fallback to Google Drive URL if available
+        const driveUrl = getDriveDownloadUrl(item);
+        const isTimeout = e?.code === "ECONNABORTED" || e?.name === "AbortError";
+        
+        if (driveUrl && (isTimeout || e?.response?.status >= 500)) {
+          downloadViaDriveUrl(driveUrl, item?.name || item?.originalName || "download");
+          toast.info(`Đã mở link tải xuống từ Google Drive: ${item?.name || "file"}`);
+        } else {
+          toast.error(`Tải xuống thất bại: ${item?.name || item?.originalName || "file"}`);
+        }
       }
     }
   };

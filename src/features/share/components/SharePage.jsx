@@ -6,6 +6,7 @@ import {
   FiFile,
   FiChevronRight,
   FiDownload,
+  FiChevronDown,
 } from "react-icons/fi";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
@@ -27,8 +28,22 @@ export default function SharePage() {
     handleBreadcrumbClick,
     copyShareLink,
     handleDownload,
+    handleDownloadUrl,
     clearDownloadBatch,
   } = useSharePage();
+
+  const [showDownloadMenu, setShowDownloadMenu] = React.useState(null);
+
+  // Close menu when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showDownloadMenu && !event.target.closest('.relative')) {
+        setShowDownloadMenu(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showDownloadMenu]);
 
   useEffect(() => {
     fetchShareInfo();
@@ -140,13 +155,46 @@ export default function SharePage() {
 
         {item.type === "file" ? (
           item.canDownload ? (
-            <button
-              className="inline-block px-6 py-3 bg-primary text-white rounded-lg text-lg font-semibold hover:bg-blue-700 transition-all shadow"
-              onClick={() => handleDownload(item)}
-              disabled={downloadingId === item.id}
-            >
-              {downloadingId === item.id ? "Đang tải..." : "Tải xuống"}
-            </button>
+            <div className="relative inline-block">
+              <button
+                className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-lg text-lg font-semibold hover:bg-blue-700 transition-all shadow"
+                onClick={() => setShowDownloadMenu(showDownloadMenu === item.id ? null : item.id)}
+                disabled={downloadingId === item.id}
+              >
+                {downloadingId === item.id ? (
+                  "Đang tải..."
+                ) : (
+                  <>
+                    Tải xuống
+                    <FiChevronDown className="text-sm" />
+                  </>
+                )}
+              </button>
+              {showDownloadMenu === item.id && (
+                <div className="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                  <button
+                    className="w-full text-left px-4 py-2 hover:bg-gray-100 rounded-t-lg flex items-center gap-2"
+                    onClick={() => {
+                      handleDownload(item);
+                      setShowDownloadMenu(null);
+                    }}
+                  >
+                    <FiDownload />
+                    Tải xuống tại chỗ
+                  </button>
+                  <button
+                    className="w-full text-left px-4 py-2 hover:bg-gray-100 rounded-b-lg flex items-center gap-2"
+                    onClick={() => {
+                      handleDownloadUrl(item);
+                      setShowDownloadMenu(null);
+                    }}
+                  >
+                    <FiFile />
+                    Tải xuống bằng URL
+                  </button>
+                </div>
+              )}
+            </div>
           ) : (
             <div className="text-gray-500 text-sm">
               Bạn chỉ có quyền xem, không thể tải xuống
@@ -214,19 +262,46 @@ export default function SharePage() {
                         {formatSize(f.size)}
                       </span>
                       {item.canDownload && (
-                        <button
-                          className="ml-2 px-2 py-1 text-xs bg-primary text-white rounded hover:bg-blue-700 flex items-center gap-1"
-                          onClick={() => handleDownload(f)}
-                          disabled={downloadingId === f.id}
-                        >
-                          {downloadingId === f.id ? (
-                            "Đang tải..."
-                          ) : (
-                            <>
-                              <FiDownload /> Tải xuống
-                            </>
+                        <div className="relative ml-2">
+                          <button
+                            className="px-2 py-1 text-xs bg-primary text-white rounded hover:bg-blue-700 flex items-center gap-1"
+                            onClick={() => setShowDownloadMenu(showDownloadMenu === f.id ? null : f.id)}
+                            disabled={downloadingId === f.id}
+                          >
+                            {downloadingId === f.id ? (
+                              "Đang tải..."
+                            ) : (
+                              <>
+                                <FiDownload /> Tải xuống
+                                <FiChevronDown className="text-xs" />
+                              </>
+                            )}
+                          </button>
+                          {showDownloadMenu === f.id && (
+                            <div className="absolute top-full right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                              <button
+                                className="w-full text-left px-3 py-2 hover:bg-gray-100 rounded-t-lg flex items-center gap-2 text-xs"
+                                onClick={() => {
+                                  handleDownload(f);
+                                  setShowDownloadMenu(null);
+                                }}
+                              >
+                                <FiDownload />
+                                Tải xuống tại chỗ
+                              </button>
+                              <button
+                                className="w-full text-left px-3 py-2 hover:bg-gray-100 rounded-b-lg flex items-center gap-2 text-xs"
+                                onClick={() => {
+                                  handleDownloadUrl(f);
+                                  setShowDownloadMenu(null);
+                                }}
+                              >
+                                <FiFile />
+                                Tải xuống bằng URL
+                              </button>
+                            </div>
                           )}
-                        </button>
+                        </div>
                       )}
                     </div>
                   ))}

@@ -24,6 +24,11 @@ const shareService = {
     });
   },
 
+  // Lấy download URL của file qua share token (public) - chỉ trả về URL
+  getShareFileUrl: (token, fileId) => {
+    return axiosClient.get(`/api/share/${token}/file/${fileId}/url`);
+  },
+
   // Tải xuống file/folder qua share token (public) - backward compatibility
   downloadShare: (token) => {
     return axiosClient.get(`/api/share/${token}/download`, {

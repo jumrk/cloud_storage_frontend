@@ -136,16 +136,70 @@ export default function useSharePage() {
     setTimeout(() => setCopied(false), 1500);
   }, [id]);
 
-  // Download a single file
+  // Helper function to get Google Drive download URL from file data
+  const getDriveDownloadUrl = useCallback((file) => {
+    if (!file) return null;
+    const driveUrl = file.driveUrl || file.url;
+    if (!driveUrl) return null;
+    
+    const patterns = [
+      /\/d\/([\w-]+)\//,
+      /[?&]id=([\w-]+)/,
+      /\/file\/d\/([\w-]+)/,
+    ];
+    
+    for (const pattern of patterns) {
+      const match = driveUrl.match(pattern);
+      if (match && match[1]) {
+        return `https://drive.google.com/uc?export=download&id=${match[1]}`;
+      }
+    }
+    
+    return driveUrl;
+  }, []);
+
+  // Download a single file with timeout and fallback
   const downloadSingleFile = useCallback(
     async (file, relativePath = "", onProgress) => {
       try {
+        const fileSize = file.size || 0;
+        const timeoutMs = fileSize > 100 * 1024 * 1024 ? 5 * 60 * 1000 : 2 * 60 * 1000;
+        
+        let lastProgressTime = Date.now();
+        let lastProgressValue = 0;
+        let progressStalledTimeout = null;
+
+        // Create abort controller for timeout
+        const downloadController = new AbortController();
+        const timeout = setTimeout(() => {
+          downloadController.abort();
+        }, timeoutMs);
+
+        // Monitor for stalled progress
+        const checkProgressStall = () => {
+          const now = Date.now();
+          const timeSinceLastProgress = now - lastProgressTime;
+          const currentProgress = typeof onProgress === 'function' ? lastProgressValue : 0;
+          
+          if (timeSinceLastProgress > 30000 && currentProgress > 0 && currentProgress < 100) {
+            downloadController.abort();
+          }
+        };
+
+        progressStalledTimeout = setInterval(checkProgressStall, 5000);
+
         const res = await shareService.downloadShareFile(id, file.id, (progressEvent) => {
+          lastProgressTime = Date.now();
           if (onProgress && progressEvent.total) {
             const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            lastProgressValue = percentCompleted;
             onProgress(percentCompleted);
           }
         });
+        
+        clearTimeout(timeout);
+        if (progressStalledTimeout) clearInterval(progressStalledTimeout);
+        
         const blob = new Blob([res.data]);
         const link = document.createElement("a");
         link.href = window.URL.createObjectURL(blob);
@@ -158,12 +212,31 @@ export default function useSharePage() {
         }, 200);
         return { success: true };
       } catch (err) {
+        // Check if we should fallback to Google Drive URL
+        const driveUrl = getDriveDownloadUrl(file);
+        const isTimeout = err?.code === "ECONNABORTED" || 
+                          err?.name === "AbortError" ||
+                          err?.message?.includes("timeout");
+
+        if (driveUrl && (isTimeout || err?.response?.status >= 500)) {
+          // Fallback to Google Drive direct download
+          const link = document.createElement("a");
+          link.href = driveUrl;
+          link.rel = "noopener noreferrer";
+          link.target = "_blank";
+          link.download = relativePath || file.name || "download";
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          return { success: true, fallback: true };
+        }
+
         const errorMsg =
           err?.response?.data?.error || "Lỗi tải xuống: " + err.message;
         return { success: false, error: errorMsg };
       }
     },
-    [id]
+    [id, getDriveDownloadUrl]
   );
 
   // Download folder (all files)
@@ -356,6 +429,40 @@ export default function useSharePage() {
     [id, downloadSingleFile]
   );
 
+  // Download via URL (open in new tab)
+  const handleDownloadUrl = useCallback(
+    async (targetItem) => {
+      if (!item?.canDownload) {
+        toast.error("Bạn không có quyền tải xuống nội dung này");
+        return;
+      }
+
+      if (targetItem.type === "folder") {
+        toast.error("Tính năng này chỉ dành cho file");
+        return;
+      }
+
+      try {
+        setDownloadingId(targetItem.id);
+        const res = await shareService.getShareFileUrl(id, targetItem.id);
+        const downloadUrl = res.data?.url || res.data?.originalUrl;
+        
+        if (downloadUrl) {
+          window.open(downloadUrl, "_blank");
+          toast.success("Đã mở link tải xuống trong tab mới!");
+        } else {
+          toast.error("Không thể lấy URL tải xuống");
+        }
+      } catch (err) {
+        const errorMsg = err?.response?.data?.error || "Lỗi lấy URL: " + err.message;
+        toast.error(errorMsg);
+      } finally {
+        setDownloadingId(null);
+      }
+    },
+    [id, item?.canDownload]
+  );
+
   const handleDownload = useCallback(
     async (targetItem) => {
       // Check download permission from current item (which has canDownload from share)
@@ -515,6 +622,7 @@ export default function useSharePage() {
     handleBreadcrumbClick,
     copyShareLink,
     handleDownload,
+    handleDownloadUrl,
     clearDownloadBatch,
   };
 }
