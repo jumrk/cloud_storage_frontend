@@ -305,7 +305,9 @@
       "updated": "Ngày cập nhật",
       "share": "Chia sẻ",
       "date": "Ngày",
-      "downloads": "Lượt tải xuống"
+      "downloads": "Lượt tải xuống",
+      "actions": "Thao tác",
+      "fileCount": "Tổng số file"
     },
     "filter": {
       "all": "Tất cả",
@@ -1149,7 +1151,8 @@
       "name": "Tên",
       "size": "Kích thước",
       "date": "Ngày",
-      "share": "Chia sẻ"
+      "share": "Chia sẻ",
+      "fileCount": "Tổng số file"
     },
     "page": {
       "title": "Quản lý tệp được ủy quyền",

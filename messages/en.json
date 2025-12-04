@@ -378,7 +378,9 @@
       "updated": "Updated date",
       "share": "Share",
       "date": "Date",
-      "downloads": "Downloads"
+      "downloads": "Downloads",
+      "actions": "Actions",
+      "fileCount": "Total Files"
     },
     "filter": {
       "all": "All",
@@ -1219,7 +1221,8 @@
       "name": "Name",
       "size": "Size",
       "date": "Date",
-      "share": "Share"
+      "share": "Share",
+      "fileCount": "Total Files"
     },
     "page": {
       "title": "Manage authorized files",

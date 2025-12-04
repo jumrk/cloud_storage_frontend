@@ -35,6 +35,8 @@ export default function useManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [downloadBatch, setDownloadBatch] = useState(null);
   const downloadBatchIdRef = useRef(0);
+  const isDownloadingRef = useRef(false);
+  const downloadingFileIdsRef = useRef(new Set()); // Track đang download file nào
 
   // Filter state
   const [filter, setFilter] = useState({
@@ -279,32 +281,67 @@ export default function useManagement() {
     );
   }
 
-  const handleDownload = async (items) => {
+  const handleDownload = useCallback(async (items) => {
+    // Log stack trace để debug
+    console.log("handleDownload called", new Error().stack);
+    
+    // Prevent duplicate downloads - CHECK FIRST, BEFORE ANYTHING ELSE
+    if (isDownloadingRef.current) {
+      console.warn("Download already in progress, ignoring duplicate request", new Error().stack);
+      return;
+    }
+
     // Handle single item (from table row click) or array of items
     let list;
     if (Array.isArray(items)) {
-      list = items.length ? items : tableActions.selectedItems;
+      // If array is passed, use it (from ActionZone)
+      list = items.length ? items : [];
     } else if (items && (items.id || items._id)) {
       // Single item passed (e.g., from table row download button)
+      // IMPORTANT: Only download the clicked item, ignore selectedItems
+      const itemId = String(items.id || items._id);
+      
+      // Check if this file is already being downloaded
+      if (downloadingFileIdsRef.current.has(itemId)) {
+        console.warn("File already downloading, ignoring:", itemId);
+        return;
+      }
+      
+      // Add to downloading set IMMEDIATELY
+      downloadingFileIdsRef.current.add(itemId);
       list = [items];
     } else {
-      list = tableActions.selectedItems;
+      // Fallback: use selectedItems only if no item was passed
+      list = tableActions.selectedItems || [];
     }
     
-    if (!list || !list.length) return;
+    if (!list || !list.length) {
+      isDownloadingRef.current = false;
+      return;
+    }
+
+    // Set downloading flag IMMEDIATELY before any async operations
+    isDownloadingRef.current = true;
+    
+    console.log("Download triggered with items:", list.map(i => ({ id: i.id || i._id, name: i.name || i.originalName })));
 
     // Filter out folders - only download files
     const filesOnly = list.filter(item => item.type === "file");
     if (!filesOnly.length) {
       toast.error("Chỉ có thể tải xuống file, không thể tải xuống thư mục");
+      isDownloadingRef.current = false; // Reset flag on early return
       return;
     }
 
     // For single file, show download progress
     if (filesOnly.length === 1) {
       const item = filesOnly[0];
+      const fileId = String(item._id || item.id);
+      
       if (!item._id && !item.id) {
+        downloadingFileIdsRef.current.delete(fileId);
         toast.error("Không thể tải xuống file này");
+        isDownloadingRef.current = false;
         return;
       }
 
@@ -478,11 +515,19 @@ export default function useManagement() {
         if (downloadTimeout) clearTimeout(downloadTimeout);
         if (progressStalledTimeout) clearInterval(progressStalledTimeout);
         
-        const cd = res.headers?.["content-disposition"] || "";
-        const m = /filename\*?=UTF-8''([^;]+)|filename="?([^"]+)"?/i.exec(cd);
-        const headerName = decodeURIComponent(m?.[1] || m?.[2] || "");
-        const fileName =
-          headerName || item?.name || item?.originalName || "download";
+        // Try to get filename from custom header first, then Content-Disposition as fallback
+        const fileNameFromHeader = res.headers?.["x-file-name"];
+        let fileName = fileNameFromHeader 
+          ? decodeURIComponent(fileNameFromHeader) 
+          : null;
+        
+        if (!fileName) {
+          const cd = res.headers?.["content-disposition"] || "";
+          const m = /filename\*?=UTF-8''([^;]+)|filename="?([^"]+)"?/i.exec(cd);
+          fileName = decodeURIComponent(m?.[1] || m?.[2] || "");
+        }
+        
+        fileName = fileName || item?.name || item?.originalName || "download";
 
         const objectUrl = URL.createObjectURL(res.data);
         const a = document.createElement("a");
@@ -505,10 +550,16 @@ export default function useManagement() {
           };
         });
 
+        // Remove from downloading set on success
+        downloadingFileIdsRef.current.delete(fileId);
+        
         setTimeout(() => {
           setDownloadBatch(null);
           toast.success("Tải xuống thành công!");
+          isDownloadingRef.current = false;
         }, 1500);
+        
+        return; // IMPORTANT: Return here to prevent continuing to multiple files download
       } catch (e) {
         // Clear timeouts on error
         if (downloadTimeout) clearTimeout(downloadTimeout);
@@ -559,6 +610,9 @@ export default function useManagement() {
               toast.success("Đã mở link tải xuống từ Google Drive!");
             }, 1500);
           }, 500);
+          
+          // Remove from downloading set when using fallback
+          downloadingFileIdsRef.current.delete(fileId);
           return;
         }
 
@@ -577,13 +631,21 @@ export default function useManagement() {
           };
         });
 
+        // Remove from downloading set on error
+        downloadingFileIdsRef.current.delete(fileId);
+        
         setTimeout(() => {
           setDownloadBatch(null);
           toast.error(errorMsg);
+          isDownloadingRef.current = false;
         }, 2000);
+        
+        return; // IMPORTANT: Return here to prevent continuing to multiple files download
       }
-      return;
     }
+
+    // Reset downloading flag after multiple files download
+    isDownloadingRef.current = false;
 
     // Multiple files - download one by one with fallback
     const getNameFromCD = (cd = "") => {
@@ -645,10 +707,18 @@ export default function useManagement() {
         
         clearTimeout(timeout);
         
-        const cd = res.headers?.["content-disposition"] || "";
-        const headerName = getNameFromCD(cd);
-        const fileName =
-          headerName || item?.name || item?.originalName || "download";
+        // Try to get filename from custom header first, then Content-Disposition as fallback
+        const fileNameFromHeader = res.headers?.["x-file-name"];
+        let fileName = fileNameFromHeader 
+          ? decodeURIComponent(fileNameFromHeader) 
+          : null;
+        
+        if (!fileName) {
+          const cd = res.headers?.["content-disposition"] || "";
+          fileName = getNameFromCD(cd);
+        }
+        
+        fileName = fileName || item?.name || item?.originalName || "download";
 
         const objectUrl = URL.createObjectURL(res.data);
         const a = document.createElement("a");
@@ -671,11 +741,15 @@ export default function useManagement() {
         }
       }
     }
-  };
+    
+    // Reset downloading flag after all downloads complete
+    isDownloadingRef.current = false;
+  }, [tableActions.selectedItems]);
 
   const tableHeader = [
     t("member.table.name"),
     t("member.table.size"),
+    t("member.table.fileCount"),
     t("member.table.date"),
     t("member.table.share"),
   ];

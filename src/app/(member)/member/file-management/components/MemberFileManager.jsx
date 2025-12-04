@@ -136,6 +136,7 @@ export default function MemberFileManager() {
         parentId: item.parentId,
         locked: item.locked,
         permissions: item.permissions,
+        fileCount: item.fileCount || 0,
       }));
 
     setData(next);

@@ -46,13 +46,18 @@ export default function useHomeTableActions({ data = [], setData }) {
         newName,
       });
       const data = res.data;
-      if (!data.success) throw new Error(data.error || "Rename failed");
+      if (!data.success) {
+        const errorMsg = data.error || "Đổi tên thất bại";
+        throw new Error(errorMsg);
+      }
       setData((prev) =>
         prev.map((item) => (item.id === id ? { ...item, name: newName } : item))
       );
-      toast.success(t("hooks.home_table.rename_success"));
+      toast.success(t("hooks.home_table.rename_success") || "Đổi tên thành công");
     } catch (e) {
-      toast.error(t("hooks.home_table.rename_failed", { message: e.message }));
+      // Extract error message from response if available
+      const errorMsg = e?.response?.data?.error || e?.message || "Đổi tên thất bại";
+      toast.error(errorMsg);
     }
   };
 

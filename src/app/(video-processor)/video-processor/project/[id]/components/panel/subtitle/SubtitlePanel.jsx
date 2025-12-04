@@ -439,8 +439,12 @@ export default function SubtitlePanel({ visible = true, onUploadFiles }) {
                                     hardsub.setProgressMessage(data.message || "");
                                   }
 
+                                  // Handle status updates
                                   if (data.status === "done") {
+                                    // Set isProcessing to false immediately to enable button
+                                    hardsub.setIsProcessing(false);
                                     eventSource.close();
+                                    
                                     setTimeout(() => {
                                       axiosClient
                                         .get(
@@ -497,28 +501,26 @@ export default function SubtitlePanel({ visible = true, onUploadFiles }) {
                                               toast.error(
                                                 t("video_processor.inspector.panel.subtitle.no_subtitles_found")
                                               );
-                                              hardsub.setIsProcessing(false);
                                             }
                                           } else {
                                             toast.error(
                                               t("video_processor.inspector.panel.subtitle.no_result_from_server")
                                             );
-                                            hardsub.setIsProcessing(false);
                                           }
                                         })
                                         .catch((err) => {
                                           toast.error(
                                             t("video_processor.inspector.panel.subtitle.error_getting_result", { error: err.message || "Unknown error" })
                                           );
-                                          hardsub.setIsProcessing(false);
                                         });
                                     }, 500);
                                   } else if (data.status === "error") {
+                                    // Set isProcessing to false immediately to enable button
+                                    hardsub.setIsProcessing(false);
                                     eventSource.close();
                                     toast.error(
                                       t("video_processor.inspector.panel.subtitle.error", { error: data.message || "Unknown error" })
                                     );
-                                    hardsub.setIsProcessing(false);
                                   }
                                 } catch (err) {
                                   toast.error(

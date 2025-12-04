@@ -1,5 +1,8 @@
 import axiosClient from "@/shared/lib/axiosClient";
 
+// Global lock để tránh duplicate requests
+const pendingDownloads = new Map();
+
 const FileManagementService = () => {
   const authHeaders = (token) =>
     token ? { Authorization: `Bearer ${token}` } : {};
@@ -69,12 +72,35 @@ const FileManagementService = () => {
     const url = rawUrl?.startsWith("http")
       ? rawUrl
       : `${process.env.NEXT_PUBLIC_API_BASE || ""}${rawUrl}`;
-    return axiosClient.get(url, {
+    
+    // Check if this URL is already being downloaded
+    if (pendingDownloads.has(url)) {
+      console.warn("Download already in progress for URL, returning existing promise:", url);
+      return pendingDownloads.get(url);
+    }
+    
+    console.log("downloadInternal called for URL:", url);
+    
+    // Create the download promise
+    const downloadPromise = axiosClient.get(url, {
       responseType: "blob",
       signal,
       headers: authHeaders(token),
       onDownloadProgress: onDownloadProgress || undefined,
+    }).then((response) => {
+      // Remove from pending when done
+      pendingDownloads.delete(url);
+      return response;
+    }).catch((error) => {
+      // Remove from pending on error
+      pendingDownloads.delete(url);
+      throw error;
     });
+    
+    // Add to pending downloads
+    pendingDownloads.set(url, downloadPromise);
+    
+    return downloadPromise;
   };
 
   return {

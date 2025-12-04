@@ -84,6 +84,7 @@ const Table = ({
   const [columnWidths, setColumnWidths] = useState({
     name: 300, // Tên tệp
     size: 120, // Kích thước
+    fileCount: 120, // Tổng số file
     date: 120, // Ngày
     actions: 150, // Thao tác
   });
@@ -333,13 +334,18 @@ const Table = ({
                     } else if (value === "Kích thước" || value === "Size") {
                       columnKey = "size";
                       width = columnWidths.size;
+                    } else if (value === "Tổng số file" || value === "File Count" || value === "Total Files") {
+                      columnKey = "fileCount";
+                      width = columnWidths.fileCount;
                     } else if (value === "Ngày" || value === "Date") {
                       columnKey = "date";
                       width = columnWidths.date;
                     } else if (
                       value === "Lượt tải" ||
+                      value === "Chia sẻ" ||
                       value === "Thao tác" ||
-                      value === "Actions"
+                      value === "Actions" ||
+                      value === "Share"
                     ) {
                       columnKey = "actions";
                       width = columnWidths.actions;
@@ -353,7 +359,9 @@ const Table = ({
                       >
                         <div className="flex items-center justify-between">
                           <span>
-                            {value === "Lượt tải" ? "Thao tác" : value}
+                            {value === "Lượt tải" || value === "Chia sẻ" || value === "Share" 
+                              ? "Thao tác" 
+                              : value}
                           </span>
                         </div>
                         {columnKey && (
@@ -512,6 +520,14 @@ const Table = ({
                       style={{ width: columnWidths.size }}
                     >
                       {formatSize(value.size)}
+                    </td>
+                    <td
+                      className="px-4 py-3"
+                      style={{ width: columnWidths.fileCount }}
+                    >
+                      {value.type === "folder" 
+                        ? (value.fileCount !== undefined && value.fileCount !== null ? value.fileCount : 0)
+                        : "-"}
                     </td>
                     <td
                       className="px-4 py-3"

@@ -186,6 +186,7 @@ const useFileManagementPage = () => {
           parentId: f.parentId ? String(f.parentId) : null,
           permissions: f.permissions || [],
           _id: f._id,
+          fileCount: f.fileCount || 0,
         }));
 
         if (pageNum === 1) setData([...folders, ...files]);
@@ -621,8 +622,9 @@ const useFileManagementPage = () => {
   const tableHeader = [
     t("file.table.name"),
     t("file.table.size"),
+    t("file.table.fileCount"),
     t("file.table.date"),
-    t("file.table.downloads"),
+    t("file.table.actions"),
   ];
 
   return {

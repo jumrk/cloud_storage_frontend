@@ -17,7 +17,7 @@ import ShareModal from "@/features/file-management/components/ShareModal";
 import DownloadStatus from "@/features/share/components/DownloadStatus";
 import useFileManagementPage from "@/app/(file-management)/[slast]/file-management/hooks/useFileManagementPage";
 import FileManagementService from "@/features/file-management/services/fileManagementService";
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useCallback } from "react";
 import toast from "react-hot-toast";
 
 import FileManagerHeader from "@/features/file-management/components/Header";
@@ -27,6 +27,8 @@ export default function FileManagement() {
   const [shareItem, setShareItem] = useState(null);
   const [downloadBatch, setDownloadBatch] = useState(null);
   const downloadBatchIdRef = useRef(0);
+  const isDownloadingRef = useRef(false);
+  const downloadingFileIdsRef = useRef(new Set()); // Track đang download file nào
 
   const {
     t,
@@ -95,32 +97,59 @@ export default function FileManagement() {
   const tokenRef = useRef(
     typeof window !== "undefined" ? localStorage.getItem("token") : null
   );
+  const lastDownloadRef = useRef({ itemId: null, timestamp: 0 });
 
-  // Hàm download với progress tracking
-  const handleDownload = async (items) => {
+  // Hàm download với progress tracking - memoized với useCallback
+  const handleDownload = useCallback(async (items) => {
     // Handle single item (from table row click) or array of items
     let list;
     if (Array.isArray(items)) {
-      list = items.length ? items : tableActions.selectedItems;
+      // If array is passed, use it (from ActionZone)
+      list = items.length ? items : [];
     } else if (items && (items.id || items._id)) {
       // Single item passed (e.g., from table row download button)
+      // IMPORTANT: Only download the clicked item, ignore selectedItems
+      const itemId = String(items.id || items._id);
+      
+      // Check if this file is already being downloaded
+      if (downloadingFileIdsRef.current.has(itemId)) {
+        console.warn("File already downloading, ignoring:", itemId);
+        return;
+      }
+      
+      // Add to downloading set IMMEDIATELY
+      downloadingFileIdsRef.current.add(itemId);
       list = [items];
     } else {
-      list = tableActions.selectedItems;
+      // Fallback: use selectedItems only if no item was passed
+      list = tableActions.selectedItems || [];
     }
     
-    if (!list || !list.length) return;
+    if (!list || !list.length) {
+      return;
+    }
 
     // Filter out folders - only download files
     const filesOnly = list.filter(item => item.type === "file");
     if (!filesOnly.length) {
+      // Remove from downloading set if no files
+      filesOnly.forEach(item => {
+        const id = String(item.id || item._id);
+        downloadingFileIdsRef.current.delete(id);
+      });
       toast.error("Chỉ có thể tải xuống file, không thể tải xuống thư mục");
       return;
     }
 
+    // Set downloading flag IMMEDIATELY before any async operations
+    isDownloadingRef.current = true;
+    
+    console.log("Download triggered with items:", filesOnly.map(i => ({ id: i.id || i._id, name: i.name || i.originalName })));
+
     // For single file, show download progress
     if (filesOnly.length === 1) {
       const item = filesOnly[0];
+      const fileId = String(item._id || item.id);
       if (!item._id && !item.id) {
         toast.error("Không thể tải xuống file này");
         return;
@@ -252,6 +281,7 @@ export default function FileManagement() {
 
       progressStalledTimeout = setInterval(checkProgressStall, 5000);
 
+      console.log("About to call api.downloadInternal for:", downloadUrl);
       const res = await api.downloadInternal(
         downloadUrl,
         tokenRef.current,
@@ -304,10 +334,19 @@ export default function FileManagement() {
       if (downloadTimeout) clearTimeout(downloadTimeout);
       if (progressStalledTimeout) clearInterval(progressStalledTimeout);
       
-      const cd = res.headers?.["content-disposition"] || "";
-      const m = /filename\*?=UTF-8''([^;]+)|filename="?([^"]+)"?/i.exec(cd);
-      const headerName = decodeURIComponent(m?.[1] || m?.[2] || "");
-      const fileName = headerName || item?.name || item?.originalName || "download";
+      // Try to get filename from custom header first, then Content-Disposition as fallback
+      const fileNameFromHeader = res.headers?.["x-file-name"];
+      let fileName = fileNameFromHeader 
+        ? decodeURIComponent(fileNameFromHeader) 
+        : null;
+      
+      if (!fileName) {
+        const cd = res.headers?.["content-disposition"] || "";
+        const m = /filename\*?=UTF-8''([^;]+)|filename="?([^"]+)"?/i.exec(cd);
+        fileName = decodeURIComponent(m?.[1] || m?.[2] || "");
+      }
+      
+      fileName = fileName || item?.name || item?.originalName || "download";
       
       const objectUrl = URL.createObjectURL(res.data);
       const a = document.createElement("a");
@@ -331,10 +370,16 @@ export default function FileManagement() {
         };
       });
 
+      // Remove from downloading set
+      downloadingFileIdsRef.current.delete(fileId);
+      
       setTimeout(() => {
         setDownloadBatch(null);
         toast.success("Tải xuống thành công!");
+        isDownloadingRef.current = false;
       }, 1500);
+      
+      return; // IMPORTANT: Return here to prevent continuing to multiple files download
     } catch (err) {
       // Clear timeouts on error
       if (downloadTimeout) clearTimeout(downloadTimeout);
@@ -403,13 +448,25 @@ export default function FileManagement() {
         };
       });
 
+      // Remove from downloading set on error
+      downloadingFileIdsRef.current.delete(fileId);
+      
       setTimeout(() => {
         setDownloadBatch(null);
         toast.error(errorMsg);
+        isDownloadingRef.current = false;
       }, 2000);
-      return;
+      return; // IMPORTANT: Return here to prevent continuing to multiple files download
     }
+    
+    // Remove from downloading set on success (single file)
+    downloadingFileIdsRef.current.delete(fileId);
+    return; // IMPORTANT: Return here to prevent continuing to multiple files download
     } // End of single file download
+
+    // Multiple files download - only reached if filesOnly.length > 1
+    // Reset downloading flag after multiple files download
+    isDownloadingRef.current = false;
 
     // Multiple files - download one by one with fallback
     const getDriveDownloadUrl = (item) => {
@@ -445,7 +502,19 @@ export default function FileManagement() {
     };
 
     for (const item of filesOnly) {
-      if (!item._id && !item.id) continue;
+      const fileId = String(item._id || item.id);
+      if (!item._id && !item.id) {
+        downloadingFileIdsRef.current.delete(fileId);
+        continue;
+      }
+      
+      // Check if already downloading
+      if (downloadingFileIdsRef.current.has(fileId)) {
+        console.warn("Skipping duplicate download for:", fileId);
+        continue;
+      }
+      
+      downloadingFileIdsRef.current.add(fileId);
       
       try {
         const downloadUrl = `/api/download/file/${item._id || item.id}`;
@@ -478,7 +547,12 @@ export default function FileManagement() {
         a.click();
         a.remove();
         URL.revokeObjectURL(objectUrl);
+        // Remove from downloading set on success
+        downloadingFileIdsRef.current.delete(fileId);
       } catch (e) {
+        // Remove from downloading set on error
+        downloadingFileIdsRef.current.delete(fileId);
+        
         // Fallback to Google Drive URL if available
         const driveUrl = getDriveDownloadUrl(item);
         const isTimeout = e?.code === "ECONNABORTED" || e?.name === "AbortError";
@@ -491,7 +565,10 @@ export default function FileManagement() {
         }
       }
     }
-  };
+    
+    // Reset downloading flag after all downloads complete
+    isDownloadingRef.current = false;
+  }, [api, tokenRef, tableActions.selectedItems]);
 
   return (
     <div className="flex w-full min-h-screen bg-surface-50 relative">
