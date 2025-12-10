@@ -10,6 +10,7 @@ import {
   FiLayers,
   FiCreditCard,
   FiMessageCircle,
+  FiFolder,
 } from "react-icons/fi";
 import Sidebar from "@/shared/layout/Sidebar";
 import useSocket from "@/shared/lib/useSocket";
@@ -108,6 +109,12 @@ export default function AdminLayout({ children }) {
         label: "Quản lý thanh toán",
         icon: <FiCreditCard className="text-2xl" />,
         href: "/admin/payments",
+      },
+      {
+        key: "projects",
+        label: "Quản lý dự án",
+        icon: <FiFolder className="text-2xl" />,
+        href: "/admin/projects",
       },
       {
         key: "chat",
