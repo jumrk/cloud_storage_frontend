@@ -6,10 +6,13 @@ import { FiMoreVertical, FiEdit, FiTrash2 } from "react-icons/fi";
 export default function ProjectMenu({ project, onEdit, onDelete, deleteLoading }) {
   const [open, setOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
+  const [mounted, setMounted] = useState(false);
   const buttonRef = useRef(null);
   const menuRef = useRef(null);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
     function handleClickOutside(e) {
       if (
         buttonRef.current &&
@@ -31,7 +34,11 @@ export default function ProjectMenu({ project, onEdit, onDelete, deleteLoading }
         });
       }
     }
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    return () => {
+      if (typeof document !== "undefined") {
+        document.removeEventListener("mousedown", handleClickOutside);
+      }
+    };
   }, [open]);
 
   const menuContent = open ? (
@@ -71,6 +78,10 @@ export default function ProjectMenu({ project, onEdit, onDelete, deleteLoading }
     </div>
   ) : null;
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   return (
     <>
       <div className="relative inline-block" ref={buttonRef}>
@@ -82,7 +93,9 @@ export default function ProjectMenu({ project, onEdit, onDelete, deleteLoading }
           <FiMoreVertical className="text-lg" />
         </button>
       </div>
-      {typeof window !== "undefined" && createPortal(menuContent, document.body)}
+      {mounted &&
+        typeof window !== "undefined" &&
+        createPortal(menuContent, document.body)}
     </>
   );
 }

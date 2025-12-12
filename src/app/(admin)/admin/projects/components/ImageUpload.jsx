@@ -136,11 +136,13 @@ export default function ImageUpload({
 
   const getImageUrl = (url) => {
     if (!url) return "";
+    // Nếu đã là full URL thì trả về luôn
     if (url.startsWith("http://") || url.startsWith("https://")) {
       return url;
     }
+    // Nếu là relative path, giữ nguyên (browser sẽ tự resolve)
     if (url.startsWith("/")) {
-      return `${process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000"}${url}`;
+      return url;
     }
     return url;
   };
@@ -217,8 +219,10 @@ export default function ImageUpload({
               alt="Preview"
               className="w-full h-48 object-contain"
               onError={(e) => {
-                e.target.style.display = "none";
-                e.target.nextSibling.style.display = "flex";
+                if (e.target && e.target.nextSibling) {
+                  e.target.style.display = "none";
+                  e.target.nextSibling.style.display = "flex";
+                }
               }}
             />
             <div
