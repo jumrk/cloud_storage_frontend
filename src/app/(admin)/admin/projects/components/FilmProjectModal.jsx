@@ -2,6 +2,8 @@
 import { useEffect, useState } from "react";
 import { FiX } from "react-icons/fi";
 import toast from "react-hot-toast";
+import ImageUpload from "./ImageUpload";
+import ImageListUpload from "./ImageListUpload";
 
 const CATEGORIES = [
   "Phim truyền hình",
@@ -47,7 +49,6 @@ export default function FilmProjectModal({
     services: [],
   });
   const [errors, setErrors] = useState({});
-  const [imageInput, setImageInput] = useState("");
   const [serviceInput, setServiceInput] = useState("");
 
   useEffect(() => {
@@ -80,7 +81,6 @@ export default function FilmProjectModal({
       });
     }
     setErrors({});
-    setImageInput("");
     setServiceInput("");
   }, [project, open]);
 
@@ -103,27 +103,6 @@ export default function FilmProjectModal({
     setErrors((prev) => ({ ...prev, slug: undefined }));
   };
 
-  const addImage = () => {
-    const value = imageInput.trim();
-    if (!value) return;
-    if (form.images.includes(value)) {
-      toast.error("Ảnh này đã được thêm");
-      return;
-    }
-    setForm((prev) => ({
-      ...prev,
-      images: [...prev.images, value],
-    }));
-    setImageInput("");
-    setErrors((prev) => ({ ...prev, images: undefined }));
-  };
-
-  const removeImage = (index) => {
-    setForm((prev) => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index),
-    }));
-  };
 
   const addService = () => {
     if (!serviceInput) return;
@@ -332,14 +311,13 @@ export default function FilmProjectModal({
               <label className="block text-sm font-medium mb-1">
                 URL Poster *
               </label>
-              <input
-                type="text"
-                name="poster"
+              <ImageUpload
                 value={form.poster}
-                onChange={handleChange}
-                placeholder="/images/projects/poster1.jpg"
-                className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                required
+                onChange={(url) => {
+                  setForm((prev) => ({ ...prev, poster: url }));
+                  setErrors((prev) => ({ ...prev, poster: undefined }));
+                }}
+                placeholder="Nhập URL poster hoặc kéo thả ảnh vào đây"
                 disabled={loading}
               />
               {errors.poster && (
@@ -366,50 +344,14 @@ export default function FilmProjectModal({
               <label className="block text-sm font-medium mb-1">
                 Ảnh slider *
               </label>
-              <div className="flex gap-2 mb-2">
-                <input
-                  type="text"
-                  value={imageInput}
-                  onChange={(e) => setImageInput(e.target.value)}
-                  placeholder="/images/projects/project1/image1.jpg"
-                  className="flex-1 border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                  disabled={loading}
-                  onKeyPress={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      addImage();
-                    }
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={addImage}
-                  disabled={loading}
-                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium"
-                >
-                  Thêm
-                </button>
-              </div>
-              {form.images.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {form.images.map((img, idx) => (
-                    <span
-                      key={idx}
-                      className="inline-flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1 text-sm"
-                    >
-                      <span className="max-w-xs truncate">{img}</span>
-                      <button
-                        type="button"
-                        onClick={() => removeImage(idx)}
-                        disabled={loading}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
+              <ImageListUpload
+                value={form.images}
+                onChange={(images) => {
+                  setForm((prev) => ({ ...prev, images }));
+                  setErrors((prev) => ({ ...prev, images: undefined }));
+                }}
+                disabled={loading}
+              />
               {errors.images && (
                 <p className="text-xs text-red-500 mt-1">{errors.images}</p>
               )}
