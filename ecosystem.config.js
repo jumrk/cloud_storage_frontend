@@ -5,9 +5,9 @@ module.exports = {
       script: "node_modules/next/dist/bin/next",
       args: "start",
       cwd: "/home/d2mbox/frontend",
-      exec_mode: "fork",
-      instances: 1,
-      max_memory_restart: "2G",
+      exec_mode: "cluster",
+      instances: "max",
+      max_memory_restart: "4G",
       autorestart: true,
 
       env: {
