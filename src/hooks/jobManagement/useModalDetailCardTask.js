@@ -47,12 +47,11 @@ export default function useModalDetailCardTask(card, onSave, boardMembers) {
     "#6b7280",
     "#111827",
   ];
-  //service
   const { getChecklists, createChecklist, deleteChecklist, updateChecklist } =
     checklistService();
   const { createComment, deleteComment, getCommentsByCard, updateComment } =
     commentService();
-  // state
+
   const [editingTitle, setEditingTitle] = useState(false);
   const [labelsOpen, setLabelsOpen] = useState(false);
   const [dueOpen, setDueOpen] = useState(false);
@@ -76,12 +75,15 @@ export default function useModalDetailCardTask(card, onSave, boardMembers) {
     : card?.labelColors || [];
   const memberIds = toIdArray(card?.members);
   const dueAt = card?.dueAt ?? null;
+  const startAt = card?.startAt ?? null;
+
   const descDoc = card?.descDoc || null;
   const hasLabels = labelColors.length > 0;
   const hasMembers = memberIds.length > 0;
   const hasDue = Boolean(dueAt);
+  const hasStart = Boolean(startAt);
   const hasDescription = Boolean(descDoc?.content?.length);
-  const showAnyQuick = !hasLabels || !hasMembers || !hasDue;
+  const showAnyQuick = !hasLabels || !hasMembers || !hasDue || !hasStart;
 
   const previewHtml =
     card?.descHtmlCached && card.descHtmlCached.trim().length
@@ -356,6 +358,7 @@ export default function useModalDetailCardTask(card, onSave, boardMembers) {
     descDoc,
     hasLabels,
     hasDue,
+    hasStart,
     hasDescription,
     showAnyQuick,
     newChecklistTitle,

@@ -2,7 +2,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { IoClose } from "react-icons/io5";
 
-// ---- helpers
 const pad2 = (n) => n.toString().padStart(2, "0");
 const sameYMD = (a, b) =>
   a.getFullYear() === b.getFullYear() &&
@@ -12,7 +11,6 @@ const sameYMD = (a, b) =>
 const toLocalParts = (iso) => {
   if (!iso) return { date: null, hh: "09", mm: "00" };
   const d = new Date(iso);
-  // chuyển về local parts
   const hh = pad2(d.getHours());
   const mm = pad2(d.getMinutes());
   return { date: d, hh, mm };
@@ -29,31 +27,26 @@ const toISOFromLocal = (dateObj, hh, mm) => {
     0,
     0
   );
-  // giữ nghĩa local -> ISO UTC
   return new Date(
     local.getTime() - local.getTimezoneOffset() * 60000
   ).toISOString();
 };
 
-// build grid Mon..Sun (VN quen Thứ 2 đầu tuần)
-function buildMonthGrid(year, month /* 0-11 */) {
+function buildMonthGrid(year, month) {
   const first = new Date(year, month, 1);
   const last = new Date(year, month + 1, 0);
   const daysInMonth = last.getDate();
 
-  // JS: 0=Sun..6=Sat -> chuyển về Mon=0..Sun=6
   const dowMon0 = (d) => (d + 6) % 7;
-  const leadBlank = dowMon0(first.getDay()); // số ô trống đầu
+  const leadBlank = dowMon0(first.getDay());
   const cells = [];
 
   for (let i = 0; i < leadBlank; i++) cells.push(null);
   for (let d = 1; d <= daysInMonth; d++) {
     cells.push(new Date(year, month, d));
   }
-  // pad đuôi đến bội số của 7
   while (cells.length % 7 !== 0) cells.push(null);
 
-  // chunk 7
   const weeks = [];
   for (let i = 0; i < cells.length; i += 7) {
     weeks.push(cells.slice(i, i + 7));
@@ -67,6 +60,7 @@ export default function DuePopover({
   value,
   onChange,
   className = "",
+  label = "Ngày hết hạn",
 }) {
   const panelRef = useRef(null);
 
@@ -101,7 +95,6 @@ export default function DuePopover({
     return () => document.removeEventListener("mousedown", handler);
   }, [open, onClose]);
 
-  // sync khi value đổi từ ngoài
   useEffect(() => {
     const { date, hh, mm } = toLocalParts(value);
     setEnabled(Boolean(value));
@@ -168,9 +161,8 @@ export default function DuePopover({
 
   if (!open) return null;
 
-  // build selects giờ/phút
   const hourOpts = Array.from({ length: 24 }, (_, i) => pad2(i));
-  const minuteOpts = Array.from({ length: 12 }, (_, i) => pad2(i * 5)); // bước 5'
+  const minuteOpts = Array.from({ length: 12 }, (_, i) => pad2(i * 5));
 
   return (
     <div
@@ -178,9 +170,8 @@ export default function DuePopover({
       className={`absolute z-50 top-full mt-2 w-[22rem] rounded-2xl border border-neutral-200 bg-white shadow-2xl ${className}`}
       onClick={(e) => e.stopPropagation()}
       role="dialog"
-      aria-label="Ngày"
+      aria-label={label}
     >
-      {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-neutral-200">
         <div className="flex items-center gap-2">
           <label className="inline-flex items-center gap-2 select-none">
@@ -189,7 +180,7 @@ export default function DuePopover({
               checked={enabled}
               onChange={(e) => setEnabled(e.target.checked)}
             />
-            <span className="text-sm font-medium">Ngày hết hạn</span>
+            <span className="text-sm font-medium">{label}</span>
           </label>
         </div>
         <button
@@ -201,7 +192,6 @@ export default function DuePopover({
         </button>
       </div>
 
-      {/* Calendar */}
       <div className="p-3 space-y-3">
         <div className="flex items-center justify-between">
           <button
@@ -233,9 +223,7 @@ export default function DuePopover({
 
         <div className="grid grid-cols-7 gap-1">
           {weeks.flat().map((d, idx) => {
-            if (!d) {
-              return <div key={`b-${idx}`} className="h-9" />;
-            }
+            if (!d) return <div key={`b-${idx}`} className="h-9" />;
             const isToday = sameYMD(d, today);
             const isPicked = pickedDate && sameYMD(d, pickedDate);
             const inThisMonth = d.getMonth() === viewMonth;
@@ -266,7 +254,6 @@ export default function DuePopover({
           })}
         </div>
 
-        {/* Time picker */}
         <div className="flex items-center gap-2">
           <div className="text-xs text-neutral-500 w-16">Thời gian</div>
           <select
@@ -295,7 +282,6 @@ export default function DuePopover({
           </select>
         </div>
 
-        {/* Presets nhanh */}
         <div className="flex flex-wrap gap-2">
           <button
             disabled={!enabled}
@@ -329,10 +315,9 @@ export default function DuePopover({
           <button
             disabled={!enabled}
             onClick={() => {
-              // tới thứ 2 kế tiếp
               const d = new Date();
-              const day = d.getDay(); // 0=Sun..6=Sat
-              const delta = (1 - day + 7) % 7 || 7; // next Monday
+              const day = d.getDay();
+              const delta = (1 - day + 7) % 7 || 7;
               d.setDate(d.getDate() + delta);
               setViewYear(d.getFullYear());
               setViewMonth(d.getMonth());
@@ -346,7 +331,6 @@ export default function DuePopover({
           </button>
         </div>
 
-        {/* Actions */}
         <div className="flex gap-2 pt-1">
           <button
             onClick={applyAndClose}

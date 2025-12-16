@@ -56,6 +56,7 @@ export function useCardTask(
   desc,
   progress,
   dueDate,
+  startDate,
   members = [],
   labels = [],
   showDetails = false
@@ -65,6 +66,7 @@ export function useCardTask(
   const hasDesc = !!desc;
   const hasProgress = Number.isFinite(Number(progress));
   const hasDue = !!dueDate;
+  const hasStart = !!startDate;
   const hasMembers = Array.isArray(members) && members.length > 0;
   const hasLabels = Array.isArray(labels) && labels.length > 0;
 
@@ -76,11 +78,14 @@ export function useCardTask(
     [hasProgress, progress]
   );
 
-  const dateStr = useMemo(
+  const dueStr = useMemo(
     () => (hasDue ? formatDate(dueDate) : ""),
     [hasDue, dueDate]
   );
-
+  const startStr = useMemo(
+    () => (hasStart ? formatDate(startDate) : ""),
+    [hasStart, startDate]
+  );
   const barColor = hasProgress
     ? pct < 30
       ? "#FF7979"
@@ -97,10 +102,12 @@ export function useCardTask(
     hasDesc,
     hasProgress,
     hasDue,
+    hasStart,
     hasMembers,
     hasLabels,
     pct,
-    dateStr,
+    dueStr,
+    startStr,
     openDetail,
     barColor,
     firstLetter,

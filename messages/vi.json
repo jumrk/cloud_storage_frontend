@@ -943,6 +943,8 @@
     "logout_success": "Đăng xuất thành công!",
     "home": "Trang chủ",
     "tool": "Công cụ",
+    "edit_video": "Chỉnh sửa video",
+    "download_video": "Tải video",
     "file_management": "Quản lý tệp",
     "job_management": "Quản lý công việc",
     "user_management": "Quản lý người dùng",

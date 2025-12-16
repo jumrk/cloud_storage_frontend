@@ -1,4 +1,3 @@
-import axiosClient from "@/lib/axiosClient";
 import authService from "@/lib/services/authService";
 import { useTranslations } from "next-intl";
 import React, { useState, useRef } from "react";

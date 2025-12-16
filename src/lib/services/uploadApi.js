@@ -1,9 +1,8 @@
-// Gói mỏng gọi API cho upload v2 (JS)
 import axiosClient from "@/lib/axiosClient";
 
 export async function postChunk(body, headers) {
   const res = await axiosClient.post("/api/upload/v2", body, { headers });
-  return res.data; // { success, uploadId, assembledBytes, driveBytes, progress, ... }
+  return res.data;
 }
 
 export async function getStatus(uploadId) {

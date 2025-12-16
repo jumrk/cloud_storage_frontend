@@ -150,6 +150,7 @@ export function useListBoard({ id, title, handleUpdate }) {
     setCards((arr) => arr.map((c) => (c._id === cardId ? merged : c)));
 
     try {
+      console.log(backendPatch);
       await updateCard(cardId, backendPatch);
     } catch (e) {
       setCards((arr) => arr.map((c) => (c._id === cardId ? prev : c)));

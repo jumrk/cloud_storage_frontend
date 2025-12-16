@@ -4,7 +4,7 @@ export const metadata = {
   description:
     "Đăng nhập vào tài khoản D2MBox để truy cập các tính năng lưu trữ đám mây và công cụ AI",
   robots: {
-    index: false, // Không index trang login
+    index: false,
     follow: false,
   },
 };

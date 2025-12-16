@@ -2,28 +2,25 @@ import { NextResponse } from "next/server";
 import { decodeTokenGetUser } from "./lib/jwt";
 
 export function middleware(request) {
-  const token = request.cookies.get("token")?.value;
-  const locale = request.cookies.get("NEXT_LOCALE")?.value || "vi"; // fallback
+  const url = request.nextUrl.clone();
+  const path = url.pathname || "/";
+  const token = request.cookies.get("token")?.value || null;
+  const locale = request.cookies.get("NEXT_LOCALE")?.value || "vi";
 
   let role = null;
   let slast = null;
   if (token) {
-    const userData = decodeTokenGetUser(token);
-    role = userData?.role;
-    slast = userData?.slast;
+    try {
+      const u = decodeTokenGetUser(token);
+      role = u?.role ?? null;
+      slast = (u?.slast || "").toLowerCase();
+    } catch {}
   }
 
-  const url = request.nextUrl.clone();
-  const path = url.pathname;
-
-  // Tạo sẵn response mặc định
   let response = NextResponse.next();
-
-  response.cookies.set("NEXT_LOCALE", locale, {
-    path: "/",
-    httpOnly: false,
-  });
+  response.cookies.set("NEXT_LOCALE", locale, { path: "/", httpOnly: false });
   response.headers.set("x-locale", locale);
+
   if (
     path.startsWith("/api") ||
     path.startsWith("/Login") ||
@@ -43,43 +40,48 @@ export function middleware(request) {
     return response;
   }
 
-  // Nếu không có token và không phải trang public, redirect to login
-  if (!token && !path.startsWith("/Login") && path !== "/") {
-    url.pathname = "/Login";
-    response = NextResponse.redirect(url);
-    response.cookies.set("NEXT_LOCALE", locale, { path: "/" });
-    response.headers.set("x-locale", locale);
+  if (!token && path !== "/" && !path.startsWith("/login")) {
+    url.pathname = "/login";
+    const redirect = NextResponse.redirect(url);
+    redirect.cookies.set("NEXT_LOCALE", locale, { path: "/" });
+    redirect.headers.set("x-locale", locale);
+    return redirect;
+  }
+
+  if (path === "/job-management" || path === "/job-management/") {
+    url.pathname = "/job-management/workspace";
+    const redirect = NextResponse.redirect(url);
+    redirect.cookies.set("NEXT_LOCALE", locale, { path: "/" });
+    redirect.headers.set("x-locale", locale);
+    return redirect;
+  }
+
+  if (path.startsWith("/job-management")) {
     return response;
   }
 
-  // Admin chỉ được vào /admin
   if (role === "admin" && !path.startsWith("/admin")) {
     url.pathname = "/admin";
-    response = NextResponse.redirect(url);
-    response.cookies.set("NEXT_LOCALE", locale, { path: "/" });
-    response.headers.set("x-locale", locale);
-    return response;
+    const redirect = NextResponse.redirect(url);
+    redirect.cookies.set("NEXT_LOCALE", locale, { path: "/" });
+    redirect.headers.set("x-locale", locale);
+    return redirect;
   }
 
   if (role === "member" && !path.startsWith("/member")) {
     url.pathname = "/member";
-    response = NextResponse.redirect(url);
-    response.cookies.set("NEXT_LOCALE", locale, { path: "/" });
-    response.headers.set("x-locale", locale);
-    return response;
+    const redirect = NextResponse.redirect(url);
+    redirect.cookies.set("NEXT_LOCALE", locale, { path: "/" });
+    redirect.headers.set("x-locale", locale);
+    return redirect;
   }
 
-  if (
-    role === "leader" &&
-    !path.startsWith(`/${slast}`) &&
-    !path.startsWith("/") &&
-    path !== "/"
-  ) {
+  if (role === "leader" && slast && !path.startsWith(`/${slast}`)) {
     url.pathname = `/${slast}/home`;
-    response = NextResponse.redirect(url);
-    response.cookies.set("NEXT_LOCALE", locale, { path: "/" });
-    response.headers.set("x-locale", locale);
-    return response;
+    const redirect = NextResponse.redirect(url);
+    redirect.cookies.set("NEXT_LOCALE", locale, { path: "/" });
+    redirect.headers.set("x-locale", locale);
+    return redirect;
   }
 
   return response;

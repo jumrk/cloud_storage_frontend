@@ -12,6 +12,7 @@ import {
   CiLogout,
   CiChat1,
   CiViewList,
+  CiVideoOn,
 } from "react-icons/ci";
 import { PiToolboxThin } from "react-icons/pi";
 import toast from "react-hot-toast";
@@ -19,9 +20,9 @@ import { decodeTokenGetUser } from "@/lib/jwt";
 import axiosClient from "@/lib/axiosClient";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
+import { IoCloudDownloadOutline } from "react-icons/io5";
 
 function normalizePath(p = "") {
-  // bỏ slash cuối để so sánh ổn định: /a/b/ -> /a/b
   if (p.length > 1 && p.endsWith("/")) return p.slice(0, -1);
   return p;
 }
@@ -75,7 +76,6 @@ export default function Sidebar({
     }
   }
 
-  // Tạo menu khi đã có slast để tránh //path
   const menu = useMemo(() => {
     if (!slast) return [];
     return [
@@ -102,6 +102,20 @@ export default function Sidebar({
         label: t("sidebar.tool"),
         icon: <PiToolboxThin className="text-2xl" />,
         href: `/${slast}/tools/download`,
+        restricted: true,
+      },
+      {
+        key: "edit_video",
+        label: t("sidebar.edit_video"),
+        icon: <CiVideoOn className="text-2xl" />,
+        href: `/${slast}/edit-video`,
+        restricted: true,
+      },
+      {
+        key: "donwload_video",
+        label: t("sidebar.download_video"),
+        icon: <IoCloudDownloadOutline className="text-2xl" />,
+        href: `/${slast}/download-video`,
         restricted: true,
       },
       {

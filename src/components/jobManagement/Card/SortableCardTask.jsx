@@ -24,7 +24,6 @@ export default function SortableCardTask({
     data: {
       type: "card",
       listId: String(listId),
-      // dữ liệu dùng cho DragOverlay
       preview: {
         id,
         index,

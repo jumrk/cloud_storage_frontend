@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   IoClose,
   IoAdd,
@@ -17,7 +17,7 @@ import DescriptionPopover from "@/components/jobManagement/Card/DescriptionPopov
 import useBoardMembers from "@/hooks/jobManagement/useBoardMembers";
 import ChecklistSection from "./ChecklistSection";
 import useModalDetailCardTask from "@/hooks/jobManagement/useModalDetailCardTask";
-import { AiOutlineDelete, AiOutlineEllipsis } from "react-icons/ai";
+import { AiOutlineDelete } from "react-icons/ai";
 
 function ModalDetailCardTask({ open, card, onClose, onSave, boardId }) {
   const panelRef = useRef(null);
@@ -39,6 +39,7 @@ function ModalDetailCardTask({ open, card, onClose, onSave, boardId }) {
     descDoc,
     hasLabels,
     hasDue,
+    hasStart,
     hasDescription,
     showAnyQuick,
     newChecklistTitle,
@@ -69,6 +70,8 @@ function ModalDetailCardTask({ open, card, onClose, onSave, boardId }) {
     setAddComment,
     moveCheckList,
   } = useModalDetailCardTask(card, onSave, boardMembers);
+
+  const [startOpen, setStartOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -105,6 +108,19 @@ function ModalDetailCardTask({ open, card, onClose, onSave, boardId }) {
           month: "short",
         })
       : "";
+
+  const formatStartBadge = () => {
+    if (!card?.startAt) return "—";
+    const d = new Date(card.startAt);
+    const s = d.toLocaleString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      day: "2-digit",
+      month: "short",
+    });
+    return s;
+  };
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => e.key === "Escape" && onClose?.();
@@ -167,6 +183,7 @@ function ModalDetailCardTask({ open, card, onClose, onSave, boardId }) {
                   />
                 )}
               </div>
+
               {/* body */}
               <div className="px-3 py-3">
                 <div className="space-y-5  text-sm">
@@ -196,6 +213,30 @@ function ModalDetailCardTask({ open, card, onClose, onSave, boardId }) {
                           />
                         </div>
                       )}
+
+                      {/* QUICK: Start date */}
+                      {!hasStart && (
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() => setStartOpen(true)}
+                            className="inline-flex items-center gap-2 rounded-lg border border-neutral-300 bg-neutral-100 hover:bg-neutral-200 px-3 py-1.5"
+                          >
+                            <IoTimeOutline /> Bắt đầu
+                          </button>
+                          <DuePopover
+                            open={startOpen}
+                            onClose={() => setStartOpen(false)}
+                            value={card?.startAt ?? null}
+                            onChange={async (nextIso) => {
+                              await onSave?.({ startAt: nextIso });
+                              setStartOpen(false);
+                            }}
+                            label="Ngày bắt đầu"
+                          />
+                        </div>
+                      )}
+
                       {!hasDue && (
                         <div className="relative">
                           <button
@@ -213,9 +254,11 @@ function ModalDetailCardTask({ open, card, onClose, onSave, boardId }) {
                               await onSave?.({ dueAt: nextIso });
                               setDueOpen(false);
                             }}
+                            label="Ngày hết hạn"
                           />
                         </div>
                       )}
+
                       {!hasMembers && (
                         <div className="relative">
                           <button
@@ -350,6 +393,42 @@ function ModalDetailCardTask({ open, card, onClose, onSave, boardId }) {
                     )}
                   </div>
 
+                  {/* START DATE SECTION */}
+                  {hasStart && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-neutral-600">
+                        <IoTimeOutline />
+                        <span className="font-medium text-sm">
+                          Ngày bắt đầu
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center h-8 px-3 rounded-md bg-neutral-100 text-neutral-800 text-sm">
+                          {formatStartBadge()}
+                        </span>
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() => setStartOpen(true)}
+                            className="h-8 w-8 rounded-md bg-neutral-200 hover:bg-neutral-300 grid place-items-center"
+                            title="Chỉnh ngày bắt đầu"
+                          >
+                            <IoAdd />
+                          </button>
+                          <DuePopover
+                            open={startOpen}
+                            onClose={() => setStartOpen(false)}
+                            value={card?.startAt ?? null}
+                            onChange={async (nextIso) => {
+                              await onSave?.({ startAt: nextIso });
+                            }}
+                            label="Ngày bắt đầu"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {hasDue && (
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-neutral-600">
@@ -378,6 +457,7 @@ function ModalDetailCardTask({ open, card, onClose, onSave, boardId }) {
                             onChange={async (nextIso) => {
                               await onSave?.({ dueAt: nextIso });
                             }}
+                            label="Ngày hết hạn"
                           />
                         </div>
                       </div>
@@ -490,10 +570,9 @@ function ModalDetailCardTask({ open, card, onClose, onSave, boardId }) {
                             </div>
                           </div>
 
-                          {/* button */}
                           <button
                             className="p-1 rounded-md cursor-pointer text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 transition-colors"
-                            aria-label="Mở menu"
+                            aria-label="Xóa bình luận"
                             onClick={() => handleDeleteComment(e._id)}
                           >
                             <AiOutlineDelete size={16} />

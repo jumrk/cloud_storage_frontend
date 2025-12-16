@@ -1,14 +1,7 @@
 "use client";
 import React, { useCallback, useRef, useState, useEffect } from "react";
-import {
-  FiUploadCloud,
-  FiEye,
-  FiEyeOff,
-  FiGlobe,
-  FiLock,
-} from "react-icons/fi";
+import { FiUploadCloud } from "react-icons/fi";
 import { IoClose } from "react-icons/io5";
-import toast from "react-hot-toast";
 import { v4 as uuidv4 } from "uuid";
 import { useTranslations } from "next-intl";
 
@@ -131,7 +124,6 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId }) => {
 
   const handleFilesOrFolder = (files) => {
     setSelectedFiles((prev) => {
-      // Chuẩn hoá và loại trùng theo (path + size + lastModified)
       const seen = new Set(
         prev.map((p) => `${p.path}__${p.file.size}__${p.file.lastModified}`)
       );
@@ -140,16 +132,16 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId }) => {
       for (const file of files) {
         const relPathRaw =
           file._relativePath || file.webkitRelativePath || file.name;
-        const relPath = relPathRaw.replace(/\\/g, "/").replace(/^\.?\/*/, ""); // normalize
+        const relPath = relPathRaw.replace(/\\/g, "/").replace(/^\.?\/*/, "");
 
         const key = `${relPath}__${file.size}__${file.lastModified}`;
-        if (seen.has(key)) continue; // bỏ trùng
+        if (seen.has(key)) continue;
 
         toAdd.push({
           name: file.name,
           file,
           isPublic: false,
-          path: relPath, // giữ nguyên full relativePath bất kể sâu bao nhiêu
+          path: relPath,
         });
         seen.add(key);
       }
@@ -184,18 +176,9 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId }) => {
     setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const togglePrivacy = (index) => {
-    setSelectedFiles((prev) =>
-      prev.map((item, i) =>
-        i === index ? { ...item, isPublic: !item.isPublic } : item
-      )
-    );
-  };
-
   const handleUploadClick = () => {
     if (selectedFiles.length > 0) {
-      const batchId = uuidv4(); // Sinh batchId duy nhất cho mỗi lần upload
-      // Gom các folder gốc
+      const batchId = uuidv4();
       const folderMap = new Map();
       selectedFiles.forEach((item) => {
         if (item.path.includes("/")) {
@@ -204,7 +187,6 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId }) => {
           folderMap.get(folderName).push(item);
         }
       });
-      // Gom emptyFolders theo folder gốc
       const emptyFoldersMap = new Map();
       emptyFolders.forEach((f) => {
         const folderName = f.split("/")[0];
@@ -212,29 +194,27 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId }) => {
           emptyFoldersMap.set(folderName, []);
         emptyFoldersMap.get(folderName).push(f);
       });
-      // Tạo batch cho từng folder
       const folderBatches = Array.from(folderMap.entries()).map(
         ([folderName, items]) => ({
           type: "folder",
           folderName,
-          batchId, // Gán batchId cho batch folder
+          batchId,
           files: items.map((item) => ({
             file: item.file,
             name: item.name,
             relativePath: item.path,
-            batchId, // Gán batchId cho từng file
+            batchId,
           })),
           emptyFolders: emptyFoldersMap.get(folderName) || [],
           parentId: parentId || null,
         })
       );
-      // Batch file lẻ
       const filesOnly = selectedFiles
         .filter((item) => !item.path.includes("/"))
         .map((item) => ({
           file: item.file,
           name: item.name,
-          batchId, // Gán batchId cho file lẻ
+          batchId,
         }));
       const batches = [];
       if (filesOnly.length > 0)

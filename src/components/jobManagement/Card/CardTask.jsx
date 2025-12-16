@@ -29,6 +29,7 @@ export default function CardTask({
   desc,
   progress,
   dueDate,
+  startDate,
   members = [],
   labels = [],
   showDetails = false,
@@ -43,11 +44,20 @@ export default function CardTask({
     hasMembers,
     hasLabels,
     pct,
-    dateStr,
+    dueStr,
     barColor,
     firstLetter,
     pickColor,
-  } = useCardTask(title, desc, progress, dueDate, members, labels, showDetails);
+  } = useCardTask(
+    title,
+    desc,
+    progress,
+    dueDate,
+    startDate,
+    members,
+    labels,
+    showDetails
+  );
 
   return (
     <div className="group relative w-full select-none rounded-xl border border-neutral-200 bg-white p-3 hover:bg-neutral-50">
@@ -135,7 +145,7 @@ export default function CardTask({
                     backgroundColor: hasDue ? `${barColor}15` : "#F1F5F9",
                   }}
                 >
-                  {hasDue ? dateStr : "Chưa có hạn"}
+                  {hasDue ? dueStr : "Chưa có hạn"}
                 </span>
               )}
 

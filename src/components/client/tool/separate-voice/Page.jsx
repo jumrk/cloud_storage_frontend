@@ -1,5 +1,5 @@
 "use client";
-import { uploadInChunks } from "@/lib/tool/chunkUpload";
+import { uploadInChunks } from "@/features/files-upload/lib/chunkUpload";
 import { useCallback, useMemo, useRef, useState } from "react";
 
 export default function SeparateVoice() {

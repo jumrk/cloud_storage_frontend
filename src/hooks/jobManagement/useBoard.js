@@ -63,7 +63,6 @@ export default function useBoard() {
       setLoading(true);
       setErr("");
       const res = await postBoard(title);
-      console.log(res);
       if (!res.data.success) {
         toast.error(res.data.messenger || "Tạo bảng thất bại");
         return;

@@ -217,6 +217,7 @@ function ListBoard({
                     desc={c.desc}
                     progress={c.progress}
                     dueDate={c.dueDate}
+                    startDate={c.startAt}
                     members={c.members}
                     labels={c.labels}
                     onEdit={openCard}
