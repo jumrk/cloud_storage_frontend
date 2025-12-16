@@ -4,7 +4,7 @@ module.exports = {
       name: "frontend",
       script: "node_modules/next/dist/bin/next",
       args: "start",
-      cwd: "/home/d2mbox/frontend",
+      cwd: "/home/d2mbox2/frontend",
       exec_mode: "cluster",
       instances: "4",
       max_memory_restart: "4G",
