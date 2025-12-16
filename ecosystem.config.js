@@ -6,7 +6,7 @@ module.exports = {
       args: "start",
       cwd: "/home/d2mbox/frontend",
       exec_mode: "cluster",
-      instances: "max",
+      instances: "4",
       max_memory_restart: "4G",
       autorestart: true,
 
