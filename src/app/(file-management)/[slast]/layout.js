@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { FaBars } from "react-icons/fa";
-import { CiHome, CiFolderOn, CiShare2 } from "react-icons/ci";
+import { CiHome, CiFolderOn, CiShare2, CiTrash } from "react-icons/ci";
 import Sidebar from "@/shared/layout/Sidebar";
 import axiosClient from "@/shared/lib/axiosClient";
 import { useTranslations } from "next-intl";
@@ -42,6 +42,12 @@ export default function FileManagementLayout({ children }) {
         label: t("sidebar.shared"),
         icon: <CiShare2 className="text-2xl" />,
         href: `${basePath}/shared`,
+      },
+      {
+        key: "trash",
+        label: t("sidebar.trash"),
+        icon: <CiTrash className="text-2xl" />,
+        href: `${basePath}/file-management/trash`,
       },
     ],
     [t, basePath]
@@ -87,7 +93,7 @@ export default function FileManagementLayout({ children }) {
         </button>
       )}
 
-      <main className="flex-1 overflow-auto">{children}</main>
+      <main className="flex-1 overflow-auto sidebar-scrollbar">{children}</main>
     </div>
   );
 }

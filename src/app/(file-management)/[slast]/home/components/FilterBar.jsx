@@ -7,12 +7,17 @@ export function FilterBar({ sortColumn, sortOrder, onSort }) {
 
   const Btn = ({ col, text }) => (
     <button
+      type="button"
       className={`${
         sortColumn === col
           ? "bg-brand text-white border border-brand"
           : "bg-white text-text-strong border border-dotted border-border"
-      } font-semibold rounded-full px-4 py-1.5 text-sm transition-colors hover:bg-surface-50`}
-      onClick={() => onSort(col)}
+      } font-semibold rounded-full px-4 py-1.5 text-sm transition-colors hover:bg-surface-50 cursor-pointer`}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onSort?.(col);
+      }}
     >
       {text} <span className="ml-1">{arrow(col)}</span>
     </button>

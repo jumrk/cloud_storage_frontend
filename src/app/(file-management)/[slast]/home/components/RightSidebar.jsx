@@ -4,12 +4,12 @@ import { StoragePieChart } from "./StoragePieChart";
 import { FileTypeRatio } from "./FileTypeRatio";
 import { formatSize } from "@/shared/utils/driveUtils";
 
-export function RightSidebar({ overview, fileTypes, loading }) {
+export function RightSidebar({ overview, fileTypes, loading, children }) {
   const t = useTranslations();
 
   if (loading) {
     return (
-      <aside className="bg-white border-l border-border px-4 md:px-6 py-8 h-screen sticky top-0 flex flex-col overflow-y-auto w-full md:max-w-[300px] md:min-w-[220px] md:block">
+      <aside className="bg-white border-l border-border px-4 md:px-6 py-8 h-screen sticky top-0 flex flex-col overflow-y-auto w-full md:max-w-[300px] md:min-w-[220px] md:block sidebar-scrollbar">
         <div className="mb-6 p-5 rounded-xl bg-surface-50 border border-border shadow-card">
           <Skeleton width={100} height={24} className="mb-3" />
           <div className="flex justify-center">
@@ -47,7 +47,7 @@ export function RightSidebar({ overview, fileTypes, loading }) {
   }
 
   return (
-    <aside className="bg-white border-l border-border px-4 md:px-6 py-8 h-screen sticky top-0 flex flex-col overflow-y-auto w-full md:max-w-[300px] md:min-w-[220px] md:block">
+      <aside className="bg-white border-l border-border px-4 md:px-6 py-8 h-screen sticky top-0 flex flex-col overflow-y-auto w-full md:max-w-[300px] md:min-w-[220px] md:block sidebar-scrollbar">
       <div className="mb-6 p-5 rounded-xl bg-surface-50 border border-border shadow-card">
         <div className="font-semibold text-text-strong mb-3 text-lg tracking-wide">
           {t("home.sidebar.overview")}
@@ -122,6 +122,7 @@ export function RightSidebar({ overview, fileTypes, loading }) {
           </div>
         </div>
       </div>
+      {children}
     </aside>
   );
 }

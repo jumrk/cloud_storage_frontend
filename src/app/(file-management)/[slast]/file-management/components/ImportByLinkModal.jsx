@@ -1,5 +1,11 @@
 "use client";
-import React, { useEffect, useRef, useState, useMemo } from "react";
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  useMemo,
+  useCallback,
+} from "react";
 import {
   FiX,
   FiChevronDown,
@@ -41,8 +47,6 @@ export default function ImportByLinkModal({
   const [showFolderPicker, setShowFolderPicker] = useState(false);
   const [folders, setFolders] = useState([]);
   const [folderLoading, setFolderLoading] = useState(false);
-  const [currentFolderId, setCurrentFolderId] = useState(null);
-  const [folderPath, setFolderPath] = useState([]);
 
   const controllerRef = useRef(null);
   const bufferRef = useRef("");
@@ -56,38 +60,43 @@ export default function ImportByLinkModal({
 
   // Check if all files are done and close modal
   useEffect(() => {
-    // Only check completion if:
-    // 1. Process has started
-    // 2. Done event has been received (backend finished processing)
-    // 3. Modal hasn't been closed yet
-    if (!started || closedBySuccessRef.current || !doneEventReceivedRef.current) return;
-    
+    if (!started || closedBySuccessRef.current || !doneEventReceivedRef.current)
+      return;
+
     // Small delay to ensure all fileDone/fileError events have been processed
     const timeoutId = setTimeout(() => {
       // Check if all items are done (either successfully or with error)
       // An item is considered done if it has done: true OR error is set
-      const allDone = items.length > 0 && items.every((it) => it.done === true || it.error);
+      const allDone =
+        items.length > 0 && items.every((it) => it.done === true || it.error);
       const successCount = items.filter((it) => it.done && !it.error).length;
       const errorCount = items.filter((it) => it.error).length;
-      
+
       // Close modal if:
       // 1. All items are done, OR
       // 2. No items but done event was received (empty folder or all files failed before being tracked)
-      if ((allDone || (items.length === 0 && doneEventReceivedRef.current)) && !closedBySuccessRef.current) {
+      if (
+        (allDone || (items.length === 0 && doneEventReceivedRef.current)) &&
+        !closedBySuccessRef.current
+      ) {
         closedBySuccessRef.current = true;
-        
+
         // Show success/error notification
         if (successCount > 0) {
           if (errorCount > 0) {
             // Some files succeeded, some failed
             toast.success(
-              `Đã tải lên thành công ${successCount} file${successCount > 1 ? "s" : ""}${errorCount > 0 ? `, ${errorCount} file lỗi` : ""}`,
+              `Đã tải lên thành công ${successCount} file${
+                successCount > 1 ? "s" : ""
+              }${errorCount > 0 ? `, ${errorCount} file lỗi` : ""}`,
               { duration: 3000 }
             );
           } else {
             // All files succeeded
             toast.success(
-              `Đã tải lên thành công ${successCount} file${successCount > 1 ? "s" : ""}!`,
+              `Đã tải lên thành công ${successCount} file${
+                successCount > 1 ? "s" : ""
+              }!`,
               { duration: 3000 }
             );
           }
@@ -100,7 +109,9 @@ export default function ImportByLinkModal({
           // All files failed or no files processed
           if (errorCount > 0) {
             toast.error(
-              `Không thể tải lên ${errorCount} file${errorCount > 1 ? "s" : ""}. Vui lòng kiểm tra quyền truy cập file/thư mục.`,
+              `Không thể tải lên ${errorCount} file${
+                errorCount > 1 ? "s" : ""
+              }. Vui lòng kiểm tra quyền truy cập file/thư mục.`,
               { duration: 4000 }
             );
           } else if (items.length === 0) {
@@ -110,10 +121,9 @@ export default function ImportByLinkModal({
               { duration: 4000 }
             );
           } else {
-            toast.error(
-              "Không thể tải lên file. Vui lòng kiểm tra lại.",
-              { duration: 4000 }
-            );
+            toast.error("Không thể tải lên file. Vui lòng kiểm tra lại.", {
+              duration: 4000,
+            });
           }
           setTimeout(() => {
             onClose?.();
@@ -121,59 +131,62 @@ export default function ImportByLinkModal({
         }
       }
     }, 500);
-    
+
     return () => clearTimeout(timeoutId);
   }, [items, started, onImported, onClose]);
 
   // Fetch folders
-  const fetchFolders = async (folderId = null) => {
+  // Fetch all folders recursively (flat list)
+  const fetchAllFolders = React.useCallback(async () => {
     setFolderLoading(true);
     try {
-      const params = folderId ? { folderId } : {};
-      const response = await axiosClient.get("/api/files/browse", { params });
-      if (response.data?.success) {
-        setFolders(response.data.folders || []);
-      }
+      const allFolders = [];
+
+      // Recursive function to fetch all folders
+      const fetchFoldersRecursive = async (folderId = null, path = "") => {
+        try {
+          const params = folderId ? { folderId } : {};
+          const response = await axiosClient.get("/api/files/browse", {
+            params,
+          });
+          if (response.data?.success) {
+            const folders = response.data.folders || [];
+            for (const folder of folders) {
+              const folderPath = path
+                ? `${path} / ${folder.name}`
+                : folder.name;
+              allFolders.push({
+                ...folder,
+                displayPath: folderPath,
+              });
+              // Recursively fetch subfolders
+              await fetchFoldersRecursive(folder._id, folderPath);
+            }
+          }
+        } catch (err) {
+          console.error("Error fetching folders recursively:", err);
+        }
+      };
+
+      await fetchFoldersRecursive();
+      setFolders(allFolders);
     } catch (err) {
-      console.error("Error fetching folders:", err);
+      console.error("Error fetching all folders:", err);
     } finally {
       setFolderLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (showFolderPicker) {
-      fetchFolders(currentFolderId);
+      fetchAllFolders();
     }
-  }, [showFolderPicker, currentFolderId]);
+  }, [showFolderPicker, fetchAllFolders]);
 
   const handleFolderSelect = (folder) => {
     setSelectedFolderId(folder?._id || null);
     setSelectedFolderName(folder?.name || "Thư mục gốc");
     setShowFolderPicker(false);
-    setCurrentFolderId(null);
-    setFolderPath([]);
-  };
-
-  const navigateToFolder = (folder) => {
-    setCurrentFolderId(folder._id);
-    setFolderPath((prev) => [...prev, { id: folder._id, name: folder.name }]);
-    fetchFolders(folder._id);
-  };
-
-  const navigateBack = () => {
-    if (folderPath.length === 0) {
-      setCurrentFolderId(null);
-      setFolderPath([]);
-      fetchFolders(null);
-      return;
-    }
-    const newPath = [...folderPath];
-    newPath.pop();
-    setFolderPath(newPath);
-    const parentId = newPath.length > 0 ? newPath[newPath.length - 1].id : null;
-    setCurrentFolderId(parentId);
-    fetchFolders(parentId);
   };
 
   function resetState() {
@@ -188,8 +201,6 @@ export default function ImportByLinkModal({
     setSelectedFolderName("Thư mục gốc");
     setShowFolderPicker(false);
     setFolders([]);
-    setCurrentFolderId(null);
-    setFolderPath([]);
     bufferRef.current = "";
     prevTextLenRef.current = 0;
     closedBySuccessRef.current = false;
@@ -336,8 +347,18 @@ export default function ImportByLinkModal({
               url: evt.url || current.url || null,
               done: true,
               // Ensure progress is set to 100% when done
-              ulUploaded: current.ulTotal || current.dlTotal || current.size || current.ulUploaded || 0,
-              ulTotal: current.ulTotal || current.dlTotal || current.size || current.ulTotal || null,
+              ulUploaded:
+                current.ulTotal ||
+                current.dlTotal ||
+                current.size ||
+                current.ulUploaded ||
+                0,
+              ulTotal:
+                current.ulTotal ||
+                current.dlTotal ||
+                current.size ||
+                current.ulTotal ||
+                null,
               // Update name, size, mimeType if provided in fileDone event
               name: evt.fileName || current.name,
               size: evt.size ?? current.size,
@@ -484,7 +505,9 @@ export default function ImportByLinkModal({
           } else if (data?.items && data.items.length > 0) {
             const successCount = data.items.length;
             toast.success(
-              `Đã tải lên thành công ${successCount} file${successCount > 1 ? "s" : ""}!`,
+              `Đã tải lên thành công ${successCount} file${
+                successCount > 1 ? "s" : ""
+              }!`,
               { duration: 3000 }
             );
             if (!closedBySuccessRef.current) {
@@ -499,7 +522,11 @@ export default function ImportByLinkModal({
         } catch (parseErr) {
           // If parsing fails, it might be NDJSON stream - that's expected
           // Only log if it's a real error
-          if (resp.data && typeof resp.data === "string" && !resp.data.includes("\n")) {
+          if (
+            resp.data &&
+            typeof resp.data === "string" &&
+            !resp.data.includes("\n")
+          ) {
             console.warn("Failed to parse response:", parseErr);
           }
         }
@@ -544,7 +571,7 @@ export default function ImportByLinkModal({
 
   const overall = useMemo(() => {
     if (!items.length) return { percent: 0 };
-    
+
     // Calculate progress based on ALL files in the items array
     // This ensures progress doesn't drop when new files start
     // Formula: (sum of all file progress) / total files
@@ -554,12 +581,12 @@ export default function ImportByLinkModal({
       // Otherwise, use the actual progress percentage (0% if not started yet)
       return sum + filePerc(it);
     }, 0);
-    
+
     // Calculate average progress across all files
     // This way, when a file finishes (100%) and a new one starts (0%),
     // the overall progress reflects the true average
     const pct = totalProgress / items.length;
-    
+
     return { percent: clampPct(pct) };
   }, [items]);
 
@@ -718,7 +745,9 @@ export default function ImportByLinkModal({
                               <div className="flex items-start gap-2">
                                 <FiAlertCircle className="mt-0.5 shrink-0" />
                                 <div className="flex-1">
-                                  <div className="font-medium">Lỗi: {it.error}</div>
+                                  <div className="font-medium">
+                                    Lỗi: {it.error}
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -880,8 +909,6 @@ export default function ImportByLinkModal({
                 <button
                   onClick={() => {
                     setShowFolderPicker(false);
-                    setCurrentFolderId(null);
-                    setFolderPath([]);
                   }}
                   className="absolute top-4 right-4 p-2 rounded-lg bg-white/15 text-white hover:bg-white/25 transition"
                 >
@@ -889,85 +916,50 @@ export default function ImportByLinkModal({
                 </button>
               </div>
 
-              {/* Breadcrumb */}
-              <div className="flex items-center gap-2 px-5 py-3 bg-surface-50 border-b border-border shrink-0">
-                <button
-                  onClick={() => {
-                    setCurrentFolderId(null);
-                    setFolderPath([]);
-                    fetchFolders(null);
-                  }}
-                  className="text-sm text-brand hover:underline"
-                >
-                  Thư mục gốc
-                </button>
-                {folderPath.map((folder, index) => (
-                  <React.Fragment key={folder.id}>
-                    <span className="text-text-muted">/</span>
-                    <button
-                      onClick={() => {
-                        const newPath = folderPath.slice(0, index + 1);
-                        setFolderPath(newPath);
-                        setCurrentFolderId(folder.id);
-                        fetchFolders(folder.id);
-                      }}
-                      className="text-sm text-brand hover:underline"
-                    >
-                      {folder.name}
-                    </button>
-                  </React.Fragment>
-                ))}
-              </div>
-
               {/* Folder List */}
-              <div className="flex-1 overflow-y-auto p-4">
+              <div className="flex-1 overflow-y-auto p-4 sidebar-scrollbar max-h-[400px]">
                 {folderLoading ? (
                   <div className="flex items-center justify-center py-8">
                     <FiLoader className="animate-spin text-brand text-2xl" />
                   </div>
                 ) : (
                   <div className="space-y-1">
-                    {currentFolderId !== null && (
+                    <button
+                      onClick={() => handleFolderSelect(null)}
+                      className={`w-full p-3 rounded-lg border ${
+                        selectedFolderId === null
+                          ? "border-brand bg-brand-50"
+                          : "border-border hover:bg-surface-50"
+                      } flex items-center gap-3 text-left`}
+                    >
+                      <FiFolder className="text-brand" />
+                      <span className="text-text-strong">Thư mục gốc</span>
+                      {selectedFolderId === null && (
+                        <FiCheck className="ml-auto text-brand" />
+                      )}
+                    </button>
+                    {folders.map((folder) => (
                       <button
-                        onClick={navigateBack}
-                        className="w-full p-3 rounded-lg border border-border hover:bg-surface-50 flex items-center gap-3 text-left"
-                      >
-                        <FiChevronDown className="rotate-90 text-text-muted" />
-                        <span className="text-text-strong">.. (Quay lại)</span>
-                      </button>
-                    )}
-                    {currentFolderId === null && (
-                      <button
-                        onClick={() => handleFolderSelect(null)}
+                        key={folder._id}
+                        onClick={() => handleFolderSelect(folder)}
                         className={`w-full p-3 rounded-lg border ${
-                          selectedFolderId === null
+                          selectedFolderId === folder._id
                             ? "border-brand bg-brand-50"
                             : "border-border hover:bg-surface-50"
                         } flex items-center gap-3 text-left`}
                       >
                         <FiFolder className="text-brand" />
-                        <span className="text-text-strong">Thư mục gốc</span>
-                        {selectedFolderId === null && (
-                          <FiCheck className="ml-auto text-brand" />
+                        <span className="text-text-strong flex-1">
+                          {folder.displayPath || folder.name}
+                        </span>
+                        {selectedFolderId === folder._id && (
+                          <FiCheck className="text-brand" />
                         )}
                       </button>
-                    )}
-                    {folders.map((folder) => (
-                      <button
-                        key={folder._id}
-                        onClick={() => navigateToFolder(folder)}
-                        className="w-full p-3 rounded-lg border border-border hover:bg-surface-50 flex items-center gap-3 text-left"
-                      >
-                        <FiFolder className="text-brand" />
-                        <span className="text-text-strong flex-1">
-                          {folder.name}
-                        </span>
-                        <FiChevronDown className="text-text-muted rotate-[-90deg]" />
-                      </button>
                     ))}
-                    {folders.length === 0 && currentFolderId !== null && (
+                    {folders.length === 0 && !folderLoading && (
                       <div className="text-center py-8 text-text-muted">
-                        Không có thư mục con
+                        Không có thư mục
                       </div>
                     )}
                   </div>
@@ -979,37 +971,11 @@ export default function ImportByLinkModal({
                 <button
                   onClick={() => {
                     setShowFolderPicker(false);
-                    setCurrentFolderId(null);
-                    setFolderPath([]);
                   }}
                   className="flex-1 px-4 py-2.5 rounded-xl bg-surface-50 hover:bg-white text-text-strong border border-border"
                 >
                   Hủy
                 </button>
-                {currentFolderId !== null && (
-                  <button
-                    onClick={() => {
-                      const folder = folders.find(
-                        (f) => f._id === currentFolderId
-                      );
-                      if (folder) {
-                        handleFolderSelect(folder);
-                      } else {
-                        // Select current folder from path
-                        const currentFolder = folderPath[folderPath.length - 1];
-                        if (currentFolder) {
-                          handleFolderSelect({
-                            _id: currentFolder.id,
-                            name: currentFolder.name,
-                          });
-                        }
-                      }
-                    }}
-                    className="px-4 py-2.5 rounded-xl bg-brand text-white hover:opacity-95"
-                  >
-                    Chọn thư mục này
-                  </button>
-                )}
               </div>
             </div>
           </div>

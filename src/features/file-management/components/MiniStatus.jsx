@@ -70,6 +70,8 @@ const MiniStatusBatch = ({
   const [isVisible, setIsVisible] = useState(true);
   const [status, setStatus] = useState("pending");
   const [result, setResult] = useState(null);
+  const [eta, setEta] = useState(null); // Estimated time of arrival in seconds
+  const [speed, setSpeed] = useState(0); // Upload speed in bytes per second
 
   const hasUploaded = useRef(false);
   const cancelledRef = useRef({});
@@ -87,11 +89,66 @@ const MiniStatusBatch = ({
     };
   }, []);
   const lastStatusRef = useRef({});
+  const uploadSpeedRef = useRef({}); // Track upload speed per file: { fileIndex: { bytes: number, time: number } }
+  const progressHistoryRef = useRef([]); // Track progress over time for ETA calculation
 
   const calculateOverallProgress = (current) => {
     if (!current.length) return 0;
-    const sum = current.reduce((acc, f) => acc + (Number(f.progress) || 0), 0);
+    // Ensure completed files always count as 100%
+    const sum = current.reduce((acc, f) => {
+      const fileProgress = f.status === "success" ? 100 : (Number(f.progress) || 0);
+      return acc + fileProgress;
+    }, 0);
     return Math.round(sum / current.length);
+  };
+
+  // Calculate ETA based on current speed and remaining progress
+  const calculateETA = (currentProgress, currentSpeed, totalFiles, completedFiles, fileStates) => {
+    if (currentSpeed <= 0 || currentProgress >= 100) return null;
+    
+    const remainingProgress = 100 - currentProgress;
+    const remainingFiles = totalFiles - completedFiles;
+    
+    // Get current uploading file
+    const currentFile = fileStates?.find(f => f.status === "uploading" || f.status === "processing");
+    if (!currentFile || !currentFile.file) {
+      // If no current file, estimate based on average
+      const avgTimePerFile = 5; // fallback 5 seconds per file
+      return remainingFiles * avgTimePerFile;
+    }
+    
+    // Calculate remaining bytes for current file
+    const currentFileRemainingBytes = currentFile.file.size * (1 - (currentFile.progress / 100));
+    const estimatedSecondsForCurrentFile = currentFileRemainingBytes / currentSpeed;
+    
+    // Add estimated time for remaining files (using average speed from current file)
+    const avgTimePerFile = estimatedSecondsForCurrentFile > 0 ? estimatedSecondsForCurrentFile : 5;
+    const totalEstimated = estimatedSecondsForCurrentFile + ((remainingFiles - 1) * avgTimePerFile);
+    
+    return totalEstimated > 0 ? Math.round(totalEstimated) : null;
+  };
+
+  // Format ETA to human readable string
+  const formatETA = (seconds) => {
+    if (!seconds || seconds <= 0) return null;
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    if (minutes < 60) return `${minutes}m ${secs}s`;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${hours}h ${mins}m`;
+  };
+
+  // Format speed to human readable string
+  const formatSpeed = (bytesPerSecond) => {
+    if (!bytesPerSecond || bytesPerSecond <= 0) return "0 B/s";
+    const kb = bytesPerSecond / 1024;
+    if (kb < 1024) return `${kb.toFixed(1)} KB/s`;
+    const mb = kb / 1024;
+    if (mb < 1024) return `${mb.toFixed(1)} MB/s`;
+    const gb = mb / 1024;
+    return `${gb.toFixed(2)} GB/s`;
   };
   const pollStatusUntilDone = (uploadId, fileIndex, fileSize) => {
     if (statusPollersRef.current[fileIndex]) {
@@ -128,18 +185,20 @@ const MiniStatusBatch = ({
         clearInterval(statusPollersRef.current[fileIndex]);
         delete statusPollersRef.current[fileIndex];
 
-        setFileStates((prev) =>
-          prev.map((f, idx) =>
+        setFileStates((prev) => {
+          const next = prev.map((f, idx) =>
             idx === fileIndex ? { ...f, status: "success", progress: 100 } : f
-          )
-        );
-        setProgress((p) =>
-          calculateOverallProgress(
-            fileStates.map((f, i) =>
-              i === fileIndex ? { ...f, progress: 100, status: "success" } : f
-            )
-          )
-        );
+          );
+          const overallProgress = calculateOverallProgress(next);
+          setProgress(overallProgress);
+          
+          // Calculate ETA
+          const completedFiles = next.filter(f => f.status === "success").length;
+          const etaSeconds = calculateETA(overallProgress, speed, next.length, completedFiles, next);
+          setEta(etaSeconds);
+          
+          return next;
+        });
       } catch (e) {
         console.log("[FE] status poll error:", e?.message);
       }
@@ -222,13 +281,34 @@ const MiniStatusBatch = ({
           Math.min(100, Math.round((assembledBytes / file.size) * 100))
         );
 
+        // Track upload speed
+        const now = Date.now();
+        if (!uploadSpeedRef.current[fileIndex]) {
+          uploadSpeedRef.current[fileIndex] = { bytes: 0, time: now };
+        }
+        const speedData = uploadSpeedRef.current[fileIndex];
+        const timeDiff = (now - speedData.time) / 1000; // seconds
+        if (timeDiff > 0) {
+          const bytesDiff = assembledBytes - speedData.bytes;
+          const currentSpeed = bytesDiff / timeDiff;
+          setSpeed(currentSpeed);
+          uploadSpeedRef.current[fileIndex] = { bytes: assembledBytes, time: now };
+        }
+
         setFileStates((prev) => {
           const next = prev.map((f, idx) =>
             idx === fileIndex
               ? { ...f, uploadId, progress: pct, status: "uploading" }
               : f
           );
-          setProgress(calculateOverallProgress(next));
+          const overallProgress = calculateOverallProgress(next);
+          setProgress(overallProgress);
+          
+          // Calculate ETA
+          const completedFiles = next.filter(f => f.status === "success").length;
+          const etaSeconds = calculateETA(overallProgress, speed, next.length, completedFiles, next);
+          setEta(etaSeconds);
+          
           return next;
         });
       } catch (error) {
@@ -314,6 +394,20 @@ const MiniStatusBatch = ({
         );
         const isLast = i === chunks.length - 1;
 
+        // Track upload speed
+        const now = Date.now();
+        if (!uploadSpeedRef.current[fileIndex]) {
+          uploadSpeedRef.current[fileIndex] = { bytes: 0, time: now };
+        }
+        const speedData = uploadSpeedRef.current[fileIndex];
+        const timeDiff = (now - speedData.time) / 1000; // seconds
+        if (timeDiff > 0) {
+          const bytesDiff = assembledBytes - speedData.bytes;
+          const currentSpeed = bytesDiff / timeDiff;
+          setSpeed(currentSpeed);
+          uploadSpeedRef.current[fileIndex] = { bytes: assembledBytes, time: now };
+        }
+
         setFileStates((prev) => {
           const next = prev.map((f, idx) =>
             idx === fileIndex
@@ -324,7 +418,14 @@ const MiniStatusBatch = ({
                 }
               : f
           );
-          setProgress(calculateOverallProgress(next));
+          const overallProgress = calculateOverallProgress(next);
+          setProgress(overallProgress);
+          
+          // Calculate ETA
+          const completedFiles = next.filter(f => f.status === "success").length;
+          const etaSeconds = calculateETA(overallProgress, speed, next.length, completedFiles, next);
+          setEta(etaSeconds);
+          
           return next;
         });
 
@@ -470,12 +571,43 @@ const MiniStatusBatch = ({
       const items = Array.isArray(moveItems) ? moveItems : [];
       (async () => {
         setStatus("pending");
-        setProgress(30);
+        setProgress(0);
+        setEta(null);
+        const startTime = Date.now();
+        const totalItems = items.length;
+        let lastProgress = 0;
+
+        // Track progress based on time elapsed and estimated processing time
+        // Each item takes approximately 50-100ms + processing time
+        const progressInterval = setInterval(() => {
+          const elapsed = (Date.now() - startTime) / 1000;
+          
+          // Estimate: each item takes ~0.1-0.15 seconds on average (50ms delay + processing)
+          const estimatedProcessed = Math.min(totalItems, Math.floor(elapsed / 0.12));
+          const estimatedProgress = Math.min(95, (estimatedProcessed / totalItems) * 100);
+          
+          // Only update if progress increased
+          if (estimatedProgress > lastProgress) {
+            setProgress(estimatedProgress);
+            lastProgress = estimatedProgress;
+            
+            // Calculate ETA
+            if (estimatedProcessed > 0 && elapsed > 0) {
+              const avgTimePerItem = elapsed / estimatedProcessed;
+              const remainingItems = totalItems - estimatedProcessed;
+              const estimatedSeconds = remainingItems * avgTimePerItem;
+              setEta(Math.round(estimatedSeconds));
+            }
+          }
+        }, 100); // Update every 100ms for smoother progress
+
         try {
           const res = await axiosClient.post("/api/upload/delete", { items });
+          clearInterval(progressInterval);
           const json = res.data;
           setStatus(json.success ? "success" : "error");
           setProgress(100);
+          setEta(null);
           setTimeout(
             () => {
               setIsVisible(false);
@@ -484,8 +616,10 @@ const MiniStatusBatch = ({
             json.success ? 1500 : 2000
           );
         } catch (err) {
+          clearInterval(progressInterval);
           setStatus("error");
           setProgress(100);
+          setEta(null);
           setTimeout(() => {
             setIsVisible(false);
             onComplete?.({ error: err.message });
@@ -499,15 +633,46 @@ const MiniStatusBatch = ({
       const items = Array.isArray(moveItems) ? moveItems : [];
       (async () => {
         setStatus("pending");
-        setProgress(30);
+        setProgress(0);
+        setEta(null);
+        const startTime = Date.now();
+        const totalItems = items.length;
+        let lastProgress = 0;
+
+        // Track progress based on time elapsed and estimated processing time
+        // Each item takes approximately 50-100ms + processing time
+        const progressInterval = setInterval(() => {
+          const elapsed = (Date.now() - startTime) / 1000;
+          
+          // Estimate: each item takes ~0.1-0.15 seconds on average (50ms delay + processing)
+          const estimatedProcessed = Math.min(totalItems, Math.floor(elapsed / 0.12));
+          const estimatedProgress = Math.min(95, (estimatedProcessed / totalItems) * 100);
+          
+          // Only update if progress increased
+          if (estimatedProgress > lastProgress) {
+            setProgress(estimatedProgress);
+            lastProgress = estimatedProgress;
+            
+            // Calculate ETA
+            if (estimatedProcessed > 0 && elapsed > 0) {
+              const avgTimePerItem = elapsed / estimatedProcessed;
+              const remainingItems = totalItems - estimatedProcessed;
+              const estimatedSeconds = remainingItems * avgTimePerItem;
+              setEta(Math.round(estimatedSeconds));
+            }
+          }
+        }, 100); // Update every 100ms for smoother progress
+
         try {
           const res = await axiosClient.post("/api/upload/move", {
             items,
             targetFolderId: moveTargetFolderId,
           });
+          clearInterval(progressInterval);
           const json = res.data;
           setStatus(json.success ? "success" : "error");
           setProgress(100);
+          setEta(null);
           setTimeout(
             () => {
               setIsVisible(false);
@@ -516,8 +681,10 @@ const MiniStatusBatch = ({
             json.success ? 1500 : 2000
           );
         } catch (err) {
+          clearInterval(progressInterval);
           setStatus("error");
           setProgress(100);
+          setEta(null);
           setTimeout(() => {
             setIsVisible(false);
             onComplete?.({ error: err.message });
@@ -585,7 +752,7 @@ const MiniStatusBatch = ({
             await new Promise((r) => setTimeout(r, 500));
           }
 
-          setProgress((p) => calculateOverallProgress(fileStates));
+          // Progress is updated inside uploadFileWithChunks
         }
       } catch (e) {
         handleError(e);
@@ -639,18 +806,18 @@ const MiniStatusBatch = ({
   if (batchType === "move") {
     return (
       <div
-        className="fixed bottom-6 right-6 bg-white rounded-lg shadow-card p-4 flex flex-col gap-3 max-w-[340px] w-full border border-border z-[9999]"
+        className="fixed bottom-6 right-6 bg-white rounded-lg shadow-card p-5 flex flex-col gap-4 max-w-[450px] w-full border border-border z-[9999]"
         style={style}
       >
         <div className="flex items-center gap-2 mb-2">
           {status === "pending" ? (
-            <FiUpload className="text-brand animate-pulse" size={18} />
+            <FiUpload className="text-brand animate-pulse" size={20} />
           ) : status === "success" ? (
-            <FiCheck className="text-success" size={18} />
+            <FiCheck className="text-success" size={20} />
           ) : (
-            <FiX className="text-danger" size={18} />
+            <FiX className="text-danger" size={20} />
           )}
-          <span className="font-semibold text-sm text-text-strong truncate">
+          <span className="font-semibold text-base text-text-strong truncate">
             {status === "pending"
               ? t("upload_status.moving")
               : status === "success"
@@ -658,9 +825,9 @@ const MiniStatusBatch = ({
               : t("upload_status.move_failed")}
           </span>
         </div>
-        <div className="w-full bg-surface-soft rounded-full h-2">
+        <div className="w-full bg-surface-soft rounded-full h-2.5">
           <div
-            className={`h-2 rounded-full transition-all duration-300 ${
+            className={`h-2.5 rounded-full transition-all duration-300 ${
               status === "success"
                 ? "bg-success"
                 : status === "error"
@@ -670,6 +837,12 @@ const MiniStatusBatch = ({
             style={{ width: `${progress}%` }}
           />
         </div>
+        {/* Progress info: ETA */}
+        {status === "pending" && progress < 100 && eta && eta > 0 && (
+          <div className="flex items-center justify-end text-xs text-text-muted">
+            <span>Còn lại: {formatETA(eta)}</span>
+          </div>
+        )}
         <div className="flex flex-col gap-1 mt-2 max-h-32 overflow-y-auto">
           {moveItems?.map((item, idx) => (
             <div key={idx} className="flex w-full items-center gap-2 text-xs">
@@ -703,18 +876,18 @@ const MiniStatusBatch = ({
   if (batchType === "create_folder") {
     return (
       <div
-        className="fixed bottom-6 right-6 bg-white rounded-lg shadow-card p-4 flex flex-col gap-3 min-w-[280px] max-w-sm border border-border z-[9999]"
+        className="fixed bottom-6 right-6 bg-white rounded-lg shadow-card p-5 flex flex-col gap-4 min-w-[320px] max-w-[450px] border border-border z-[9999]"
         style={style}
       >
         <div className="flex items-center gap-2 mb-2">
           {status === "pending" ? (
-            <FiUpload className="text-brand animate-pulse" size={18} />
+            <FiUpload className="text-brand animate-pulse" size={20} />
           ) : status === "success" ? (
-            <FiCheck className="text-success" size={18} />
+            <FiCheck className="text-success" size={20} />
           ) : (
-            <FiX className="text-danger" size={18} />
+            <FiX className="text-danger" size={20} />
           )}
-          <span className="font-semibold text-sm text-text-strong truncate">
+          <span className="font-semibold text-base text-text-strong truncate">
             {status === "pending"
               ? t("upload_status.creating_folder")
               : status === "success"
@@ -722,9 +895,9 @@ const MiniStatusBatch = ({
               : t("upload_status.create_folder_failed")}
           </span>
         </div>
-        <div className="w-full bg-surface-soft rounded-full h-2">
+        <div className="w-full bg-surface-soft rounded-full h-2.5">
           <div
-            className={`h-2 rounded-full transition-all duration-300 ${
+            className={`h-2.5 rounded-full transition-all duration-300 ${
               status === "success"
                 ? "bg-success"
                 : status === "error"
@@ -761,18 +934,18 @@ const MiniStatusBatch = ({
   if (batchType === "delete") {
     return (
       <div
-        className="fixed bottom-6 right-6 bg-white rounded-lg shadow-card p-4 flex flex-col gap-3 max-w-[340px] w-full border border-border z-[9999]"
+        className="fixed bottom-6 right-6 bg-white rounded-lg shadow-card p-5 flex flex-col gap-4 max-w-[450px] w-full border border-border z-[9999]"
         style={style}
       >
         <div className="flex items-center gap-2 mb-2">
           {status === "pending" ? (
-            <FiUpload className="text-brand animate-pulse" size={18} />
+            <FiUpload className="text-brand animate-pulse" size={20} />
           ) : status === "success" ? (
-            <FiCheck className="text-success" size={18} />
+            <FiCheck className="text-success" size={20} />
           ) : (
-            <FiX className="text-danger" size={18} />
+            <FiX className="text-danger" size={20} />
           )}
-          <span className="font-semibold text-sm text-text-strong truncate">
+          <span className="font-semibold text-base text-text-strong truncate">
             {status === "pending"
               ? t("upload_status.deleting")
               : status === "success"
@@ -780,9 +953,9 @@ const MiniStatusBatch = ({
               : t("upload_status.delete_failed")}
           </span>
         </div>
-        <div className="w-full bg-surface-soft rounded-full h-2">
+        <div className="w-full bg-surface-soft rounded-full h-2.5">
           <div
-            className={`h-2 rounded-full transition-all duration-300 ${
+            className={`h-2.5 rounded-full transition-all duration-300 ${
               status === "success"
                 ? "bg-success"
                 : status === "error"
@@ -792,6 +965,12 @@ const MiniStatusBatch = ({
             style={{ width: `${progress}%` }}
           />
         </div>
+        {/* Progress info: ETA */}
+        {status === "pending" && progress < 100 && eta && eta > 0 && (
+          <div className="flex items-center justify-end text-xs text-text-muted">
+            <span>Còn lại: {formatETA(eta)}</span>
+          </div>
+        )}
         <div className="flex flex-col gap-1 mt-2 max-h-32 overflow-y-auto">
           {moveItems?.map((item, idx) => (
             <div key={idx} className="flex w-full items-center gap-2 text-xs">
@@ -824,7 +1003,7 @@ const MiniStatusBatch = ({
 
   return (
     <div
-      className="fixed bottom-6 right-6 bg-white rounded-lg shadow-card p-4 flex flex-col gap-3 max-w-[340px] w-full border border-border z-[9999]"
+      className="fixed bottom-6 right-6 bg-white rounded-lg shadow-card p-5 flex flex-col gap-4 max-w-[450px] w-full border border-border z-[9999]"
       style={style}
     >
       <div className="flex items-center gap-2 mb-2">
@@ -835,7 +1014,7 @@ const MiniStatusBatch = ({
         ) : (
           <FiCheck className="text-success" size={16} />
         )}
-        <span className="font-semibold text-sm text-text-strong truncate">
+        <span className="font-semibold text-base text-text-strong truncate">
           {progress < 100
             ? t("upload_status.uploading", { progress })
             : fileStates.some((f) => f.status === "error")
@@ -844,12 +1023,20 @@ const MiniStatusBatch = ({
         </span>
       </div>
 
-      <div className="w-full bg-surface-soft rounded-full h-2">
+      <div className="w-full bg-surface-soft rounded-full h-2.5">
         <div
-          className="bg-brand h-2 rounded-full transition-all duration-300"
+          className="bg-brand h-2.5 rounded-full transition-all duration-300"
           style={{ width: `${progress}%` }}
         />
       </div>
+
+      {/* Progress info: speed and ETA */}
+      {progress < 100 && (
+        <div className="flex items-center justify-between text-xs text-text-muted">
+          <span>{formatSpeed(speed)}</span>
+          {eta && eta > 0 && <span>Còn lại: {formatETA(eta)}</span>}
+        </div>
+      )}
 
       <div className="flex flex-col gap-2 max-h-48 overflow-y-auto">
         {isFolder ? (
@@ -881,8 +1068,8 @@ const MiniStatusBatch = ({
           fileStates.map((f, idx) => {
             const drivePct = lastStatusRef.current[idx]?.drivePct ?? null;
             return (
-              <div key={idx} className="flex flex-col gap-0.5 w-full">
-                <div className="flex w-full items-center gap-2 text-xs">
+              <div key={idx} className="flex flex-col gap-1 w-full">
+                <div className="flex w-full items-center gap-2 text-sm">
                   <Image
                     src={f.icon}
                     alt="icon"

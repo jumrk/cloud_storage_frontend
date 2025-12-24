@@ -1,18 +1,34 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { getMembers, getUploads, getUser } from "../services/homeService";
+import {
+  getMembers,
+  getUploads,
+  getUser,
+  getNotifications,
+  getStorageTrend,
+  getFileDistributionByMember,
+} from "../services/homeService";
 
 export default function useSlastHomePage() {
   const [sortColumn, setSortColumn] = useState(null);
   const [sortOrder, setSortOrder] = useState("asc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedRows, setSelectedRows] = useState(new Set());
+  const itemsPerPage = 5;
 
   const [user, setUser] = useState(null);
   const [members, setMembers] = useState([]);
   const [folders, setFolders] = useState([]);
   const [files, setFiles] = useState([]);
+  const [activities, setActivities] = useState([]);
+  const [storageTrend, setStorageTrend] = useState([]);
+  const [fileDistributionByMember, setFileDistributionByMember] = useState([]);
+  const [storagePeriod, setStoragePeriod] = useState("month");
 
   const [loading, setLoading] = useState(true);
+  const [loadingActivities, setLoadingActivities] = useState(true);
+  const [loadingCharts, setLoadingCharts] = useState(true);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -44,6 +60,53 @@ export default function useSlastHomePage() {
       if (typeof cancel === "function") cancel();
     };
   }, [fetchAll]);
+
+  // Fetch recent activities
+  useEffect(() => {
+    const ac = new AbortController();
+    setLoadingActivities(true);
+    getNotifications({ page: 1, limit: 10 }, ac.signal)
+      .then((res) => {
+        const notifications = res?.notifications || [];
+        setActivities(
+          notifications.map((notif) => ({
+            type: notif.type === "info" ? "upload" : notif.type,
+            title: notif.title,
+            content: notif.content,
+            createdAt: notif.createdAt,
+          }))
+        );
+      })
+      .catch(() => {
+        setActivities([]);
+      })
+      .finally(() => {
+        setLoadingActivities(false);
+      });
+    return () => ac.abort();
+  }, []);
+
+  // Fetch chart data
+  useEffect(() => {
+    const ac = new AbortController();
+    setLoadingCharts(true);
+    Promise.all([
+      getStorageTrend(storagePeriod, ac.signal),
+      getFileDistributionByMember(ac.signal),
+    ])
+      .then(([trendRes, memberRes]) => {
+        setStorageTrend(trendRes?.data || []);
+        setFileDistributionByMember(memberRes?.data || []);
+      })
+      .catch(() => {
+        setStorageTrend([]);
+        setFileDistributionByMember([]);
+      })
+      .finally(() => {
+        setLoadingCharts(false);
+      });
+    return () => ac.abort();
+  }, [storagePeriod]);
 
   const tableRows = useMemo(() => {
     if (!members.length) return [];
@@ -138,23 +201,105 @@ export default function useSlastHomePage() {
     return Object.entries(count).map(([ext, c]) => ({ ext, count: c }));
   }, [files]);
 
-  function handleSort(col) {
+  const handleSort = useCallback((col) => {
     if (sortColumn === col) {
+      // Toggle sort order if clicking the same column
       setSortOrder((o) => (o === "asc" ? "desc" : "asc"));
     } else {
+      // Set new column and default to ascending
       setSortColumn(col);
       setSortOrder("asc");
     }
-  }
+    setCurrentPage(1); // Reset to first page when sorting
+  }, [sortColumn]);
+
+  // Pagination
+  const totalPages = Math.ceil(sortedRows.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedRows = sortedRows.slice(startIndex, endIndex);
+
+  // Row selection handlers
+  const handleSelectRow = useCallback((index) => {
+    setSelectedRows((prev) => {
+      const newSet = new Set(prev);
+      const actualIndex = startIndex + index;
+      if (newSet.has(actualIndex)) {
+        newSet.delete(actualIndex);
+      } else {
+        newSet.add(actualIndex);
+      }
+      return newSet;
+    });
+  }, [startIndex]);
+
+  const handleSelectAll = useCallback(() => {
+    if (selectedRows.size === paginatedRows.length) {
+      setSelectedRows(new Set());
+    } else {
+      const newSet = new Set();
+      paginatedRows.forEach((_, index) => {
+        newSet.add(startIndex + index);
+      });
+      setSelectedRows(newSet);
+    }
+  }, [selectedRows.size, paginatedRows.length, startIndex]);
+
+  const handlePageChange = useCallback((page) => {
+    setCurrentPage(page);
+    setSelectedRows(new Set()); // Clear selection when changing page
+  }, []);
+
+  const isAllSelected = selectedRows.size === paginatedRows.length && paginatedRows.length > 0;
+  const isIndeterminate = selectedRows.size > 0 && selectedRows.size < paginatedRows.length;
+
+  // Calculate file distribution by member for chart
+  const fileDistributionByMemberData = useMemo(() => {
+    if (!members.length || !folders.length) return [];
+    const memberFileCount = new Map();
+    members.forEach((m) => {
+      const managed = folders.filter((folder) =>
+        (folder.permissions || []).some(
+          (p) => p.memberId === m._id || p.memberId === m.id
+        )
+      );
+      memberFileCount.set(m.fullName || m.email, managed.length);
+    });
+    return Array.from(memberFileCount.entries())
+      .map(([member, count]) => ({ member, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10); // Top 10
+  }, [members, folders]);
 
   return {
     loading,
-    rows: sortedRows,
+    rows: paginatedRows,
+    allRows: sortedRows,
     sortColumn,
     sortOrder,
     handleSort,
     overview,
     fileTypes,
     refetch: fetchAll,
+    // Pagination
+    currentPage,
+    totalPages,
+    itemsPerPage,
+    totalItems: sortedRows.length,
+    handlePageChange,
+    // Row selection
+    selectedRows,
+    handleSelectRow,
+    handleSelectAll,
+    isAllSelected,
+    isIndeterminate,
+    // Charts and activities
+    activities,
+    loadingActivities,
+    storageTrend,
+    fileDistributionByMember: fileDistributionByMemberData,
+    loadingCharts,
+    storagePeriod,
+    setStoragePeriod,
   };
 }

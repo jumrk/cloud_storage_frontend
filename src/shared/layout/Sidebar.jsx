@@ -13,7 +13,21 @@ function normalizePath(p = "") {
 function isActivePath(pathname, href) {
   const p = normalizePath(pathname || "");
   const h = normalizePath(href || "");
-  return p === h || p.startsWith(h + "/");
+  // Exact match
+  if (p === h) return true;
+  
+  // Special handling for /file-management to not match /file-management/trash
+  if (h === "/file-management" || h.endsWith("/file-management")) {
+    // Only match if pathname is exactly /file-management or starts with /file-management/ but not /file-management/trash
+    if (p === h) return true;
+    if (p.startsWith(h + "/") && !p.includes("/trash")) {
+      return true;
+    }
+    return false;
+  }
+  
+  // Default behavior for other routes
+  return p.startsWith(h + "/");
 }
 function playClick() {
   if (typeof window === "undefined") return;

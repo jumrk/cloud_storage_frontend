@@ -1,6 +1,6 @@
 import React from "react";
 import { IoMoveOutline } from "react-icons/io5";
-import { FiDownload, FiShare2, FiUserPlus } from "react-icons/fi";
+import { FiDownload, FiShare2, FiUserPlus, FiRotateCw, FiTrash2 } from "react-icons/fi";
 import { RiDeleteBin6Line } from "react-icons/ri";
 import toast from "react-hot-toast";
 import Button_icon from "@/shared/ui/ButtonIcon";
@@ -29,6 +29,10 @@ export default function ActionZone({
   onShare,
   onGrantPermission,
   canGrantPermission = true,
+  onRestore,
+  onPermanentDelete,
+  showRestore = false,
+  showPermanentDelete = false,
 }) {
   const [copiedShareMobile, setCopiedShareMobile] = React.useState(false);
 
@@ -84,22 +88,48 @@ export default function ActionZone({
           onClick={() => onMove && onMove(selectedItems)}
           ariaLabel="Di chuyển"
         />
-        {/* Tải xuống */}
-        {selectedItems.length === 1 && selectedItems[0].type === "file" && (
+        {/* Tải xuống - hiện khi có ít nhất 1 file được chọn */}
+        {selectedItems.some((item) => item.type === "file") && (
           <CircleActionButton
             icon={<FiDownload size={26} />}
             bg="bg-[#828DAD]"
-            onClick={() => onDownload && onDownload(selectedItems)}
-            ariaLabel="Tải xuống"
+            onClick={() => {
+              // Lọc chỉ lấy file (không lấy folder)
+              const filesOnly = selectedItems.filter((item) => item.type === "file");
+              if (filesOnly.length > 0 && onDownload) {
+                onDownload(filesOnly);
+              }
+            }}
+            ariaLabel={selectedItems.length === 1 ? "Tải xuống" : `Tải xuống ${selectedItems.filter((item) => item.type === "file").length} file`}
+          />
+        )}
+        {/* Khôi phục */}
+        {showRestore && (
+          <CircleActionButton
+            icon={<FiRotateCw size={26} />}
+            bg="bg-green-500"
+            onClick={() => onRestore && onRestore(selectedItems)}
+            ariaLabel="Khôi phục"
+          />
+        )}
+        {/* Xóa vĩnh viễn */}
+        {showPermanentDelete && (
+          <CircleActionButton
+            icon={<FiTrash2 size={26} />}
+            bg="bg-red-600"
+            onClick={() => onPermanentDelete && onPermanentDelete(selectedItems)}
+            ariaLabel="Xóa vĩnh viễn"
           />
         )}
         {/* Xóa */}
-        <CircleActionButton
-          icon={<RiDeleteBin6Line size={26} />}
-          bg="bg-[#DC2626]"
-          onClick={() => onDelete && onDelete(selectedItems)}
-          ariaLabel="Xóa"
-        />
+        {!showPermanentDelete && (
+          <CircleActionButton
+            icon={<RiDeleteBin6Line size={26} />}
+            bg="bg-[#DC2626]"
+            onClick={() => onDelete && onDelete(selectedItems)}
+            ariaLabel="Xóa"
+          />
+        )}
       </div>
     );
   }
@@ -108,7 +138,7 @@ export default function ActionZone({
   if (!isMobile && draggedItems.length > 0) {
     const allFolders = draggedItems.every((item) => item.type === "folder");
     return (
-      <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 flex gap-8 bg-white/80 rounded-xl shadow-2xl p-6 border border-gray-200">
+      <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 flex gap-2 sm:gap-4 md:gap-6 lg:gap-8 bg-white/80 rounded-xl shadow-2xl p-2 sm:p-4 md:p-6 border border-gray-200 pointer-events-none max-w-[95vw] overflow-x-auto animate-slide-up">
         {canGrantPermission && allFolders && (
           <Button_icon
             text="Cấp quyền"
@@ -135,22 +165,78 @@ export default function ActionZone({
           draggedItems={draggedItems}
           onDropAction={onMove}
         />
-        {draggedItems.length === 1 && draggedItems[0].type === "file" && (
+        {/* Tải xuống - hiện khi có ít nhất 1 file được kéo */}
+        {draggedItems.some((item) => item.type === "file") && (
           <Button_icon
-            text="Tải xuống"
+            text={draggedItems.length === 1 ? "Tải xuống" : `Tải xuống ${draggedItems.filter((item) => item.type === "file").length} file`}
             icon={<FiDownload size={26} />}
             bg="bg-[#828DAD]"
             draggedItems={draggedItems}
-            onDropAction={onDownload}
+            onDropAction={(items) => {
+              // Lọc chỉ lấy file (không lấy folder)
+              const filesOnly = items.filter((item) => item.type === "file");
+              if (filesOnly.length > 0 && onDownload) {
+                onDownload(filesOnly);
+              }
+            }}
           />
         )}
-        <Button_icon
-          text="Xóa"
-          icon={<RiDeleteBin6Line size={26} />}
-          bg="bg-[#DC2626]"
-          draggedItems={draggedItems}
-          onDropAction={onDelete}
-        />
+        {/* Khôi phục */}
+        {showRestore && (
+          <Button_icon
+            text="Khôi phục"
+            icon={<FiRotateCw size={26} />}
+            bg="bg-green-500"
+            draggedItems={draggedItems}
+            onDropAction={onRestore}
+          />
+        )}
+        {/* Xóa vĩnh viễn */}
+        {showPermanentDelete && (
+          <Button_icon
+            text="Xóa vĩnh viễn"
+            icon={<FiTrash2 size={26} />}
+            bg="bg-red-600"
+            draggedItems={draggedItems}
+            onDropAction={onPermanentDelete}
+          />
+        )}
+        {/* Xóa */}
+        {!showPermanentDelete && (
+          <Button_icon
+            text="Xóa"
+            icon={<RiDeleteBin6Line size={26} />}
+            bg="bg-[#DC2626]"
+            draggedItems={draggedItems}
+            onDropAction={onDelete}
+          />
+        )}
+      </div>
+    );
+  }
+
+  // Desktop: action zone khi chọn items (cho trash page)
+  if (!isMobile && selectedItems.length > 0 && (showRestore || showPermanentDelete)) {
+    return (
+      <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 flex gap-8 bg-white/80 rounded-xl shadow-2xl p-6 border border-gray-200 animate-slide-up">
+        {showRestore && (
+          <button
+            onClick={() => onRestore && onRestore()}
+            className="flex gap-1 sm:gap-2 items-center justify-center bg-green-500 text-white rounded-[12px] shadow-xl/20 transition-all duration-200 min-w-[80px] sm:min-w-[100px] md:min-w-[120px] min-h-[40px] sm:min-h-[44px] md:min-h-[48px] px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 text-xs sm:text-sm md:text-base font-semibold hover:scale-105 active:scale-95 pointer-events-auto"
+          >
+            <p className="hidden sm:inline">Khôi phục</p>
+            <FiRotateCw size={20} className="sm:w-6 sm:h-6" />
+          </button>
+        )}
+        {showPermanentDelete && (
+          <button
+            onClick={() => onPermanentDelete && onPermanentDelete()}
+            className="flex gap-1 sm:gap-2 items-center justify-center bg-red-600 text-white rounded-[12px] shadow-xl/20 transition-all duration-200 min-w-[80px] sm:min-w-[100px] md:min-w-[120px] min-h-[40px] sm:min-h-[44px] md:min-h-[48px] px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 text-xs sm:text-sm md:text-base font-semibold hover:scale-105 active:scale-95 pointer-events-auto"
+          >
+            <p className="hidden sm:inline">Xóa vĩnh viễn</p>
+            <FiTrash2 size={20} className="sm:w-6 sm:h-6" />
+          </button>
+        )}
       </div>
     );
   }

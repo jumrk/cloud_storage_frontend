@@ -136,35 +136,14 @@ export async function middleware(request) {
     return response;
   }
 
+  // Block video-processor routes (removed feature)
   if (path.startsWith("/video-processor")) {
-    // Block mobile devices from accessing video processor
-    const userAgent = request.headers.get("user-agent") || "";
-    if (isMobileDevice(userAgent)) {
-      // Redirect to landing page with a query param to show toast
-      return redirectWithLocale("/?mobile_blocked=video");
-    }
+    return redirectWithLocale("/");
+  }
 
-    const profile = await loadProfile();
-    if (role === "member") {
-      // Members: check if their leader has a paid plan
-      const leaderPlanSlug = (
-        profile?.leaderPlan?.slug || "free"
-      ).toLowerCase();
-      const leaderIsFreePlan = !leaderPlanSlug || leaderPlanSlug === "free";
-      if (leaderIsFreePlan) {
-        return redirectWithLocale(memberHomePath);
-      }
-      // Leader has paid plan, allow member access
-      return response;
-    } else {
-      // Leaders: check their own plan
-      const planSlug = profile?.plan?.slug || "free";
-      const isFreePlan = !planSlug || planSlug === "free";
-      if (isFreePlan) {
-        return redirectWithLocale(leaderHomePath);
-      }
-      return response;
-    }
+  // Block video-tools routes (under development)
+  if (path.startsWith("/video-tools")) {
+    return redirectWithLocale("/");
   }
 
   if (role === "admin") {
@@ -200,7 +179,9 @@ export async function middleware(request) {
     if (path.startsWith("/pricing")) {
       return redirectWithLocale(leaderHomePath);
     }
-    if (!path.startsWith(leaderBase)) {
+    // Allow all paths that start with leader base
+    const pathLower = path.toLowerCase();
+    if (!pathLower.startsWith(leaderBase)) {
       return redirectWithLocale(`${leaderBase}/home`);
     }
     return response;

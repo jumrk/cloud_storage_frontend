@@ -1,10 +1,18 @@
 import React, { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 
-export default function FilePreviewModal({ file, fileUrl, onClose }) {
+export default function FilePreviewModal({ file, fileUrl, onClose, onOpen }) {
   const t = useTranslations();
   const ext = file.name.split(".").pop().toLowerCase();
   const isText = ["txt", "md", "js", "json", "log", "csv"].includes(ext);
+
+  // Close chat when modal opens
+  useEffect(() => {
+    if (onOpen && file) {
+      onOpen();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [file]); // Only run when file changes (modal opens)
 
   useEffect(() => {
     console.log(fileUrl);
@@ -24,8 +32,18 @@ export default function FilePreviewModal({ file, fileUrl, onClose }) {
     return url;
   }
 
+  // Handle click on overlay (background) to close modal
+  const handleOverlayClick = (e) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      onClick={handleOverlayClick}
+    >
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col relative">
         <button
           className="absolute top-2 right-4 text-2xl text-gray-400 hover:text-gray-700 z-10"

@@ -46,22 +46,6 @@ export default function Header() {
   const isMember = userRole === "member";
   const hasPlanData = Boolean(user?.plan) || Boolean(user?.leaderPlan);
 
-  // Video processor logic:
-  // - Members: check leaderPlan (leader's plan)
-  // - Leaders: check their own plan
-  let videoLocked = false;
-  let videoLockLabel = "";
-  if (hasPlanData) {
-    if (isMember) {
-      const leaderPlanSlug = (user?.leaderPlan?.slug || "free").toLowerCase();
-      videoLocked = !leaderPlanSlug || leaderPlanSlug === "free";
-      videoLockLabel = videoLocked ? "Leader chưa nâng cấp gói" : "";
-    } else {
-      const ownPlanSlug = (user?.plan?.slug || "free").toLowerCase();
-      videoLocked = !ownPlanSlug || ownPlanSlug === "free";
-      videoLockLabel = videoLocked ? "Nâng cấp gói để sử dụng" : "";
-    }
-  }
 
   const accountLocked = isMember;
   const badgeClassName =
@@ -261,43 +245,12 @@ export default function Header() {
                     {t("header.job_management")}
                   </button>
                   <button
-                    disabled={videoLocked || isMobile}
-                    className={`w-full text-left px-4 py-3 transition ${
-                      videoLocked || isMobile
-                        ? "cursor-not-allowed text-gray-400"
-                        : "cursor-pointer hover:bg-gray-50"
-                    }`}
-                    onClick={() => {
-                      if (isMobile) {
-                        toast.error(
-                          "Trình xử lý video chỉ hỗ trợ trên máy tính. Vui lòng sử dụng thiết bị có màn hình lớn hơn.",
-                          { duration: 4000 }
-                        );
-                        return;
-                      }
-                      if (videoLocked) return;
-                      setMenuOpen(false);
-                      router.push(`/video-processor`);
-                    }}
-                    title={
-                      isMobile
-                        ? "Chỉ hỗ trợ trên máy tính"
-                        : videoLocked
-                        ? isMember
-                          ? "Leader của bạn đang dùng gói Free, không hỗ trợ Trình xử lý video"
-                          : "Gói Free không hỗ trợ Trình xử lý video"
-                        : undefined
-                    }
+                    disabled={true}
+                    className="w-full text-left px-4 py-3 transition cursor-not-allowed text-gray-400"
+                    title="Tính năng đang phát triển"
                   >
-                    {t("header.video_processor")}
-                    {isMobile ? (
-                      <span className={badgeClassName}>Chỉ trên PC</span>
-                    ) : (
-                      videoLocked &&
-                      videoLockLabel && (
-                        <span className={badgeClassName}>{videoLockLabel}</span>
-                      )
-                    )}
+                    {t("header.video_tools")}
+                    <span className={badgeClassName}>Đang phát triển</span>
                   </button>
                   <button
                     disabled={accountLocked}

@@ -161,6 +161,7 @@
     "file_management": "File management",
     "video_processor": "Video processor",
     "job_management": "Job management",
+    "video_tools": "Tools",
     "logout": "Logout",
     "login": "Login",
     "logout_success": "Logout successful!",
@@ -1200,6 +1201,7 @@
     "home": "Home",
     "file_management": "File management",
     "shared": "Shared files",
+    "trash": "Trash",
     "favorites": "Favorites",
     "analytics": "Storage analytics",
     "job_management": "Job management",
@@ -1459,6 +1461,13 @@
       "delete_item_success": "Deleted",
       "pin_success": "Board pinned",
       "unpin_success": "Board unpinned"
+    }
+  },
+  "video_tools": {
+    "nav": {
+      "extract_subtitle": "Extract Subtitle",
+      "hardsub": "Hardsub",
+      "voiceover": "Voiceover"
     }
   },
   "video_processor": {

@@ -21,12 +21,33 @@ const useFileManagementPage = () => {
 
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [viewMode, setViewMode] = useState("grid");
+  
+  // Initialize with default "grid" to avoid hydration mismatch
+  const [viewMode, setViewModeState] = useState("grid");
+  
+  // Load view preference from localStorage after mount (client-side only)
+  // Wait for isMobile to be set before loading
+  useEffect(() => {
+    if (typeof window !== "undefined" && !isMobile) {
+      const saved = localStorage.getItem("fileManagementViewMode");
+      if (saved === "list" || saved === "grid") {
+        setViewModeState(saved);
+      }
+    }
+  }, [isMobile]); // Run when isMobile is determined
+  
+  // Wrapper function to save to localStorage and update state
+  const setViewMode = useCallback((mode) => {
+    if (typeof window !== "undefined" && !isMobile) {
+      localStorage.setItem("fileManagementViewMode", mode);
+    }
+    setViewModeState(mode);
+  }, [isMobile]);
   const [showUploadDropdown, setShowUploadDropdown] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
-  const [folderHistory, setFolderHistory] = useState([]);
+  const [folderHistory, setFolderHistory] = useState([]); // Array of { id, name }
   const [openImport, setOpenImport] = useState(false);
   const [uploadBatches, setUploadBatches] = useState([]);
   const [data, setData] = useState([]);
@@ -34,6 +55,7 @@ const useFileManagementPage = () => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [hasFetched, setHasFetched] = useState(false); // Track if data has been fetched at least once
   const limit = 20;
 
   const [currentFolderId, setCurrentFolderId] = useState(null);
@@ -140,6 +162,22 @@ const useFileManagementPage = () => {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
+  // Force grid view on mobile, restore from localStorage when switching to desktop
+  useEffect(() => {
+    if (isMobile) {
+      // Force grid view on mobile
+      if (viewMode !== "grid") {
+        setViewModeState("grid");
+      }
+    } else {
+      // Restore from localStorage when switching to desktop
+      const saved = localStorage.getItem("fileManagementViewMode");
+      if (saved === "list" || saved === "grid") {
+        setViewModeState(saved);
+      }
+    }
+  }, [isMobile]);
+
   const acRef = useRef(null);
   const fetchData = useCallback(
     async (pageNum = 1) => {
@@ -189,30 +227,122 @@ const useFileManagementPage = () => {
           fileCount: f.fileCount || 0,
         }));
 
-        if (pageNum === 1) setData([...folders, ...files]);
-        else setData((prev) => [...prev, ...folders, ...files]);
+        if (pageNum === 1) {
+          setData([...folders, ...files]);
+          setLoading(false); // Set loading to false AFTER setting data
+        } else {
+          setData((prev) => [...prev, ...folders, ...files]);
+          setLoadingMore(false);
+        }
 
         setHasMore(pageNum < (json.totalPages || 1));
       } catch {
-        if (pageNum === 1) setData([]);
-      } finally {
-        if (pageNum === 1) setLoading(false);
-        else setLoadingMore(false);
+        if (pageNum === 1) {
+          setData([]);
+          setLoading(false); // Set loading to false even on error
+        } else {
+          setLoadingMore(false);
+        }
       }
     },
     [api, currentFolderId]
   );
 
+  // Set hasFetched to true when loading changes from true to false (first fetch completed)
+  // This ensures data state is fully updated before showing empty state
+  useEffect(() => {
+    if (!loading && !hasFetched) {
+      // Use a small delay to ensure React has flushed all state updates
+      const timer = setTimeout(() => {
+        setHasFetched(true);
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, hasFetched]);
+
+  // Debounce search and refetch data when searchTerm changes
+  const searchDebounceRef = useRef(null);
+  
   useEffect(() => {
     fetchData(page);
     return () => acRef.current?.abort?.();
   }, [fetchData, page]);
 
+  // Set hasFetched to true when loading changes from true to false (first fetch completed)
+  // This ensures data state is fully updated before showing empty state
   useEffect(() => {
-    setPage(1);
-    fetchData(1);
+    if (!loading && !hasFetched) {
+      // Use a small delay to ensure React has flushed all state updates
+      const timer = setTimeout(() => {
+        setHasFetched(true);
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, hasFetched]);
+
+
+  // Track previous folder ID to avoid unnecessary resets
+  const prevFolderIdRef = useRef(null);
+  
+  useEffect(() => {
+    // Only reset if folder actually changed
+    if (prevFolderIdRef.current !== currentFolderId) {
+      prevFolderIdRef.current = currentFolderId;
+      setPage(1);
+      setHasFetched(false); // Reset hasFetched when folder changes to show loading skeleton
+      fetchData(1);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentFolderId]);
+
+  // Update folder names in history when data loads
+  useEffect(() => {
+    if (data.length > 0) {
+      // Update all folder names in history from data
+      setFolderHistory((h) => {
+        return h.map((folderInfo) => {
+          // Try to find folder in current data
+          const folderData = data.find(
+            (item) => item.type === "folder" && String(item.id || item._id) === String(folderInfo.id)
+          );
+          
+          if (folderData && folderData.name) {
+            // Save to ref
+            folderNamesRef.current.set(String(folderInfo.id), folderData.name);
+            return { ...folderInfo, name: folderData.name };
+          }
+          
+          // If not in current data, try to get from ref
+          const nameFromRef = folderNamesRef.current.get(String(folderInfo.id));
+          if (nameFromRef && nameFromRef !== folderInfo.name) {
+            return { ...folderInfo, name: nameFromRef };
+          }
+          
+          return folderInfo;
+        });
+      });
+      
+      // Also update current folder name if it's in history
+      if (currentFolderId) {
+        const currentFolderData = data.find(
+          (item) => item.type === "folder" && String(item.id || item._id) === String(currentFolderId)
+        );
+        
+        if (currentFolderData && currentFolderData.name) {
+          folderNamesRef.current.set(String(currentFolderId), currentFolderData.name);
+          
+          // If current folder is not in history, add it
+          setFolderHistory((h) => {
+            const isInHistory = h.some(f => String(f.id) === String(currentFolderId));
+            if (!isInHistory && currentFolderId) {
+              return [...h, { id: currentFolderId, name: currentFolderData.name }];
+            }
+            return h;
+          });
+        }
+      }
+    }
+  }, [data, currentFolderId]);
 
   const resetAndReload = useCallback(() => {
     setPage(1);
@@ -349,8 +479,6 @@ const useFileManagementPage = () => {
       ? visibleFiles
       : filteredFiles;
 
-  const searchLower = searchTerm.trim().toLowerCase();
-
   // Helper function to sort items
   const sortItems = useCallback((items) => {
     if (!filter.sortBy || filter.sortBy === "none") return items;
@@ -400,6 +528,8 @@ const useFileManagementPage = () => {
     });
   }, [filesBase, filter.showFavorites, favoriteIds]);
 
+  const searchLower = searchTerm.trim().toLowerCase();
+
   const foldersToShowFiltered = useMemo(() => {
     let result = searchLower
       ? foldersAfterFavoriteFilter.filter((f) =>
@@ -425,19 +555,114 @@ const useFileManagementPage = () => {
 
   const handleBack = useCallback(() => {
     setFolderHistory((h) => {
-      const prev = h[h.length - 1] ?? null;
-      setCurrentFolderId(prev);
+      const prev = h[h.length - 1];
+      const newFolderId = prev?.id ?? null;
+      setCurrentFolderId(newFolderId);
       return h.slice(0, -1);
     });
   }, []);
 
+  // Store folder names in a ref to preserve them even when data changes
+  const folderNamesRef = useRef(new Map());
+
+  // Update folder names when data loads
+  useEffect(() => {
+    data.forEach((item) => {
+      if (item.type === "folder" && (item.id || item._id)) {
+        const folderId = String(item.id || item._id);
+        folderNamesRef.current.set(folderId, item.name || "Unknown");
+      }
+    });
+  }, [data]);
+
   const handleFolderClick = useCallback(
     (folder) => {
-      setFolderHistory((h) => [...h, currentFolderId]);
-      setCurrentFolderId(folder?.id ?? null);
+      if (!folder?.id && !folder?._id) return;
+      
+      const folderId = String(folder.id || folder._id);
+      const folderName = folder.name || "Unknown";
+      
+      // Don't navigate if clicking the same folder
+      if (folderId === currentFolderId) {
+        return;
+      }
+      
+      // Save clicked folder name to ref immediately
+      folderNamesRef.current.set(folderId, folderName);
+      
+      // Get current folder name from ref (preserved from previous data)
+      let currentFolderName = "Unknown";
+      
+      if (currentFolderId) {
+        // Try to get from ref first (preserved from previous load)
+        currentFolderName = folderNamesRef.current.get(String(currentFolderId)) || "Unknown";
+        
+        // If not in ref, try to find in current data (visible folders)
+        if (currentFolderName === "Unknown") {
+          const currentFolderData = visibleFolders.find(
+            (item) => String(item.id || item._id) === String(currentFolderId)
+          );
+          if (currentFolderData) {
+            currentFolderName = currentFolderData.name || "Unknown";
+            // Save to ref for future use
+            folderNamesRef.current.set(String(currentFolderId), currentFolderName);
+          } else {
+            // If still not found, try all data
+            const currentFolderInAllData = data.find(
+              (item) => item.type === "folder" && String(item.id || item._id) === String(currentFolderId)
+            );
+            if (currentFolderInAllData) {
+              currentFolderName = currentFolderInAllData.name || "Unknown";
+              folderNamesRef.current.set(String(currentFolderId), currentFolderName);
+            }
+          }
+        }
+      }
+      
+      // Update folder history - add current folder to history before navigating
+      // But exclude currentFolderId from history if it's already there to avoid duplicate
+      setFolderHistory((h) => {
+        if (!currentFolderId) {
+          return h; // No current folder, don't add anything
+        }
+        
+        // Remove currentFolderId from history if it exists to avoid duplicate
+        const filteredHistory = h.filter(item => String(item.id) !== String(currentFolderId));
+        
+        // Check if current folder is already the last item in filtered history
+        const lastItem = filteredHistory[filteredHistory.length - 1];
+        if (lastItem && String(lastItem.id) === String(currentFolderId)) {
+          // Already in history as last item, don't add again
+          return filteredHistory;
+        }
+        
+        // Add current folder to history with proper name
+        return [...filteredHistory, { id: currentFolderId, name: currentFolderName }];
+      });
+      
+      // Update current folder
+      setCurrentFolderId(folderId);
     },
-    [currentFolderId]
+    [currentFolderId, data, visibleFolders]
   );
+
+  const navigateToFolder = useCallback((targetFolderId) => {
+    if (targetFolderId === null) {
+      // Navigate to root
+      setCurrentFolderId(null);
+      setFolderHistory([]);
+    } else {
+      // Find the index of target folder in history
+      const index = folderHistory.findIndex(
+        (item) => item && String(item.id) === String(targetFolderId)
+      );
+      if (index !== -1) {
+        // Navigate to that folder by updating history and currentFolderId
+        setCurrentFolderId(targetFolderId);
+        setFolderHistory(folderHistory.slice(0, index + 1));
+      }
+    }
+  }, [folderHistory]);
 
   const handleCreateFolder = useCallback(async () => {
     const name = (newFolderName || "").trim();
@@ -655,6 +880,7 @@ const useFileManagementPage = () => {
     foldersToShowFiltered,
     tableHeader,
     filesToShowFiltered,
+    hasFetched,
     previewUrl,
     setSidebarOpen,
     setViewMode,
@@ -666,6 +892,8 @@ const useFileManagementPage = () => {
     resetAndReload,
     handleBack,
     handleFolderClick,
+    navigateToFolder,
+    folderNamesRef,
     setUploadBatches,
     handleStartUpload,
     setFilter,
@@ -689,6 +917,7 @@ const useFileManagementPage = () => {
     dedupeById,
     areAllVisibleSelected,
     setOpenImport,
+    folderHistory,
   };
 };
 

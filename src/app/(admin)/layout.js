@@ -11,6 +11,7 @@ import {
   FiCreditCard,
   FiMessageCircle,
   FiFolder,
+  FiSettings,
 } from "react-icons/fi";
 import Sidebar from "@/shared/layout/Sidebar";
 import useSocket from "@/shared/lib/useSocket";
@@ -123,6 +124,12 @@ export default function AdminLayout({ children }) {
         href: "/admin/chat",
         badge: unreadCount,
         playSound: true,
+      },
+      {
+        key: "settings",
+        label: "Cài đặt",
+        icon: <FiSettings className="text-2xl" />,
+        href: "/admin/settings",
       },
     ],
     [unreadCount]

@@ -32,7 +32,8 @@ export default function SidebarFilter({
   if (isMobile && !open) return null;
   return (
     <>
-      {isMobile && (
+      {/* Overlay - Show on both mobile and desktop when open */}
+      {open && onClose && (
         <div
           className={`fixed inset-0 bg-black/30 z-40 transition-opacity duration-300 ${
             open ? "opacity-100" : "opacity-0 pointer-events-none"
@@ -41,20 +42,23 @@ export default function SidebarFilter({
         />
       )}
       <aside
-        className={`fixed right-0 top-0 h-screen w-[270px] bg-white border-l border-border flex flex-col px-0 py-6 gap-2 z-50 overflow-y-auto overflow-x-hidden transition-all duration-300 ease-in-out transform ${
+        className={`fixed right-0 top-0 h-screen w-[270px] bg-white border-l border-border flex flex-col px-0 py-6 gap-2 z-50 overflow-y-auto overflow-x-hidden sidebar-scrollbar transition-all duration-300 ease-in-out transform ${
           isMobile
             ? open
               ? "translate-x-0 opacity-100"
-              : "translate-x-full opacity-0"
-            : "lg:translate-x-0 lg:opacity-100 hidden lg:flex"
+              : "translate-x-full opacity-0 pointer-events-none"
+            : open
+            ? "translate-x-0 opacity-100"
+            : "translate-x-full opacity-0 pointer-events-none"
         }`}
         style={{
           borderTopLeftRadius: isMobile ? 16 : 0,
           borderBottomLeftRadius: isMobile ? 16 : 0,
-          boxShadow: isMobile ? "0 0 20px rgba(0,0,0,0.1)" : "none",
+          boxShadow: isMobile || open ? "0 0 20px rgba(0,0,0,0.1)" : "none",
         }}
       >
-        {isMobile && (
+        {/* Close button - Show on both mobile and desktop when onClose is provided */}
+        {onClose && (
           <button
             className="absolute top-4 right-4 text-text-muted hover:text-brand text-2xl z-10 transition-all duration-200 hover:scale-110 active:scale-95"
             onClick={onClose}

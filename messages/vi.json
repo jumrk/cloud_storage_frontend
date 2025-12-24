@@ -87,6 +87,7 @@
     "file_management": "Quản lý tệp",
     "job_management": "Quản lý công việc",
     "video_processor": "Trình xử lý video",
+    "video_tools": "Công cụ",
     "logout": "Đăng xuất",
     "login": "Đăng nhập",
     "logout_success": "Đăng xuất thành công!",
@@ -372,7 +373,10 @@
     },
     "select_all": "Chọn tất cả",
     "select_all_current": "Chọn tất cả hiện tại",
-    "deselect_all": "Bỏ chọn tất cả"
+    "deselect_all": "Bỏ chọn tất cả",
+    "chat": {
+      "open_chat": "Mở trợ lý AI"
+    }
   },
   "file_shared": {
     "title": "Tệp đã chia sẻ",
@@ -1133,6 +1137,7 @@
     "download_video": "Tải video",
     "file_management": "Quản lý tệp",
     "shared": "Tệp đã chia sẻ",
+    "trash": "Tệp đã xóa",
     "favorites": "Tệp yêu thích",
     "analytics": "Thống kê dung lượng",
     "job_management": "Quản lý công việc",
@@ -1464,6 +1469,13 @@
       "delete_item_success": "Đã xóa",
       "pin_success": "Đã ghim bảng",
       "unpin_success": "Đã bỏ ghim bảng"
+    }
+  },
+  "video_tools": {
+    "nav": {
+      "extract_subtitle": "Tách phụ đề",
+      "hardsub": "Hardsub",
+      "voiceover": "Lồng tiếng"
     }
   },
   "video_processor": {

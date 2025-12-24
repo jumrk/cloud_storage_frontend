@@ -13,7 +13,7 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId }) => {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   const [emptyFolders, setEmptyFolders] = useState([]);
-  console.log(parentId);
+  // console.log(parentId); // Commented out to prevent console spam
   useEffect(() => {
     if (!isOpen) {
       setSelectedFiles([]);

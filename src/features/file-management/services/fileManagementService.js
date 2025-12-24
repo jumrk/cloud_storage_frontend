@@ -103,6 +103,54 @@ const FileManagementService = () => {
     return downloadPromise;
   };
 
+  const getDeletedItems = (
+    { page = 1, limit = 20, search = "", type = "", fileType = "", sortBy = "newest" } = {},
+    token,
+    signal
+  ) => {
+    const params = { page, limit, sortBy };
+    if (search) params.search = search;
+    if (type) params.type = type;
+    if (fileType) params.fileType = fileType;
+    return axiosClient
+      .get("/api/upload/deleted", {
+        params,
+        headers: authHeaders(token),
+        signal,
+      })
+      .then((r) => r.data);
+  };
+
+  const restoreItems = (items, token, signal) =>
+    axiosClient
+      .post(
+        "/api/upload/restore",
+        { items },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...authHeaders(token),
+          },
+          signal,
+        }
+      )
+      .then((r) => r.data);
+
+  const permanentDeleteItems = (items, token, signal) =>
+    axiosClient
+      .post(
+        "/api/upload/permanent-delete",
+        { items },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...authHeaders(token),
+          },
+          signal,
+        }
+      )
+      .then((r) => r.data);
+
   return {
     getUploads,
     getMember,
@@ -111,6 +159,9 @@ const FileManagementService = () => {
     postPermission,
     deletePermission,
     downloadInternal,
+    getDeletedItems,
+    restoreItems,
+    permanentDeleteItems,
   };
 };
 

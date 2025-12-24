@@ -163,7 +163,10 @@ export default function NotificationDropdown({
           </h3>
           {notifications.some((n) => !n.isRead) && (
             <button
-              onClick={markAllAsRead}
+              onClick={(e) => {
+                e.stopPropagation();
+                markAllAsRead();
+              }}
               className="text-sm text-primary hover:text-primary/80 font-medium"
             >
               {t("notification.mark_all_read")}
@@ -173,7 +176,7 @@ export default function NotificationDropdown({
 
         <div
           ref={scrollContainerRef}
-          className="flex-1 overflow-y-auto max-h-[70vh] pr-1"
+          className="flex-1 overflow-y-auto max-h-[70vh] pr-1 sidebar-scrollbar"
         >
           {notifications.length === 0 && !loading ? (
             <div className="p-8 text-center text-gray-400">

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { FaBars } from "react-icons/fa";
-import { CiFolderOn, CiChat1 } from "react-icons/ci";
+import { CiFolderOn, CiChat1, CiTrash, CiShare2 } from "react-icons/ci";
 import Sidebar from "@/shared/layout/Sidebar";
 import useSocket from "@/shared/lib/useSocket";
 import { decodeTokenGetUser } from "@/shared/lib/jwt";
@@ -65,6 +65,18 @@ export default function ClientLayout({ children }) {
         label: t("sidebar.file_management"),
         icon: <CiFolderOn className="text-2xl" />,
         href: `${basePath}/file-management`,
+      },
+      {
+        key: "shared",
+        label: t("sidebar.shared"),
+        icon: <CiShare2 className="text-2xl" />,
+        href: `${basePath}/shared`,
+      },
+      {
+        key: "trash",
+        label: t("sidebar.trash"),
+        icon: <CiTrash className="text-2xl" />,
+        href: `${basePath}/file-management/trash`,
       },
     ],
     [t, basePath]

@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import { getFileIcon } from "@/shared/utils/getFileIcon";
-import { FiShare2, FiLock, FiDownload } from "react-icons/fi";
+import { FiShare2, FiLock, FiDownload, FiChevronUp, FiChevronDown } from "react-icons/fi";
 import { FaStar, FaRegStar } from "react-icons/fa";
 import EmptyState from "@/shared/ui/EmptyState";
 import Image from "next/image";
@@ -62,6 +62,7 @@ const Table = ({
   onSelectAll,
   draggedItems = [],
   onDragStart,
+  hasFetched = false,
   onDragEnd,
   onPreviewFile,
   loadingMore = false,
@@ -71,6 +72,7 @@ const Table = ({
   isFavoriteItem,
   onToggleFavorite,
   favoriteLoadingId,
+  onSort, // Callback khi sort, nhận (column, direction)
 }) => {
   const [checkedItems, setCheckedItems] = useState({});
   const [editingFolderId, setEditingFolderId] = useState(null);
@@ -79,6 +81,10 @@ const Table = ({
   const [editingType, setEditingType] = useState(null);
   const [newName, setNewName] = useState("");
   const [copiedId, setCopiedId] = useState(null);
+  const [hasOverflow, setHasOverflow] = useState(false);
+  const scrollContainerRef = useRef(null);
+  const [sortColumn, setSortColumn] = useState(null);
+  const [sortDirection, setSortDirection] = useState("asc"); // "asc" | "desc"
 
   // State để lưu độ rộng các cột (resizable)
   const [columnWidths, setColumnWidths] = useState({
@@ -260,14 +266,101 @@ const Table = ({
     document.body.style.userSelect = "none";
   };
 
+  // Detect overflow để chỉ hiển thị scrollbar khi cần
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const checkOverflow = () => {
+      // Tính tổng width của các cột (48px cho checkbox + gap + tổng column widths)
+      const checkboxWidth = 48;
+      const gap = 8; // gap-2 = 8px
+      const totalColumnWidth = Object.values(columnWidths).reduce((sum, width) => sum + width, 0);
+      const totalTableWidth = checkboxWidth + gap + totalColumnWidth;
+      
+      // So sánh với container width với threshold để tránh false positive
+      const containerWidth = container.clientWidth;
+      const hasOverflowX = totalTableWidth > containerWidth + 10;
+      
+      setHasOverflow(hasOverflowX);
+    };
+
+    checkOverflow();
+
+    const resizeObserver = new ResizeObserver(checkOverflow);
+    resizeObserver.observe(container);
+
+    // Check khi data thay đổi
+    const timeoutId = setTimeout(checkOverflow, 100);
+
+    return () => {
+      resizeObserver.disconnect();
+      clearTimeout(timeoutId);
+    };
+  }, [data, columnWidths]);
+
+  // Sort data dựa trên sortColumn và sortDirection
+  const sortedData = useMemo(() => {
+    if (!sortColumn) return data;
+
+    const sorted = [...data];
+    const direction = sortDirection === "asc" ? 1 : -1;
+
+    sorted.sort((a, b) => {
+      switch (sortColumn) {
+        case "name":
+          const nameA = (a.name || "").toLowerCase();
+          const nameB = (b.name || "").toLowerCase();
+          return nameA.localeCompare(nameB, undefined, { sensitivity: "base" }) * direction;
+        
+        case "size":
+          const sizeA = a.size || 0;
+          const sizeB = b.size || 0;
+          return (sizeA - sizeB) * direction;
+        
+        case "date":
+          const dateA = new Date(a.date || a.createdAt || 0).getTime();
+          const dateB = new Date(b.date || b.createdAt || 0).getTime();
+          return (dateA - dateB) * direction;
+        
+        case "fileCount":
+          const countA = a.fileCount || 0;
+          const countB = b.fileCount || 0;
+          return (countA - countB) * direction;
+        
+        default:
+          return 0;
+      }
+    });
+
+    return sorted;
+  }, [data, sortColumn, sortDirection]);
+
   return (
-    <div className="overflow-x-auto">
-      {data.length === 0 ? (
+    <div className="w-full">
+      {hasFetched && sortedData.length === 0 ? (
         <EmptyState message="Không có dữ liệu" height={180} />
-      ) : (
-        <>
-          <div className="flex gap-2 items-start">
-            <table className="border-separate border-spacing-y-2">
+      ) : sortedData.length > 0 ? (
+        <div 
+          ref={scrollContainerRef}
+          className={`w-full overflow-x-auto overflow-y-visible custom-scrollbar ${hasOverflow ? 'has-overflow' : ''}`}
+          style={{ 
+            width: "100%",
+            maxWidth: "100%",
+            scrollbarWidth: hasOverflow ? "thin" : "none",
+            scrollbarColor: hasOverflow ? "rgba(0, 0, 0, 0.2) transparent" : "transparent transparent",
+            overflowX: "auto",
+            overflowY: "visible"
+          }}
+        >
+          <div 
+            className="flex gap-2 items-start" 
+            style={{ 
+              width: hasOverflow ? "max-content" : "100%",
+              minWidth: "100%"
+            }}
+          >
+            <table className="border-separate border-spacing-y-2 flex-shrink-0">
               <thead>
                 <tr>
                   <th
@@ -279,7 +372,7 @@ const Table = ({
                 </tr>
               </thead>
               <tbody>
-                {data.map((item, index) => (
+                {sortedData.map((item, index) => (
                   <tr key={index} className="h-[48px]">
                     <td
                       className="px-4 py-3 text-center align-middle"
@@ -319,11 +412,12 @@ const Table = ({
               </tbody>
             </table>
 
-            <table
-              className="min-w-[90%] border-separate border-spacing-y-2"
-              style={{ tableLayout: "fixed", width: "100%" }}
-            >
-              <thead className="bg-[#E5E7EB]">
+            <div className="flex-1 min-w-0">
+              <table
+                className="border-separate border-spacing-y-2"
+                style={{ tableLayout: "auto", minWidth: "100%" }}
+              >
+                <thead className="bg-white border-b border-border sticky top-0 z-10">
                 <tr>
                   {header.map((value, idx) => {
                     let columnKey = "";
@@ -351,22 +445,67 @@ const Table = ({
                       width = columnWidths.actions;
                     }
 
+                    // Xác định column có thể sort không (không sort cột Actions)
+                    const isSortable = columnKey && columnKey !== "actions";
+                    
+                    const handleSortClick = () => {
+                      if (!isSortable) return;
+                      
+                      let newDirection = "asc";
+                      if (sortColumn === columnKey) {
+                        newDirection = sortDirection === "asc" ? "desc" : "asc";
+                      }
+                      
+                      setSortColumn(columnKey);
+                      setSortDirection(newDirection);
+                      
+                      // Gọi callback nếu có
+                      if (onSort) {
+                        onSort(columnKey, newDirection);
+                      }
+                    };
+
+                    const getSortIcon = () => {
+                      if (!isSortable) return null;
+                      
+                      if (sortColumn !== columnKey) {
+                        return (
+                          <div className="flex flex-col -space-y-1 ml-2">
+                            <FiChevronUp className="text-gray-300" size={10} />
+                            <FiChevronDown className="text-gray-300" size={10} />
+                          </div>
+                        );
+                      }
+                      
+                      return sortDirection === "asc" ? (
+                        <FiChevronUp className="text-brand ml-2" size={14} />
+                      ) : (
+                        <FiChevronDown className="text-brand ml-2" size={14} />
+                      );
+                    };
+
                     return (
                       <th
                         key={value}
-                        className="font-bold text-primary text-xm px-4 py-3 text-left relative"
-                        style={{ width: width, position: "relative" }}
+                        className={`font-semibold text-text-strong text-sm px-4 py-3 text-left relative bg-white ${
+                          isSortable ? "cursor-pointer hover:bg-gray-50 transition-colors" : ""
+                        }`}
+                        style={{ width: width, position: "relative", minWidth: width }}
+                        onClick={isSortable ? handleSortClick : undefined}
                       >
                         <div className="flex items-center justify-between">
-                          <span>
-                            {value === "Lượt tải" || value === "Chia sẻ" || value === "Share" 
-                              ? "Thao tác" 
-                              : value}
-                          </span>
+                          <div className="flex items-center">
+                            <span className="text-text-strong">
+                              {value === "Lượt tải" || value === "Chia sẻ" || value === "Share" 
+                                ? "Thao tác" 
+                                : value}
+                            </span>
+                            {getSortIcon()}
+                          </div>
                         </div>
                         {columnKey && (
                           <div
-                            className="absolute top-0 right-0 h-full cursor-col-resize hover:bg-blue-400 transition-colors group"
+                            className="absolute top-0 right-0 h-full cursor-col-resize hover:bg-brand/20 transition-colors group"
                             style={{
                               width: "6px",
                               cursor: "col-resize",
@@ -387,14 +526,14 @@ const Table = ({
                 </tr>
               </thead>
               <tbody>
-                {data.map((value, index) => (
+                {sortedData.map((value, index) => (
                   <tr
                     key={value.id}
-                    className={` text-sm ${
+                    className={`text-sm transition-all duration-200 ${
                       selectedItems.find((i) => i.id === value.id)
-                        ? "bg-primary text-white"
-                        : "bg-[#F6F9FF]"
-                    } hover:bg-primary hover:text-white rounded-lg transition-all duration-500 h-[48px]${
+                        ? "bg-brand/10 border-l-4 border-brand"
+                        : "bg-white hover:bg-surface-50 border-l-4 border-transparent"
+                    } rounded-lg h-[56px]${
                       value.locked
                         ? " cursor-not-allowed opacity-60"
                         : " cursor-pointer"
@@ -411,8 +550,8 @@ const Table = ({
                     onDrop={(e) => handleDrop(e, value)}
                   >
                     <td
-                      className="px-4 py-3 rounded-l-lg flex items-center gap-2"
-                      style={{ width: columnWidths.name, overflow: "hidden" }}
+                      className="px-4 py-3 rounded-l-lg flex items-center gap-3"
+                      style={{ width: columnWidths.name, overflow: "hidden", minWidth: columnWidths.name }}
                     >
                       <Image
                         src={getFileIcon({
@@ -495,20 +634,32 @@ const Table = ({
                             );
                           }}
                           title={value.name}
-                          className="overflow-hidden text-ellipsis whitespace-nowrap inline-block align-middle cursor-pointer min-w-0 flex-1"
+                          className={`overflow-hidden text-ellipsis whitespace-nowrap inline-block align-middle cursor-pointer min-w-0 flex-1 ${
+                            selectedItems.find((i) => i.id === value.id)
+                              ? "text-white"
+                              : "text-text-strong"
+                          }`}
                           style={{ maxWidth: "100%" }}
                         >
                           {value.type === "file"
                             ? splitFileName(value.name).base
                             : value.name}
                           {value.type === "file" && (
-                            <span className="text-xs text-gray-400">
+                            <span className={`text-xs ${
+                              selectedItems.find((i) => i.id === value.id)
+                                ? "text-white/70"
+                                : "text-text-muted"
+                            }`}>
                               {splitFileName(value.name).ext}
                             </span>
                           )}
                           {value.locked && (
                             <FiLock
-                              className="inline ml-1 text-gray-400"
+                              className={`inline ml-1 ${
+                                selectedItems.find((i) => i.id === value.id)
+                                  ? "text-white/70"
+                                  : "text-text-muted"
+                              }`}
                               title="Bị khóa"
                             />
                           )}
@@ -516,22 +667,22 @@ const Table = ({
                       )}
                     </td>
                     <td
-                      className="px-4 py-3"
-                      style={{ width: columnWidths.size }}
+                      className="px-4 py-3 text-text-muted"
+                      style={{ width: columnWidths.size, minWidth: columnWidths.size }}
                     >
                       {formatSize(value.size)}
                     </td>
                     <td
-                      className="px-4 py-3"
-                      style={{ width: columnWidths.fileCount }}
+                      className="px-4 py-3 text-text-muted text-center"
+                      style={{ width: columnWidths.fileCount, minWidth: columnWidths.fileCount }}
                     >
                       {value.type === "folder" 
                         ? (value.fileCount !== undefined && value.fileCount !== null ? value.fileCount : 0)
                         : "-"}
                     </td>
                     <td
-                      className="px-4 py-3"
-                      style={{ width: columnWidths.date }}
+                      className="px-4 py-3 text-text-muted"
+                      style={{ width: columnWidths.date, minWidth: columnWidths.date }}
                     >
                       {formatDate(value.date)}
                     </td>
@@ -540,6 +691,7 @@ const Table = ({
                       style={{
                         position: "relative",
                         width: columnWidths.actions,
+                        minWidth: columnWidths.actions,
                       }}
                     >
                       <div className="flex items-center gap-3">
@@ -606,9 +758,10 @@ const Table = ({
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
-        </>
-      )}
+        </div>
+      ) : null}
     </div>
   );
 };

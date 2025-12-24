@@ -5,9 +5,12 @@ import { useSearchParams } from "next/navigation";
 import "react-loading-skeleton/dist/skeleton.css";
 import { toast } from "react-hot-toast";
 import useSlastHomePage from "../hooks/useSlastHomePage";
-import { FilterBar } from "./FilterBar";
 import { BasicTable } from "./BasicTable";
 import { RightSidebar } from "./RightSidebar";
+import { RecentActivities } from "./RecentActivities";
+import { StorageTrendChart } from "./StorageTrendChart";
+import { FileDistributionByMember } from "./FileDistributionByMember";
+import { FileDistributionByType } from "./FileDistributionByType";
 
 export default function HomePage() {
   const searchParams = useSearchParams();
@@ -19,6 +22,23 @@ export default function HomePage() {
     overview,
     fileTypes,
     handleSort,
+    currentPage,
+    totalPages,
+    totalItems,
+    itemsPerPage,
+    handlePageChange,
+    selectedRows,
+    handleSelectRow,
+    handleSelectAll,
+    isAllSelected,
+    isIndeterminate,
+    activities,
+    loadingActivities,
+    storageTrend,
+    fileDistributionByMember,
+    loadingCharts,
+    storagePeriod,
+    setStoragePeriod,
   } = useSlastHomePage();
 
   // Show toast if redirected from mobile blocked page
@@ -37,13 +57,51 @@ export default function HomePage() {
   return (
     <div className="w-full min-h-screen flex bg-surface-50">
       <div className="flex-1 flex-col pt-8 pb-8 hidden md:flex">
-        <FilterBar
-          sortColumn={sortColumn}
-          sortOrder={sortOrder}
-          onSort={handleSort}
-        />
         <div className="mt-2">
-          <BasicTable rows={rows} loading={loading} />
+          <BasicTable
+            rows={rows}
+            loading={loading}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            onPageChange={handlePageChange}
+            selectedRows={selectedRows}
+            onSelectRow={handleSelectRow}
+            onSelectAll={handleSelectAll}
+            isAllSelected={isAllSelected}
+            isIndeterminate={isIndeterminate}
+            onBulkAction={(action) => {
+              // Handle bulk actions
+              console.log("Bulk action:", action, selectedRows);
+            }}
+            sortColumn={sortColumn}
+            sortOrder={sortOrder}
+            onSort={handleSort}
+          />
+        </div>
+
+        {/* Charts Section */}
+        <div className="mx-5 mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <StorageTrendChart
+            data={storageTrend}
+            loading={loadingCharts}
+            period={storagePeriod}
+            onPeriodChange={setStoragePeriod}
+          />
+          <FileDistributionByMember
+            data={fileDistributionByMember}
+            loading={loadingCharts}
+          />
+        </div>
+        <div className="mx-5 mt-6">
+          <FileDistributionByType data={fileTypes} loading={loading} />
+        </div>
+        <div className="mx-5 mt-6">
+          <RecentActivities
+            activities={activities}
+            loading={loadingActivities}
+          />
         </div>
       </div>
       <div className="w-full md:w-auto">

@@ -10,6 +10,7 @@ import {
   FiLink,
 } from "react-icons/fi";
 import { BiSelectMultiple } from "react-icons/bi";
+import Popover from "@/shared/ui/Popover";
 
 export default function FileManagerHeader({
   t,
@@ -35,8 +36,8 @@ export default function FileManagerHeader({
   );
 
   return (
-    <div className="w-full max-w-2xl flex items-center gap-3 mb-6">
-      <div className="flex-1 relative">
+    <div className="w-full flex items-center justify-between gap-2 md:gap-3 lg:gap-4 mb-4 md:mb-6">
+      <div className="flex-1 max-w-md relative">
         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-lg">
           <FiSearch />
         </span>
@@ -49,7 +50,8 @@ export default function FileManagerHeader({
         />
       </div>
 
-      <div className="relative">
+      <div className="flex items-center gap-1.5 md:gap-2 flex-shrink-0">
+        <div className="relative">
         <button
           className="flex cursor-pointer items-center gap-2 px-4 py-2 rounded-xl font-semibold shadow-card transition-all text-[15px] bg-brand text-white hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-brand"
           onClick={() => setShowUploadDropdown(!showUploadDropdown)}
@@ -64,48 +66,52 @@ export default function FileManagerHeader({
         </button>
 
         {showUploadDropdown && (
-          <div className="absolute top-full right-0 left-auto mt-1 w-64 max-w-[90vw] bg-white rounded-lg shadow-card border border-border z-50">
-            <button
-              className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-surface-50 transition-colors rounded-t-lg"
-              onClick={() => {
-                setShowUploadModal(true);
-                setShowUploadDropdown(false);
-              }}
-            >
-              <FiUpload className="text-text-muted" />
-              <span className="text-text-strong">
-                {t("file.button.upload_files_folders")}
-              </span>
-            </button>
-            <button
-              className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-surface-50 transition-colors"
-              onClick={() => {
-                setShowCreateFolderModal(true);
-                setShowUploadDropdown(false);
-              }}
-            >
-              <FiFolderPlus className="text-text-muted" />
-              <span className="text-text-strong">
-                {t("file.button.create_folder")}
-              </span>
-            </button>
-            <button
-              className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-surface-50 transition-colors rounded-b-lg"
-              onClick={() => {
-                setOpenImport(true);
-                setShowUploadDropdown(false);
-              }}
-            >
-              <FiLink className="text-text-muted" />
-              <span className="text-text-strong">
-                {t("file.button.import_link")}
-              </span>
-            </button>
-          </div>
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => setShowUploadDropdown(false)}
+          />
         )}
-      </div>
+        <Popover open={showUploadDropdown} className="right-0 left-auto w-64 max-w-[90vw]">
+          <button
+            className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-surface-50 transition-colors rounded-t-lg"
+            onClick={() => {
+              setShowUploadModal(true);
+              setShowUploadDropdown(false);
+            }}
+          >
+            <FiUpload className="text-text-muted" />
+            <span className="text-text-strong">
+              {t("file.button.upload_files_folders")}
+            </span>
+          </button>
+          <button
+            className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-surface-50 transition-colors"
+            onClick={() => {
+              setShowCreateFolderModal(true);
+              setShowUploadDropdown(false);
+            }}
+          >
+            <FiFolderPlus className="text-text-muted" />
+            <span className="text-text-strong">
+              {t("file.button.create_folder")}
+            </span>
+          </button>
+          <button
+            className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-surface-50 transition-colors rounded-b-lg"
+            onClick={() => {
+              setOpenImport(true);
+              setShowUploadDropdown(false);
+            }}
+          >
+            <FiLink className="text-text-muted" />
+            <span className="text-text-strong">
+              {t("file.button.import_link")}
+            </span>
+          </button>
+        </Popover>
+        </div>
 
-      <div className="hidden items-center gap-2 ml-2 bg-white rounded-xl px-2 py-1 shadow-sm border border-border lg:flex">
+        <div className="hidden items-center gap-2 bg-white rounded-xl px-2 py-1 shadow-sm border border-border lg:flex">
         <button
           className={`p-2 rounded-lg transition-all text-lg ${
             viewMode === "grid"
@@ -146,9 +152,9 @@ export default function FileManagerHeader({
         >
           <FiList />
         </button>
-      </div>
+        </div>
 
-      <div className="bg-white rounded-xl px-1 py-1 shadow-sm border border-border">
+        <div className="bg-white rounded-xl px-1 py-1 shadow-sm border border-border">
         <button
           aria-label={t("file.select_all")}
           title={
@@ -178,6 +184,7 @@ export default function FileManagerHeader({
         >
           <BiSelectMultiple />
         </button>
+        </div>
       </div>
     </div>
   );
