@@ -62,36 +62,65 @@ function CardDelete({
 
       {/* Icon khôi phục / xóa vĩnh viễn desktop */}
       {!isMobile && (
-        <div className="absolute top-3 right-3 flex flex-col gap-2 z-30 opacity-0 translate-x-3 pointer-events-none transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0 group-hover:pointer-events-auto">
+        <div 
+          className="absolute top-3 right-3 flex flex-col gap-2 z-50 opacity-0 translate-x-3 pointer-events-none transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0 group-hover:pointer-events-auto"
+          onClick={(e) => {
+            // Stop propagation to prevent parent onClick from firing
+            e.stopPropagation();
+            e.nativeEvent.stopImmediatePropagation();
+          }}
+          onMouseDown={(e) => {
+            // Also stop on mousedown to prevent any event bubbling
+            e.stopPropagation();
+            e.nativeEvent.stopImmediatePropagation();
+          }}
+        >
           <button
             className="text-green-500 hover:text-green-700 bg-white/90 rounded-full p-1.5 shadow-sm transition-colors"
             title="Khôi phục"
             onClick={(e) => {
               e.stopPropagation();
               e.preventDefault();
+              e.nativeEvent.stopImmediatePropagation();
               if (onRestore) {
                 onRestore(data);
               }
             }}
             onMouseDown={(e) => {
               e.stopPropagation();
+              e.nativeEvent.stopImmediatePropagation();
             }}
             type="button"
           >
             <FiRotateCw size={16} />
           </button>
           <button
-            className="text-red-500 hover:text-red-700 bg-white/90 rounded-full p-1.5 shadow-sm transition-colors"
+            className="text-red-500 hover:text-red-700 bg-white/90 rounded-full p-1.5 shadow-sm transition-colors relative z-50"
             title="Xóa vĩnh viễn"
+            style={{ pointerEvents: 'auto' }}
             onClick={(e) => {
               e.stopPropagation();
               e.preventDefault();
+              e.nativeEvent.stopImmediatePropagation();
               if (onPermanentDelete) {
-                onPermanentDelete(data);
+                // Ensure data has required fields
+                if (data && (data.id || data._id) && data.type) {
+                  // Normalize data to ensure it has 'id' field
+                  const normalizedData = {
+                    ...data,
+                    id: data.id || data._id,
+                  };
+                  onPermanentDelete(normalizedData);
+                }
               }
             }}
             onMouseDown={(e) => {
               e.stopPropagation();
+              e.nativeEvent.stopImmediatePropagation();
+            }}
+            onMouseUp={(e) => {
+              e.stopPropagation();
+              e.nativeEvent.stopImmediatePropagation();
             }}
             type="button"
           >

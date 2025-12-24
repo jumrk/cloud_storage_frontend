@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import { FiMessageCircle, FiX, FiSend, FiLoader } from "react-icons/fi";
 import { useTranslations } from "next-intl";
 import axiosClient from "@/shared/lib/axiosClient";
+import { sanitizeAndFormat } from "@/shared/utils/sanitizeHtml";
 
 // Sparkles icon component
 const SparklesIcon = ({ className = "text-white text-xs", size = 12 }) => (
@@ -463,10 +464,7 @@ export default function FileManagerChat({
                     <div className="text-sm whitespace-pre-wrap leading-relaxed">
                       <div
                         dangerouslySetInnerHTML={{
-                          __html: message.content
-                            .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-                            .replace(/\*(.*?)\*/g, "<em>$1</em>")
-                            .replace(/`([^`]+)`/g, "<code class='bg-gray-100 px-1 py-0.5 rounded text-xs'>$1</code>"),
+                          __html: sanitizeAndFormat(message.content),
                         }}
                       />
                       

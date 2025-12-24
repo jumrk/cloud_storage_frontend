@@ -553,14 +553,24 @@ const MiniStatusBatch = ({
   };
 
   useEffect(() => {
-    if (hasUploaded.current || isUploadingRef.current) return;
-    hasUploaded.current = true;
-    isUploadingRef.current = true;
-    hasCompletedRef.current = false;
+    // For permanent-delete, move, and create_folder, skip the upload check
+    const isNonUploadBatch = batchType === "permanent-delete" || batchType === "move" || batchType === "create_folder";
+    
+    if (!isNonUploadBatch && (hasUploaded.current || isUploadingRef.current)) {
+      return;
+    }
+    
+    if (!isNonUploadBatch) {
+      hasUploaded.current = true;
+      isUploadingRef.current = true;
+      hasCompletedRef.current = false;
+    }
 
     const handleError = (error) => {
       console.error("Upload error:", error);
-      isUploadingRef.current = false;
+      if (!isNonUploadBatch) {
+        isUploadingRef.current = false;
+      }
       setFileStates((prev) =>
         prev.map((f) => ({ ...f, status: "error", error: error.message }))
       );
@@ -623,6 +633,70 @@ const MiniStatusBatch = ({
           setTimeout(() => {
             setIsVisible(false);
             onComplete?.({ error: err.message });
+          }, 2000);
+        }
+      })();
+      return;
+    }
+
+    if (batchType === "permanent-delete") {
+      const items = Array.isArray(moveItems) ? moveItems : [];
+      (async () => {
+        setStatus("pending");
+        setProgress(0);
+        setEta(null);
+        const startTime = Date.now();
+        const totalItems = items.length;
+        let lastProgress = 0;
+
+        // Track progress based on time elapsed and estimated processing time
+        // Each item takes approximately 50-100ms + processing time
+        const progressInterval = setInterval(() => {
+          const elapsed = (Date.now() - startTime) / 1000;
+          
+          // Estimate: each item takes ~0.1-0.15 seconds on average (50ms delay + processing)
+          const estimatedProcessed = Math.min(totalItems, Math.floor(elapsed / 0.12));
+          const estimatedProgress = Math.min(95, (estimatedProcessed / totalItems) * 100);
+          
+          // Only update if progress increased
+          if (estimatedProgress > lastProgress) {
+            setProgress(estimatedProgress);
+            lastProgress = estimatedProgress;
+            
+            // Calculate ETA
+            if (estimatedProcessed > 0 && elapsed > 0) {
+              const avgTimePerItem = elapsed / estimatedProcessed;
+              const remainingItems = totalItems - estimatedProcessed;
+              const estimatedSeconds = remainingItems * avgTimePerItem;
+              setEta(Math.round(estimatedSeconds));
+            }
+          }
+        }, 100); // Update every 100ms for smoother progress
+
+        try {
+          const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+          const headers = token ? { Authorization: `Bearer ${token}` } : {};
+          const res = await axiosClient.post("/api/upload/permanent-delete", { items }, { headers });
+          clearInterval(progressInterval);
+          const json = res.data;
+          setStatus(json.success ? "success" : "error");
+          setProgress(100);
+          setEta(null);
+          setTimeout(
+            () => {
+              setIsVisible(false);
+              onComplete?.(json);
+            },
+            json.success ? 1500 : 2000
+          );
+        } catch (err) {
+          clearInterval(progressInterval);
+          setStatus("error");
+          setProgress(100);
+          setEta(null);
+          setTimeout(() => {
+            setIsVisible(false);
+            onComplete?.({ error: err.message, success: false });
           }, 2000);
         }
       })();
@@ -765,6 +839,7 @@ const MiniStatusBatch = ({
     if (
       files.length === 0 ||
       batchType === "delete" ||
+      batchType === "permanent-delete" ||
       batchType === "move" ||
       batchType === "create_folder"
     ) {
@@ -931,7 +1006,8 @@ const MiniStatusBatch = ({
     );
   }
 
-  if (batchType === "delete") {
+  if (batchType === "delete" || batchType === "permanent-delete") {
+    const isPermanent = batchType === "permanent-delete";
     return (
       <div
         className="fixed bottom-6 right-6 bg-white rounded-lg shadow-card p-5 flex flex-col gap-4 max-w-[450px] w-full border border-border z-[9999]"
@@ -947,9 +1023,15 @@ const MiniStatusBatch = ({
           )}
           <span className="font-semibold text-base text-text-strong truncate">
             {status === "pending"
-              ? t("upload_status.deleting")
+              ? isPermanent
+                ? "Đang xóa vĩnh viễn..."
+                : t("upload_status.deleting")
               : status === "success"
-              ? t("upload_status.delete_success")
+              ? isPermanent
+                ? "Đã xóa vĩnh viễn"
+                : t("upload_status.delete_success")
+              : isPermanent
+              ? "Xóa vĩnh viễn thất bại"
               : t("upload_status.delete_failed")}
           </span>
         </div>
@@ -1223,7 +1305,7 @@ const MiniStatus = ({
           moveItems={moveItems}
           moveTargetFolderId={moveTargetFolderId}
         />
-      ) : batchType === "delete" ? (
+      ) : batchType === "delete" || batchType === "permanent-delete" ? (
         <MiniStatusBatch
           batchType={batchType}
           batchId={batchId}

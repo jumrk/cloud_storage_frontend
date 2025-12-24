@@ -1,6 +1,46 @@
 import { NextResponse } from "next/server";
 import { decodeTokenGetUser } from "@/shared/lib/jwt";
 
+// Security headers to protect against various attacks including crypto mining
+function addSecurityHeaders(response) {
+  // Content Security Policy - Strict policy to prevent XSS and crypto mining
+  // Allow Google Drive iframes for video/file preview
+  response.headers.set(
+    "Content-Security-Policy",
+    "default-src 'self'; " +
+    "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://fonts.googleapis.com; " +
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; " +
+    "font-src 'self' https://fonts.gstatic.com; " +
+    "img-src 'self' data: https: http:; " +
+    "connect-src 'self' https: http: ws: wss:; " +
+    "frame-src 'self' https://drive.google.com https://*.googleusercontent.com https://docs.google.com; " +
+    "object-src 'none'; " +
+    "base-uri 'self'; " +
+    "form-action 'self'; " +
+    "upgrade-insecure-requests;"
+  );
+  
+  // Prevent MIME type sniffing
+  response.headers.set("X-Content-Type-Options", "nosniff");
+  
+  // Prevent clickjacking
+  response.headers.set("X-Frame-Options", "DENY");
+  
+  // Enable XSS protection
+  response.headers.set("X-XSS-Protection", "1; mode=block");
+  
+  // Referrer policy
+  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  
+  // Permissions policy - Block geolocation, microphone, camera
+  response.headers.set(
+    "Permissions-Policy",
+    "geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()"
+  );
+  
+  return response;
+}
+
 // Detect mobile from User-Agent
 function isMobileDevice(userAgent) {
   if (!userAgent) return false;
@@ -78,6 +118,7 @@ export async function middleware(request) {
   };
 
   let response = applyLocale(NextResponse.next());
+  response = addSecurityHeaders(response);
 
   let cachedProfile = null;
   const loadProfile = async () => {
@@ -101,7 +142,8 @@ export async function middleware(request) {
 
   const redirectWithLocale = (targetPath) => {
     const redirectUrl = new URL(targetPath, request.url);
-    return applyLocale(NextResponse.redirect(redirectUrl));
+    const redirectResponse = applyLocale(NextResponse.redirect(redirectUrl));
+    return addSecurityHeaders(redirectResponse);
   };
 
   const memberHomePath = "/member/file-management";

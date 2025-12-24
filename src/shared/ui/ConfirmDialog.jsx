@@ -13,9 +13,10 @@ export default function ConfirmDialog({
   cancelText = "Hủy",
 }) {
   if (!open) return null;
+  
   return (
-    <Modal onClose={onClose}>
-      <div className="p-6 w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg">
+    <Modal isOpen={open} onClose={onClose}>
+      <div className="p-6 w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg bg-white rounded-lg shadow-xl">
         <h2 className="text-lg font-bold mb-3 text-center text-text-strong">
           {title}
         </h2>
@@ -31,8 +32,12 @@ export default function ConfirmDialog({
             type="button"
             color="danger"
             handleClick={() => {
-              onConfirm && onConfirm();
-              onClose && onClose();
+              if (onConfirm) {
+                onConfirm();
+              }
+              if (onClose) {
+                onClose();
+              }
             }}
             children={confirmText}
             loading={loading}

@@ -18,7 +18,11 @@ if (apiBase) {
 }
 extraPatterns.push(
   { protocol: "http", hostname: "localhost" },
-  { protocol: "https", hostname: "localhost" }
+  { protocol: "https", hostname: "localhost" },
+  { protocol: "http", hostname: "127.0.0.1" },
+  { protocol: "https", hostname: "127.0.0.1" },
+  { protocol: "http", hostname: "::1" },
+  { protocol: "https", hostname: "::1" }
 );
 
 const nextConfig = {
@@ -34,6 +38,9 @@ const nextConfig = {
       },
       ...extraPatterns,
     ],
+    // Allow localhost images in development (Next.js 16)
+    // This suppresses the warning about private IP resolution
+    unoptimized: process.env.NODE_ENV === "development",
   },
 };
 

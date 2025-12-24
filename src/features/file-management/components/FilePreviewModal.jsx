@@ -14,16 +14,6 @@ export default function FilePreviewModal({ file, fileUrl, onClose, onOpen }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [file]); // Only run when file changes (modal opens)
 
-  useEffect(() => {
-    console.log(fileUrl);
-    if (isText && fileUrl) {
-      fetch(fileUrl)
-        .then((res) => res.text())
-        .then(setTextContent)
-        .catch(() => setTextContent(t("file.preview.cannot_preview")));
-    }
-  }, [fileUrl, isText, t]);
-
   function getEmbedUrl(url) {
     if (!url) return "";
     if (url.includes("drive.google.com") && url.includes("/view")) {

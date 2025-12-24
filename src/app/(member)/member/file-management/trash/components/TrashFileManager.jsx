@@ -370,30 +370,43 @@ export default function TrashFileManager() {
   };
 
   const handlePermanentDelete = async (item = null) => {
-    const itemsToDelete = item ? [item] : selectedItems;
+    // If item is provided, use it; otherwise use selectedItems
+    // But also check if item is an array (from ActionZone) or a single object (from CardDelete)
+    let itemsToDelete;
+    if (item !== null && item !== undefined) {
+      // If item is an array, use it directly; otherwise wrap it in an array
+      itemsToDelete = Array.isArray(item) ? item : [item];
+    } else {
+      itemsToDelete = selectedItems;
+    }
     
     if (itemsToDelete.length === 0) {
       toast.error("Vui lòng chọn file/thư mục cần xóa vĩnh viễn");
       return;
     }
 
-    setConfirmDialog({
-      open: true,
-      title: "Xóa vĩnh viễn",
-      message: `Bạn có chắc chắn muốn xóa vĩnh viễn ${itemsToDelete.length} mục? Hành động này không thể hoàn tác.`,
-      confirmText: "Xóa vĩnh viễn",
-      cancelText: "Hủy",
-      onConfirm: async () => {
-        setConfirmDialog({ open: false, title: "", message: "", onConfirm: null, loading: false });
-        
-        // Create batch for MiniStatus
-        const batchId = `permanent-delete-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
-        const batchItems = itemsToDelete.map((it) => ({
-          id: it.id,
-          name: it.name || it.originalName || it.id,
-          type: it.type,
-        }));
-        
+    // Validate items have required fields
+    const invalidItems = itemsToDelete.filter((it) => !it.id || !it.type);
+    if (invalidItems.length > 0) {
+      toast.error("Một số mục không hợp lệ");
+      return;
+    }
+    
+    const confirmCallback = async () => {
+      setConfirmDialog({ open: false, title: "", message: "", onConfirm: null, loading: false });
+      
+      // Clear selected items immediately so ActionZone disappears
+      setSelectedItems([]);
+      
+      // Create batch for MiniStatus
+      const batchId = `permanent-delete-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+      const batchItems = itemsToDelete.map((it) => ({
+        id: it.id,
+        name: it.name || it.originalName || it.id,
+        type: it.type,
+      }));
+      
+      try {
         setPermanentDeleteBatches((prev) => [
           ...prev,
           {
@@ -401,29 +414,18 @@ export default function TrashFileManager() {
             items: batchItems,
           },
         ]);
-        
-        // Execute permanent delete
-        try {
-          const items = itemsToDelete.map((it) => ({
-            id: it.id,
-            type: it.type,
-          }));
-          const res = await api.permanentDeleteItems(items, tokenRef);
-          if (res.success) {
-            setSelectedItems([]);
-            // MiniStatus will handle the completion callback
-          } else {
-            toast.error("Không thể xóa vĩnh viễn");
-            // Remove batch on error
-            setPermanentDeleteBatches((prev) => prev.filter((b) => b.id !== batchId));
-          }
-        } catch (err) {
-          console.error("Error permanently deleting items:", err);
-          toast.error("Không thể xóa vĩnh viễn");
-          // Remove batch on error
-          setPermanentDeleteBatches((prev) => prev.filter((b) => b.id !== batchId));
-        }
-      },
+      } catch (error) {
+        toast.error("Không thể tạo batch xóa");
+      }
+    };
+    
+    setConfirmDialog({
+      open: true,
+      title: "Xóa vĩnh viễn",
+      message: `Bạn có chắc chắn muốn xóa vĩnh viễn ${itemsToDelete.length} mục? Hành động này không thể hoàn tác.`,
+      confirmText: "Xóa vĩnh viễn",
+      cancelText: "Hủy",
+      onConfirm: confirmCallback,
       loading: false,
     });
   };
@@ -636,7 +638,12 @@ export default function TrashFileManager() {
                     {allItems.map((item) => (
                       <div
                         key={item.id}
-                        onClick={() => item.type === "folder" && handleFolderClick(item)}
+                        onClick={(e) => {
+                          // Only handle folder click if not clicking on buttons or inputs
+                          if (item.type === "folder" && !e.target.closest('button') && !e.target.closest('input') && !e.target.closest('label')) {
+                            handleFolderClick(item);
+                          }
+                        }}
                         className={item.type === "folder" ? "cursor-pointer" : ""}
                       >
                         <CardDelete
@@ -858,7 +865,7 @@ export default function TrashFileManager() {
       {permanentDeleteBatches.map((batch, idx) => (
         <MiniStatus
           key={batch.id}
-          batchType="delete"
+          batchType="permanent-delete"
           batchId={batch.id}
           moveItems={batch.items}
           onComplete={(result) => {
