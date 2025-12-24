@@ -4,7 +4,7 @@ module.exports = {
       name: "frontend",
       script: "node_modules/next/dist/bin/next",
       args: "start",
-      cwd: "/home/d2mbox/frontend",
+      cwd: "/home/d2mbox/app/frontend",
       exec_mode: "fork", // Next.js tự xử lý clustering nội bộ, không nên dùng cluster mode
       instances: 1, // Chỉ chạy 1 instance, Next.js sẽ tự scale
       max_memory_restart: "2G", // Giảm từ 4G xuống 2G vì chỉ 1 instance
