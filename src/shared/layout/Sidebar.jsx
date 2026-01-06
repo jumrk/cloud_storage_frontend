@@ -210,12 +210,20 @@ export default function Sidebar({
                   if (isMobile && onClose && !item.onClick) onClose();
                 };
 
+                const wrapperProps = item.tooltip
+                  ? {
+                      title: item.tooltip,
+                      className: "relative group",
+                    }
+                  : {};
+
                 return (
-                  <div key={item.key}>
+                  <div key={item.key} {...wrapperProps}>
                     {item.disabled ? (
                       <div
                         className={`${common} ${state}`}
                         aria-disabled="true"
+                        title={item.tooltip || undefined}
                       >
                         {content}
                       </div>
@@ -223,6 +231,7 @@ export default function Sidebar({
                       <button
                         className={`${common} ${state} w-full text-left`}
                         onClick={handleClick}
+                        title={item.tooltip || undefined}
                       >
                         {content}
                       </button>
@@ -231,6 +240,7 @@ export default function Sidebar({
                         href={item.href || "#"}
                         className={`${common} ${state}`}
                         onClick={handleClick}
+                        title={item.tooltip || undefined}
                       >
                         {content}
                       </Link>

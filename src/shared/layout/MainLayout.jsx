@@ -33,6 +33,10 @@ import getAvatarUrl from "@/shared/utils/getAvatarUrl";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import { useUserRole } from "@/shared/hooks/useUserRole";
+import {
+  hasVideoToolsAccess,
+  getVideoToolsAccessMessage,
+} from "@/shared/utils/videoToolsAccess";
 
 function getBasePath(pathname) {
   if (!pathname) return "";
@@ -279,6 +283,9 @@ export default function MainLayout({
     });
 
     // === Công cụ video section ===
+    const hasVideoAccess = hasVideoToolsAccess(user);
+    const videoToolsMessage = getVideoToolsAccessMessage();
+
     items.push({
       key: "section-video-tools",
       label: t("video_tools.nav.title") || "Công cụ video",
@@ -287,25 +294,45 @@ export default function MainLayout({
     });
     items.push({
       key: "video-extract-subtitle",
-      label: t("video_tools.nav.extract_subtitle") || "Trích xuất phụ đề",
+      label: hasVideoAccess
+        ? t("video_tools.nav.extract_subtitle") || "Trích xuất phụ đề"
+        : videoToolsMessage,
       icon: <FiFilm />,
-      href: slast
-        ? `/${slast}/video-tools/extract-subtitle`
-        : "/video-tools/extract-subtitle",
+      href: hasVideoAccess
+        ? slast
+          ? `/${slast}/video-tools/extract-subtitle`
+          : "/video-tools/extract-subtitle"
+        : null,
+      disabled: !hasVideoAccess,
+      tooltip: !hasVideoAccess ? videoToolsMessage : undefined,
     });
     items.push({
       key: "video-hardsub",
-      label: t("video_tools.nav.hardsub") || "Hard sub",
+      label: hasVideoAccess
+        ? t("video_tools.nav.hardsub") || "Hard sub"
+        : videoToolsMessage,
       icon: <FiVideo />,
-      href: slast ? `/${slast}/video-tools/hardsub` : "/video-tools/hardsub",
+      href: hasVideoAccess
+        ? slast
+          ? `/${slast}/video-tools/hardsub`
+          : "/video-tools/hardsub"
+        : null,
+      disabled: !hasVideoAccess,
+      tooltip: !hasVideoAccess ? videoToolsMessage : undefined,
     });
     items.push({
       key: "video-voiceover",
-      label: t("video_tools.nav.voiceover") || "Lồng tiếng",
+      label: hasVideoAccess
+        ? t("video_tools.nav.voiceover") || "Lồng tiếng"
+        : videoToolsMessage,
       icon: <FiMic />,
-      href: slast
-        ? `/${slast}/video-tools/voiceover`
-        : "/video-tools/voiceover",
+      href: hasVideoAccess
+        ? slast
+          ? `/${slast}/video-tools/voiceover`
+          : "/video-tools/voiceover"
+        : null,
+      disabled: !hasVideoAccess,
+      tooltip: !hasVideoAccess ? videoToolsMessage : undefined,
     });
 
     // Chat (direct link)
@@ -317,7 +344,7 @@ export default function MainLayout({
     });
 
     return items;
-  }, [t, slast, isLeaderUser]);
+  }, [t, slast, isLeaderUser, user]);
 
   const navSections = customNavSections || defaultNavSections;
 

@@ -1,6 +1,19 @@
 import { NextResponse } from "next/server";
 import { decodeTokenGetUser } from "@/shared/lib/jwt";
 
+// Allowed emails for video tools access
+const ALLOWED_VIDEO_TOOLS_EMAILS = [
+  "jumrk03@gmail.com",
+  "dammevietdt@gmail.com",
+];
+
+function hasVideoToolsAccess(user) {
+  if (!user || !user.email) {
+    return false;
+  }
+  return ALLOWED_VIDEO_TOOLS_EMAILS.includes(user.email.toLowerCase());
+}
+
 // Security headers to protect against various attacks including crypto mining
 function addSecurityHeaders(response) {
   // Content Security Policy - Strict policy to prevent XSS and crypto mining
@@ -163,8 +176,28 @@ export async function middleware(request) {
     return redirectWithLocale("/");
   }
 
-  // Allow video-tools routes
+  // Check video-tools access
   if (path.startsWith("/video-tools")) {
+    if (token) {
+      try {
+        const userInfo = decodeTokenGetUser(token);
+        if (!hasVideoToolsAccess({ email: userInfo?.email })) {
+          // Redirect to home if no access
+          if (role === "leader" && slast) {
+            return redirectWithLocale(`/${slast}/home`);
+          } else if (role === "member" && slast) {
+            return redirectWithLocale(`/${slast}/file-management`);
+          }
+          return redirectWithLocale("/");
+        }
+      } catch (err) {
+        // If token decode fails, redirect to login
+        return redirectWithLocale("/login");
+      }
+    } else {
+      // No token, redirect to login
+      return redirectWithLocale("/login");
+    }
     return response;
   }
 
