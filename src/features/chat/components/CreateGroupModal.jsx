@@ -4,7 +4,6 @@ import axiosClient from "@/shared/lib/axiosClient";
 import toast from "react-hot-toast";
 import Image from "next/image";
 import getAvatarUrl from "@/shared/utils/getAvatarUrl";
-
 export default function CreateGroupModal({ open, onClose, onCreated }) {
   const [name, setName] = useState("");
   const [search, setSearch] = useState("");
@@ -12,7 +11,6 @@ export default function CreateGroupModal({ open, onClose, onCreated }) {
   const [selected, setSelected] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searching, setSearching] = useState(false);
-
   useEffect(() => {
     if (!open) {
       setName("");
@@ -23,7 +21,6 @@ export default function CreateGroupModal({ open, onClose, onCreated }) {
       setSearching(false);
     }
   }, [open]);
-
   useEffect(() => {
     if (!open) return;
     if (!search.trim()) {
@@ -45,21 +42,17 @@ export default function CreateGroupModal({ open, onClose, onCreated }) {
     }, 300);
     return () => clearTimeout(timeout);
   }, [search, open]);
-
   const handleSelect = (user) => {
     if (selected.some((item) => item._id === user._id)) return;
     setSelected((prev) => [...prev, user]);
   };
-
   const handleRemove = (userId) => {
     setSelected((prev) => prev.filter((item) => item._id !== userId));
   };
-
   const canSubmit = useMemo(
     () => Boolean(name.trim()) && selected.length >= 1,
     [name, selected]
   );
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!canSubmit) return;
@@ -82,16 +75,12 @@ export default function CreateGroupModal({ open, onClose, onCreated }) {
       setLoading(false);
     }
   };
-
   if (!open) return null;
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
         <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)]">
-          <h3 className="text-lg font-semibold text-text-strong">
-            Tạo nhóm mới
-          </h3>
+          <h3 className="text-lg font-semibold text-gray-900">Tạo nhóm mới</h3>
           <button
             className="p-2 rounded-full hover:bg-[var(--color-surface-50)]"
             onClick={onClose}
@@ -102,7 +91,7 @@ export default function CreateGroupModal({ open, onClose, onCreated }) {
         </div>
         <form onSubmit={handleSubmit} className="px-5 py-4 space-y-4">
           <div>
-            <label className="text-sm font-medium text-text-strong mb-1 block">
+            <label className="text-sm font-medium text-gray-900 mb-1 block">
               Tên nhóm
             </label>
             <input
@@ -113,11 +102,11 @@ export default function CreateGroupModal({ open, onClose, onCreated }) {
             />
           </div>
           <div>
-            <label className="text-sm font-medium text-text-strong mb-1 block">
+            <label className="text-sm font-medium text-gray-900 mb-1 block">
               Thêm thành viên
             </label>
             <div className="relative">
-              <FiUserPlus className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+              <FiUserPlus className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" />
               <input
                 className="w-full pl-10 pr-3 py-2 border border-[var(--color-border)] rounded-xl focus:outline-none focus:ring-2 focus:ring-brand"
                 placeholder="Tìm theo email hoặc slast..."
@@ -126,7 +115,7 @@ export default function CreateGroupModal({ open, onClose, onCreated }) {
               />
             </div>
             {searching && (
-              <p className="text-xs text-text-muted mt-1">Đang tìm kiếm...</p>
+              <p className="text-xs text-gray-600 mt-1">Đang tìm kiếm...</p>
             )}
             {!!results.length && (
               <div className="mt-2 max-h-40 overflow-y-auto border border-[var(--color-border)] rounded-xl divide-y divide-[var(--color-border)]">
@@ -145,10 +134,10 @@ export default function CreateGroupModal({ open, onClose, onCreated }) {
                       height={36}
                     />
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-text-strong truncate">
+                      <p className="text-sm font-semibold text-gray-900 truncate">
                         {user.fullName || user.email || user.slast}
                       </p>
-                      <p className="text-xs text-text-muted truncate">
+                      <p className="text-xs text-gray-600 truncate">
                         {user.email || user.slast}
                       </p>
                     </div>
@@ -157,7 +146,6 @@ export default function CreateGroupModal({ open, onClose, onCreated }) {
               </div>
             )}
           </div>
-
           {!!selected.length && (
             <div className="flex flex-wrap gap-2">
               {selected.map((user) => (
@@ -177,11 +165,10 @@ export default function CreateGroupModal({ open, onClose, onCreated }) {
               ))}
             </div>
           )}
-
           <div className="flex justify-end gap-3 pt-2">
             <button
               type="button"
-              className="px-4 py-2 rounded-full border border-[var(--color-border)] text-text-strong hover:bg-[var(--color-surface-50)]"
+              className="px-4 py-2 rounded-full border border-[var(--color-border)] text-gray-900 hover:bg-[var(--color-surface-50)]"
               onClick={onClose}
             >
               Hủy
@@ -199,5 +186,3 @@ export default function CreateGroupModal({ open, onClose, onCreated }) {
     </div>
   );
 }
-
-

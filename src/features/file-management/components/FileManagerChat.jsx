@@ -3,9 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import { FiMessageCircle, FiX, FiSend, FiLoader } from "react-icons/fi";
 import { useTranslations } from "next-intl";
 import axiosClient from "@/shared/lib/axiosClient";
-import { sanitizeAndFormat } from "@/shared/utils/sanitizeHtml";
-
-// Sparkles icon component
+import { sanitizeAndFormat } from "@/shared/utils/sanitizeHtml"; // Sparkles icon component
 const SparklesIcon = ({ className = "text-white text-xs", size = 12 }) => (
   <svg
     width={size}
@@ -38,7 +36,8 @@ export default function FileManagerChat({
   files,
   onNavigateToFile,
   onNavigateToFolder,
-  onRefresh, // Callback to refresh file/folder list after actions
+  onRefresh, // Callback to refresh file/folder list after actions (fallback)
+  onUpdateData, // Callback to update data directly without reload (preferred)
 }) {
   const t = useTranslations();
   const [messages, setMessages] = useState([]);
@@ -46,26 +45,30 @@ export default function FileManagerChat({
   const [isLoading, setIsLoading] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
-  const [currentAssistantMessageId, setCurrentAssistantMessageId] = useState(null);
+  const [currentAssistantMessageId, setCurrentAssistantMessageId] =
+    useState(null);
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const inputRef = useRef(null);
   const closeTimeoutRef = useRef(null);
   const openTimeRef = useRef(null);
-
   const scrollToBottom = (instant = false) => {
     // Use setTimeout to ensure DOM is updated
-    setTimeout(() => {
-      if (messagesContainerRef.current) {
-        // Scroll container directly
-        messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
-      } else if (messagesEndRef.current) {
-        // Fallback to scrollIntoView
-        messagesEndRef.current.scrollIntoView({ 
-          behavior: instant ? "auto" : "smooth" 
-        });
-      }
-    }, instant ? 0 : 100);
+    setTimeout(
+      () => {
+        if (messagesContainerRef.current) {
+          // Scroll container directly
+          messagesContainerRef.current.scrollTop =
+            messagesContainerRef.current.scrollHeight;
+        } else if (messagesEndRef.current) {
+          // Fallback to scrollIntoView
+          messagesEndRef.current.scrollIntoView({
+            behavior: instant ? "auto" : "smooth",
+          });
+        }
+      },
+      instant ? 0 : 100
+    );
   };
 
   useEffect(() => {
@@ -94,8 +97,8 @@ export default function FileManagerChat({
       content: input.trim(),
       timestamp: new Date(),
     };
-
     setMessages((prev) => [...prev, userMessage]);
+
     const messageText = input.trim();
     setInput("");
     setIsLoading(true);
@@ -107,31 +110,33 @@ export default function FileManagerChat({
 
     try {
       // Build conversation history (last 10 messages, excluding the one we just added)
-      const conversationHistory = messages
-        .slice(-10)
-        .map((msg) => ({
-          role: msg.role,
-          content: msg.content,
-        }));
+      const conversationHistory = messages.slice(-10).map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+      }));
 
       // Get token for authorization
       const token =
         typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
       // Call streaming API
-      const baseURL = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000";
-      const response = await fetch(`${baseURL}/api/chat/file-management/stream`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: token ? `Bearer ${token}` : "",
-        },
-        body: JSON.stringify({
-          message: messageText,
-          currentFolderId: currentFolderId || null,
-          conversationHistory,
-        }),
-      });
+      const baseURL =
+        process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000";
+      const response = await fetch(
+        `${baseURL}/api/chat/file-management/stream`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token ? `Bearer ${token}` : "",
+          },
+          body: JSON.stringify({
+            message: messageText,
+            currentFolderId: currentFolderId || null,
+            conversationHistory,
+          }),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -151,10 +156,10 @@ export default function FileManagerChat({
         buffer = lines.pop() || "";
 
         for (const line of lines) {
-          if (line.startsWith("data: ")) {
+          if (line.startsWith("data:")) {
             try {
               const data = JSON.parse(line.slice(6));
-              
+
               if (data.type === "chunk") {
                 // Create message on first chunk, then update incrementally
                 if (!hasReceivedFirstChunk) {
@@ -194,18 +199,31 @@ export default function FileManagerChat({
                           content: data.response || msg.content,
                           // Actions, files, folders will be shown after text finishes typing
                           actions: data.actions || [],
-                          actionResults: data.actionResults || [], // Results from backend execution
+                          actionResults: data.actionResults || [],
+                          // Results from backend execution
                           files: data.files || [],
                           folders: data.folders || [],
                         }
                       : msg
                   )
                 );
-
                 // Backend has already executed actions automatically
-                // Refresh UI if actions were executed successfully
-                if (data.actionResults && data.actionResults.length > 0) {
-                  const hasSuccessfulActions = data.actionResults.some((result) => result.success);
+                // Update UI with updated data if available (preferred method)
+                if (data.updatedData && Array.isArray(data.updatedData) && data.updatedData.length >= 0) {
+                  // Use updatedData to update UI directly without reload
+                  if (onUpdateData) {
+                    onUpdateData(data.updatedData);
+                  } else if (onRefresh) {
+                    // Fallback to refresh if onUpdateData is not provided
+                    setTimeout(() => {
+                      onRefresh();
+                    }, 500);
+                  }
+                } else if (data.actionResults && data.actionResults.length > 0) {
+                  // Fallback: if no updatedData but actions were executed, refresh
+                  const hasSuccessfulActions = data.actionResults.some(
+                    (result) => result.success
+                  );
                   if (hasSuccessfulActions && onRefresh) {
                     // Wait a bit for backend to finish, then refresh
                     setTimeout(() => {
@@ -213,13 +231,18 @@ export default function FileManagerChat({
                     }, 1000);
                   }
                 }
-
                 // Handle navigation actions
                 if (data.actions && data.actions.length > 0) {
                   data.actions.forEach((action) => {
                     if (action.type === "navigate") {
-                      if (action.target === "file" && action.id && onNavigateToFile) {
-                        const file = files.find((f) => (f._id || f.id) === action.id);
+                      if (
+                        action.target === "file" &&
+                        action.id &&
+                        onNavigateToFile
+                      ) {
+                        const file = files.find(
+                          (f) => (f._id || f.id) === action.id
+                        );
                         if (file) {
                           setTimeout(() => onNavigateToFile(file), 500);
                         }
@@ -241,7 +264,9 @@ export default function FileManagerChat({
               } else if (data.type === "error") {
                 // Handle error: create message if doesn't exist, or update existing one
                 setMessages((prev) => {
-                  const existingMessage = prev.find((msg) => msg.id === assistantMessageId);
+                  const existingMessage = prev.find(
+                    (msg) => msg.id === assistantMessageId
+                  );
                   if (existingMessage) {
                     // Update existing message with error
                     return prev.map((msg) =>
@@ -278,10 +303,11 @@ export default function FileManagerChat({
       console.error("Chat API Error:", error);
       const errorMessage =
         error.message || "Có lỗi xảy ra khi gửi tin nhắn. Vui lòng thử lại.";
-      
       // Create error message if no message was created yet
       setMessages((prev) => {
-        const existingMessage = prev.find((msg) => msg.id === assistantMessageId);
+        const existingMessage = prev.find(
+          (msg) => msg.id === assistantMessageId
+        );
         if (existingMessage) {
           return prev.map((msg) =>
             msg.id === assistantMessageId
@@ -318,14 +344,11 @@ export default function FileManagerChat({
 
   const handleClose = () => {
     if (isClosing) return; // Prevent multiple close calls
-
     setIsClosing(true);
-
     // Clear any existing timeout
     if (closeTimeoutRef.current) {
       clearTimeout(closeTimeoutRef.current);
     }
-
     closeTimeoutRef.current = setTimeout(() => {
       setIsClosing(false);
       setIsVisible(false);
@@ -334,7 +357,7 @@ export default function FileManagerChat({
       if (onClose) {
         onClose();
       }
-    }, 300); // Match animation duration
+    }, 350); // Slightly longer to ensure animation completes
   };
 
   useEffect(() => {
@@ -342,7 +365,6 @@ export default function FileManagerChat({
       // Track when we opened
       openTimeRef.current = Date.now();
       setIsVisible(true);
-
       // Clear any pending close timeout
       if (closeTimeoutRef.current) {
         clearTimeout(closeTimeoutRef.current);
@@ -380,14 +402,15 @@ export default function FileManagerChat({
         }`}
         onClick={handleClose}
       />
-
       {/* Chat Panel */}
       <div
-        className={`fixed right-0 top-0 h-screen w-full md:w-[420px] flex flex-col z-50 shadow-2xl ${
-          isClosing ? "animate-slide-out-right" : "animate-slide-in-right"
+        className={`fixed right-0 top-0 h-screen w-full md:w-[420px] flex flex-col z-50 shadow-2xl transition-transform duration-300 ease-out ${
+          isClosing ? "translate-x-full" : "translate-x-0"
         }`}
         style={{
           background: "linear-gradient(to bottom, #ffffff 0%, #ebf2f7 100%)",
+          transform:
+            isVisible && !isClosing ? "translateX(0)" : "translateX(100%)",
         }}
       >
         {/* Close Button - Only show on mobile */}
@@ -396,14 +419,13 @@ export default function FileManagerChat({
             e.stopPropagation();
             handleClose();
           }}
-          className="absolute top-4 right-4 z-[60] text-text-muted hover:text-text-strong hover:bg-surface-50 rounded-lg p-2 transition-colors md:hidden"
+          className="absolute top-4 right-4 z-[60] text-gray-600 hover:text-gray-900 hover:bg-white rounded-lg p-2 transition-colors md:hidden"
           aria-label="Đóng chat"
         >
           <FiX className="text-lg" />
         </button>
-
         {/* Messages */}
-        <div 
+        <div
           ref={messagesContainerRef}
           className="flex-1 overflow-y-auto p-4 space-y-4 sidebar-scrollbar relative"
         >
@@ -428,13 +450,12 @@ export default function FileManagerChat({
               />
             </>
           )}
-
           {messages.length === 0 && !isLoading ? (
             <div className="flex flex-col items-center justify-center h-full -mt-20 relative z-10">
               <div className="mb-4">
                 <SparklesIcon className="text-[#0e5f9b]" size={48} />
               </div>
-              <p className="text-text-strong font-medium text-base mb-8">
+              <p className="text-gray-900 font-medium text-base mb-8">
                 Hỏi AI của chúng tôi bất cứ điều gì
               </p>
             </div>
@@ -451,7 +472,7 @@ export default function FileManagerChat({
                     className={`max-w-[85%] rounded-lg px-4 py-3 ${
                       message.role === "user"
                         ? "bg-[#ebf2f7] text-[#0e5f9b] border border-[#b6cfe1]/50 transition-all"
-                        : "bg-white text-text-strong border border-[#b6cfe1]/50 transition-all"
+                        : "bg-white text-gray-900 border border-[#b6cfe1]/50 transition-all"
                     }`}
                   >
                     {message.role === "assistant" && (
@@ -467,11 +488,12 @@ export default function FileManagerChat({
                           __html: sanitizeAndFormat(message.content),
                         }}
                       />
-                      
                       {/* Display actions and their results */}
                       {message.actions && message.actions.length > 0 && (
                         <div className="mt-3 pt-3 border-t border-[#e2e8f0]">
-                          <p className="text-xs font-medium text-text-muted mb-1.5">Thao tác:</p>
+                          <p className="text-xs font-medium text-gray-600 mb-1.5">
+                            Thao tác:
+                          </p>
                           <div className="flex flex-wrap gap-2">
                             {message.actions.map((action, idx) => {
                               // Find corresponding result
@@ -480,21 +502,23 @@ export default function FileManagerChat({
                               );
                               const isSuccess = result?.success;
                               const hasError = result && !result.success;
-                              
                               let actionLabel = "";
                               let actionIcon = "⚡";
-                              
                               switch (action.type) {
                                 case "create_folder":
-                                  actionLabel = isSuccess 
-                                    ? `Đã tạo: ${action.name || "Mới"}` 
+                                  actionLabel = isSuccess
+                                    ? `Đã tạo: ${action.name || "Mới"}`
                                     : `Tạo thư mục: ${action.name || "Mới"}`;
                                   actionIcon = isSuccess ? "✅" : "📁";
                                   break;
                                 case "move_files":
                                   actionLabel = isSuccess
-                                    ? `Đã di chuyển ${action.items?.length || 0} mục`
-                                    : `Di chuyển ${action.items?.length || 0} mục`;
+                                    ? `Đã di chuyển ${
+                                        action.items?.length || 0
+                                      } mục`
+                                    : `Di chuyển ${
+                                        action.items?.length || 0
+                                      } mục`;
                                   actionIcon = isSuccess ? "✅" : "📦";
                                   break;
                                 case "rename":
@@ -510,8 +534,12 @@ export default function FileManagerChat({
                                   actionIcon = isSuccess ? "✅" : "🗑️";
                                   break;
                                 case "navigate":
-                                  actionLabel = action.target === "file" ? "Mở file" : "Mở thư mục";
-                                  actionIcon = action.target === "file" ? "📄" : "📁";
+                                  actionLabel =
+                                    action.target === "file"
+                                      ? "Mở file"
+                                      : "Mở thư mục";
+                                  actionIcon =
+                                    action.target === "file" ? "📄" : "📁";
                                   break;
                                 case "search":
                                   actionLabel = isSuccess
@@ -522,7 +550,6 @@ export default function FileManagerChat({
                                 default:
                                   actionLabel = action.type;
                               }
-                              
                               return (
                                 <div
                                   key={idx}
@@ -540,7 +567,9 @@ export default function FileManagerChat({
                                   }
                                 >
                                   <span>{actionIcon}</span>
-                                  <span className="max-w-[200px] truncate">{actionLabel}</span>
+                                  <span className="max-w-[200px] truncate">
+                                    {actionLabel}
+                                  </span>
                                   {hasError && (
                                     <span className="text-[10px] opacity-75 ml-1">
                                       ({result.error})
@@ -550,20 +579,23 @@ export default function FileManagerChat({
                               );
                             })}
                           </div>
-                          {message.actionResults && message.actionResults.some((r) => r.success) && (
-                            <p className="text-xs text-emerald-600 mt-2">
-                              ✓ Các thao tác đã được thực hiện tự động
-                            </p>
-                          )}
+                          {message.actionResults &&
+                            message.actionResults.some((r) => r.success) && (
+                              <p className="text-xs text-emerald-600 mt-2">
+                                ✓ Các thao tác đã được thực hiện tự động
+                              </p>
+                            )}
                         </div>
                       )}
-                      
                       {/* Display files and folders as interactive buttons */}
-                      {(message.files && message.files.length > 0) || (message.folders && message.folders.length > 0) ? (
+                      {(message.files && message.files.length > 0) ||
+                      (message.folders && message.folders.length > 0) ? (
                         <div className="mt-3 pt-3 border-t border-[#e2e8f0]">
                           {message.folders && message.folders.length > 0 && (
                             <div className="mb-2">
-                              <p className="text-xs font-medium text-text-muted mb-1.5">Thư mục:</p>
+                              <p className="text-xs font-medium text-gray-600 mb-1.5">
+                                Thư mục:
+                              </p>
                               <div className="flex flex-wrap gap-2">
                                 {message.folders.map((folder, idx) => (
                                   <button
@@ -576,7 +608,9 @@ export default function FileManagerChat({
                                     className="text-xs px-3 py-1.5 rounded-lg bg-[#ebf2f7] text-[#0e5f9b] hover:bg-[#dae7f0] transition-all border border-[#b6cfe1]/50 flex items-center gap-1.5"
                                   >
                                     <span>📁</span>
-                                    <span className="max-w-[150px] truncate">{folder.name}</span>
+                                    <span className="max-w-[150px] truncate">
+                                      {folder.name}
+                                    </span>
                                   </button>
                                 ))}
                               </div>
@@ -584,7 +618,9 @@ export default function FileManagerChat({
                           )}
                           {message.files && message.files.length > 0 && (
                             <div>
-                              <p className="text-xs font-medium text-text-muted mb-1.5">Tệp tin:</p>
+                              <p className="text-xs font-medium text-gray-600 mb-1.5">
+                                Tệp tin:
+                              </p>
                               <div className="flex flex-wrap gap-2">
                                 {message.files.map((file, idx) => (
                                   <button
@@ -597,7 +633,9 @@ export default function FileManagerChat({
                                     className="text-xs px-3 py-1.5 rounded-lg bg-[#ebf2f7] text-[#0e5f9b] hover:bg-[#dae7f0] transition-all border border-[#b6cfe1]/50 flex items-center gap-1.5"
                                   >
                                     <span>📄</span>
-                                    <span className="max-w-[150px] truncate">{file.name}</span>
+                                    <span className="max-w-[150px] truncate">
+                                      {file.name}
+                                    </span>
                                   </button>
                                 ))}
                               </div>
@@ -610,7 +648,7 @@ export default function FileManagerChat({
                       className={`text-xs mt-2 block ${
                         message.role === "user"
                           ? "text-[#0e5f9b]/70"
-                          : "text-text-muted"
+                          : "text-gray-600"
                       }`}
                     >
                       {message.timestamp.toLocaleTimeString("vi-VN", {
@@ -622,36 +660,41 @@ export default function FileManagerChat({
                 </div>
               ))}
               {/* Loading indicator - only show when loading and no assistant message yet */}
-              {isLoading && currentAssistantMessageId && !messages.some((msg) => msg.role === "assistant" && msg.id === currentAssistantMessageId) && (
-                <div className="flex justify-start">
-                  <div className="bg-white border border-[#b6cfe1]/50 rounded-lg px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-[#0e5f9b] flex items-center justify-center">
-                        <SparklesIcon size={16} />
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <div
-                          className="w-2 h-2 rounded-full bg-[#0e5f9b] animate-bounce"
-                          style={{ animationDelay: "0s" }}
-                        ></div>
-                        <div
-                          className="w-2 h-2 rounded-full bg-[#0e5f9b] animate-bounce"
-                          style={{ animationDelay: "0.15s" }}
-                        ></div>
-                        <div
-                          className="w-2 h-2 rounded-full bg-[#0e5f9b] animate-bounce"
-                          style={{ animationDelay: "0.3s" }}
-                        ></div>
+              {isLoading &&
+                currentAssistantMessageId &&
+                !messages.some(
+                  (msg) =>
+                    msg.role === "assistant" &&
+                    msg.id === currentAssistantMessageId
+                ) && (
+                  <div className="flex justify-start">
+                    <div className="bg-white border border-[#b6cfe1]/50 rounded-lg px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-[#0e5f9b] flex items-center justify-center">
+                          <SparklesIcon size={16} />
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <div
+                            className="w-2 h-2 rounded-full bg-[#0e5f9b] animate-bounce"
+                            style={{ animationDelay: "0s" }}
+                          ></div>
+                          <div
+                            className="w-2 h-2 rounded-full bg-[#0e5f9b] animate-bounce"
+                            style={{ animationDelay: "0.15s" }}
+                          ></div>
+                          <div
+                            className="w-2 h-2 rounded-full bg-[#0e5f9b] animate-bounce"
+                            style={{ animationDelay: "0.3s" }}
+                          ></div>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
             </div>
           )}
           <div ref={messagesEndRef} />
         </div>
-
         {/* Suggestions */}
         {messages.length === 0 && (
           <div className="px-4 pt-4 pb-2">
@@ -684,7 +727,6 @@ export default function FileManagerChat({
             </div>
           </div>
         )}
-
         {/* Input */}
         <div className="border-t border-[#e2e8f0]/50 p-4">
           <div className="flex items-center gap-2">
@@ -698,7 +740,7 @@ export default function FileManagerChat({
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyPress}
                 placeholder="Hỏi tôi bất cứ điều gì về file của bạn"
-                className="w-full  resize-none rounded-xl border border-[#e2e8f0] bg-white pl-12 pr-12 py-3 text-sm text-text-strong placeholder:text-[#94a3b8] focus:outline-none focus:ring-2 focus:ring-[#0e5f9b]/30 focus:border-[#0e5f9b] transition-all max-h-32"
+                className="w-full resize-none rounded-xl border border-[#e2e8f0] bg-white pl-12 pr-12 py-3 text-sm text-gray-900 placeholder:text-[#94a3b8] focus:outline-none focus:ring-2 focus:ring-[#0e5f9b]/30 focus:border-[#0e5f9b] transition-all max-h-32"
               />
             </div>
             <button

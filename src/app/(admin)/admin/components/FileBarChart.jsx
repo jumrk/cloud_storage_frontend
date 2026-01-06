@@ -9,7 +9,6 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
-
 const COLORS = [
   "#b7e4c7",
   "#a5d8ff",
@@ -18,13 +17,11 @@ const COLORS = [
   "#ffe066",
   "#ffb3c6",
 ];
-
 const FILTERS = [
   { label: "Tuần", value: "week" },
   { label: "Tháng", value: "month" },
   { label: "Năm", value: "year" },
 ];
-
 export default function FileBarChart({
   data,
   filter,
@@ -57,8 +54,7 @@ export default function FileBarChart({
           <BarChart data={data}>
             <CartesianGrid stroke="#f1f3f4" strokeDasharray="3 3" />
             <XAxis dataKey="type" tick={{ fontSize: 13 }} />
-            <YAxis tick={{ fontSize: 13 }} />
-            <Tooltip />
+            <YAxis tick={{ fontSize: 13 }} /> <Tooltip />
             <Bar dataKey="count" radius={[8, 8, 0, 0]}>
               {data.map((entry, index) => (
                 <Cell
@@ -73,4 +69,3 @@ export default function FileBarChart({
     </div>
   );
 }
-

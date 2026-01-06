@@ -165,7 +165,26 @@
     "logout": "Logout",
     "login": "Login",
     "logout_success": "Logout successful!",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "account_info": "Account info"
+  },
+  "user_menu": {
+    "total": "Total",
+    "remaining": "Remaining",
+    "credits": "credits",
+    "workspace": "Workspace",
+    "my_workspace": "My Workspace",
+    "account_info": "Account Info",
+    "member_management": "Member Management",
+    "settings": "Settings",
+    "subscription": "Subscription",
+    "free": "Free",
+    "theme": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "language": "Language",
+    "vietnamese": "Tiếng Việt",
+    "english": "English"
   },
   "tour": {
     "step": "Step {current} / {total}",
@@ -683,6 +702,62 @@
       "send_success": "Request sent successfully!",
       "send_failed": "Failed to send request."
     },
+    "account_settings": {
+      "title": "Settings",
+      "subtitle": "Manage your profile and workspace memberships.",
+      "tabs": {
+        "profile": "Profile",
+        "member_management": "Member Management"
+      },
+      "profile": {
+        "email_address": "E-Mail Address",
+        "change_password": "Change Password",
+        "given_name": "Given Name",
+        "update_given_name": "Update Given Name",
+        "current_plan": "Current Plan",
+        "manage_subscription": "Manage Subscription",
+        "share_to_explore": "Share to Explore",
+        "share_to_explore_desc": "Opt-in to allow certain creations to be shared publicly.",
+        "manage_sharing": "Manage Sharing",
+        "default_sharing_preferences": "Default Sharing Preferences",
+        "no_default_groups": "No default groups selected",
+        "manage_default_sharing": "Manage Default Sharing",
+        "two_factor_auth": "Two-Factor Authentication",
+        "two_factor_disabled": "Disabled",
+        "add_two_factor": "Add Two-Factor Authentication",
+        "comment_notifications": "Comment Notifications",
+        "comment_notifications_desc": "Manage your email notification preferences for comments",
+        "manage_notifications": "Manage Notifications",
+        "application_language": "Application language",
+        "save": "Save",
+        "cancel": "Cancel",
+        "days_until_expiry": "Expires in {days} days",
+        "update_success": "Update successful",
+        "update_failed": "Update failed",
+        "avatar_update_success": "Avatar updated successfully",
+        "avatar_update_failed": "Failed to update avatar",
+        "cannot_load_user": "Cannot load user information",
+        "phone": "Phone Number",
+        "date_of_birth": "Date of Birth",
+        "update": "Update",
+        "update_given_name_title": "Update Given Name",
+        "update_given_name_desc": "Update your given name by entering a new one.",
+        "update_given_name_label": "New given name",
+        "update_phone_title": "Update Phone Number",
+        "update_phone_desc": "Update your phone number by entering a new one.",
+        "update_phone_label": "New phone number",
+        "update_date_of_birth_title": "Update Date of Birth",
+        "update_date_of_birth_desc": "Update your date of birth by selecting a new date.",
+        "update_date_of_birth_label": "New date of birth",
+        "update_avatar_title": "Update Avatar",
+        "update_avatar_desc": "Update your profile picture by selecting a new image.",
+        "update_avatar_label": "Select image",
+        "profile_picture": "Profile Picture",
+        "choose_image": "Choose Image",
+        "change_image": "Change Image",
+        "no_value": "Not set"
+      }
+    },
     "terms": {
       "title": "Terms of Service",
       "last_updated": "Last updated: 22/07/2025",
@@ -1198,7 +1273,9 @@
   },
   "sidebar": {
     "logout_success": "Logout successful!",
+    "dashboard": "Dashboard",
     "home": "Home",
+    "my_files": "My Files",
     "file_management": "File management",
     "shared": "Shared files",
     "trash": "Trash",
@@ -1258,6 +1335,7 @@
   },
   "job_management": {
     "nav": {
+      "title": "Job Management",
       "workspace": "Workspace",
       "assigned": "Assigned to me",
       "recent": "Recent",
@@ -1465,6 +1543,7 @@
   },
   "video_tools": {
     "nav": {
+      "title": "Video Tools",
       "extract_subtitle": "Extract Subtitle",
       "hardsub": "Hardsub",
       "voiceover": "Voiceover"

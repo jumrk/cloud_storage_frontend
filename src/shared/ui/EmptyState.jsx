@@ -1,6 +1,5 @@
 import Lottie from "lottie-react";
 import Empty from "@/assets/animation/Empty.json";
-
 export default function EmptyState({
   message = "Không có dữ liệu",
   height = 220,

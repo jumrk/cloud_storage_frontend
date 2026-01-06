@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { FaBars } from "react-icons/fa";
@@ -20,17 +19,29 @@ export default function NotificationLayout({ children }) {
   const t = useTranslations();
   const router = useRouter();
   const pathname = usePathname();
-
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [myId, setMyId] = useState(null);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
     const token =
       typeof window !== "undefined" ? localStorage.getItem("token") : null;
     if (!token) return;
-    const user = decodeTokenGetUser(token);
-    setMyId(user?.id || user?._id || null);
+    const userInfo = decodeTokenGetUser(token);
+    setMyId(userInfo?.id || userInfo?._id || null);
+    setUser(userInfo);
+    // Fetch full user data from API
+    axiosClient
+      .get("/api/user")
+      .then((res) => {
+        if (res?.data) {
+          setUser((prev) => ({ ...prev, ...res.data }));
+        }
+      })
+      .catch(() => {
+        /* ignore */
+      });
   }, []);
 
   const updateUnreadCount = useCallback(async () => {
@@ -47,7 +58,7 @@ export default function NotificationLayout({ children }) {
       if (msg && msg.type === "notification:new") {
         updateUnreadCount();
       }
-    }
+    },
   );
 
   useEffect(() => {
@@ -66,7 +77,7 @@ export default function NotificationLayout({ children }) {
         badge: unreadCount,
       },
     ],
-    [t, basePath, unreadCount]
+    [t, basePath, unreadCount],
   );
 
   const handleLogout = async () => {
@@ -86,9 +97,11 @@ export default function NotificationLayout({ children }) {
           onLogout={handleLogout}
           logoutLabel={t("sidebar.logout")}
           logoSrc="/images/Logo_2.png"
+          user={user}
+          router={router}
+          t={t}
         />
       </div>
-
       <Sidebar
         isMobile
         open={sidebarOpen}
@@ -97,8 +110,10 @@ export default function NotificationLayout({ children }) {
         onLogout={handleLogout}
         logoutLabel={t("sidebar.logout")}
         logoSrc="/images/Logo_2.png"
+        user={user}
+        router={router}
+        t={t}
       />
-
       {!sidebarOpen && (
         <button
           className="fixed left-4 top-4 z-50 rounded-full border border-[var(--color-border)] bg-white p-2 shadow md:hidden hover:bg-[var(--color-surface-50)]"
@@ -108,9 +123,7 @@ export default function NotificationLayout({ children }) {
           <FaBars className="text-xl text-[var(--color-text-muted)]" />
         </button>
       )}
-
       <main className="flex-1 overflow-auto">{children}</main>
     </div>
   );
 }
-

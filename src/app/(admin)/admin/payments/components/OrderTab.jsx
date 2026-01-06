@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useState } from "react";
 import { FiEye } from "react-icons/fi";
 import toast from "react-hot-toast";
@@ -8,31 +7,26 @@ import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import axiosClient from "@/shared/lib/axiosClient";
 import EmptyState from "@/shared/ui/EmptyState";
-
 const STATUS_LABEL = {
   pending: "Chờ duyệt",
   paid: "Hoàn thành",
   cancelled: "Đã huỷ",
 };
-
 const ORDER_TYPE_LABEL = {
   register: "Đơn mới",
   renew: "Gia hạn",
   upgrade: "Nâng cấp",
   downgrade: "Hạ cấp",
 };
-
 function formatPrice(price) {
   if (!price) return "Miễn phí";
   return price.toLocaleString("vi-VN") + "₫";
 }
-
 function formatDate(dateStr) {
   if (!dateStr) return "";
   const d = new Date(dateStr);
   return d.toLocaleString("vi-VN");
 }
-
 export default function OrderTab({
   orders,
   loading,
@@ -51,19 +45,16 @@ export default function OrderTab({
   const [showRejectReason, setShowRejectReason] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
-
   const handleOpenModal = (order) => {
     setModalOrder(order);
     setShowRejectReason(false);
     setRejectReason("");
   };
-
   const handleCloseModal = () => {
     setModalOrder(null);
     setShowRejectReason(false);
     setRejectReason("");
   };
-
   const handleApprove = async () => {
     if (!modalOrder) return;
     setApproving(true);
@@ -73,9 +64,7 @@ export default function OrderTab({
       const res = await axiosClient.patch(
         "/api/admin/orders",
         { orderId: modalOrder._id, action: "approve" },
-        {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        }
+        { headers: token ? { Authorization: `Bearer ${token}` } : {} },
       );
       if (res.data.success) {
         toast.success("Duyệt đơn thành công!");
@@ -90,7 +79,6 @@ export default function OrderTab({
       setApproving(false);
     }
   };
-
   const handleReject = async () => {
     if (!modalOrder || !rejectReason.trim()) return;
     setRejecting(true);
@@ -100,9 +88,7 @@ export default function OrderTab({
       const res = await axiosClient.patch(
         "/api/admin/orders",
         { orderId: modalOrder._id, action: "reject", reason: rejectReason },
-        {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        }
+        { headers: token ? { Authorization: `Bearer ${token}` } : {} },
       );
       if (res.data.success) {
         toast.success("Đã từ chối đơn hàng!");
@@ -117,11 +103,9 @@ export default function OrderTab({
       setRejecting(false);
     }
   };
-
   const filteredOrders = Array.isArray(orders)
     ? orders.filter((order) => (typeFilter ? order.type === typeFilter : true))
     : [];
-
   return (
     <>
       <div className="flex flex-col md:flex-row md:items-center gap-2 mb-4">
@@ -237,8 +221,8 @@ export default function OrderTab({
                         order.status === "paid"
                           ? "bg-green-100 text-green-700"
                           : order.status === "pending"
-                          ? "bg-yellow-100 text-yellow-700"
-                          : "bg-red-100 text-red-700"
+                            ? "bg-yellow-100 text-yellow-700"
+                            : "bg-red-100 text-red-700"
                       } group-hover:scale-105`}
                     >
                       {STATUS_LABEL[order.status]}
@@ -280,7 +264,7 @@ export default function OrderTab({
         </div>
       )}
       {modalOrder && (
-        <Modal onClose={handleCloseModal}>
+        <Modal isOpen={!!modalOrder} onClose={handleCloseModal}>
           <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md relative">
             <button
               className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-xl"
@@ -292,7 +276,7 @@ export default function OrderTab({
             <div className="mb-4">
               <div className="text-lg font-bold mb-1">Chi tiết đơn hàng</div>
               <div className="text-sm text-gray-500 mb-2">
-                Mã đơn:{" "}
+                Mã đơn:{""}
                 <span className="font-mono text-xs">{modalOrder._id}</span>
               </div>
               <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
@@ -327,8 +311,8 @@ export default function OrderTab({
                       modalOrder.status === "paid"
                         ? "bg-green-100 text-green-700"
                         : modalOrder.status === "pending"
-                        ? "bg-yellow-100 text-yellow-700"
-                        : "bg-red-100 text-red-700"
+                          ? "bg-yellow-100 text-yellow-700"
+                          : "bg-red-100 text-red-700"
                     }`}
                   >
                     {STATUS_LABEL[modalOrder.status]}
@@ -358,7 +342,10 @@ export default function OrderTab({
                     </button>
                   </div>
                 ) : (
-                  <Modal onClose={() => setShowRejectReason(false)}>
+                  <Modal
+                    isOpen={showRejectReason}
+                    onClose={() => setShowRejectReason(false)}
+                  >
                     <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-xs">
                       <div className="font-semibold text-lg mb-2 text-red-600">
                         Lý do không duyệt
@@ -398,5 +385,3 @@ export default function OrderTab({
     </>
   );
 }
-
-

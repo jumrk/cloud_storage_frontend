@@ -7,9 +7,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-
 const COLORS = ["#b7e4c7", "#ffd6a5", "#a5d8ff", "#f1f3f4"];
-
 export default function GoogleAccountPieChart({
   data,
   loading,
@@ -45,12 +43,10 @@ export default function GoogleAccountPieChart({
                 />
               ))}
             </Pie>
-            <Tooltip />
-            <Legend />
+            <Tooltip /> <Legend />
           </PieChart>
         </ResponsiveContainer>
       )}
     </div>
   );
 }
-

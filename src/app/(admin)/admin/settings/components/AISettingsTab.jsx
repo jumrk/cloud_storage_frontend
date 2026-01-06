@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useState, useRef, useEffect } from "react";
 import { FiSave, FiLoader, FiChevronDown } from "react-icons/fi";
 import Popover from "@/shared/ui/Popover";
@@ -14,13 +13,19 @@ const MODELS = {
     { value: "gpt-3.5-turbo", label: "GPT-3.5 Turbo" },
   ],
   anthropic: [
-    { value: "claude-3-5-sonnet-20241022", label: "Claude 3.5 Sonnet (Latest)" },
+    {
+      value: "claude-3-5-sonnet-20241022",
+      label: "Claude 3.5 Sonnet (Latest)",
+    },
     { value: "claude-3-opus-20240229", label: "Claude 3 Opus" },
     { value: "claude-3-sonnet-20240229", label: "Claude 3 Sonnet" },
     { value: "claude-3-haiku-20240307", label: "Claude 3 Haiku" },
   ],
   google: [
-    { value: "gemini-3-flash-preview", label: "Gemini 3 Flash (Preview) - Mới nhất" },
+    {
+      value: "gemini-3-flash-preview",
+      label: "Gemini 3 Flash (Preview) - Mới nhất",
+    },
     { value: "gemini-3-pro", label: "Gemini 3 Pro - Thông minh nhất" },
     { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
     { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
@@ -36,7 +41,12 @@ const PROVIDERS = [
   { value: "google", label: "Google (Gemini)" },
 ];
 
-export default function AISettingsTab({ settings, setSettings, loading, onSave }) {
+export default function AISettingsTab({
+  settings,
+  setSettings,
+  loading,
+  onSave,
+}) {
   const [providerDropdownOpen, setProviderDropdownOpen] = useState(false);
   const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
   const providerRef = useRef(null);
@@ -45,7 +55,10 @@ export default function AISettingsTab({ settings, setSettings, loading, onSave }
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (providerRef.current && !providerRef.current.contains(event.target)) {
+      if (
+        providerRef.current &&
+        !providerRef.current.contains(event.target)
+      ) {
         setProviderDropdownOpen(false);
       }
       if (modelRef.current && !modelRef.current.contains(event.target)) {
@@ -72,11 +85,15 @@ export default function AISettingsTab({ settings, setSettings, loading, onSave }
   };
 
   const handleModelSelect = (model) => {
-    setSettings({ ...settings, model });
+    setSettings({
+      ...settings,
+      model,
+    });
     setModelDropdownOpen(false);
   };
 
-  const currentProviderLabel = PROVIDERS.find((p) => p.value === settings.provider)?.label || "";
+  const currentProviderLabel =
+    PROVIDERS.find((p) => p.value === settings.provider)?.label || "";
   const availableModels = MODELS[settings.provider] || [];
 
   return (
@@ -106,7 +123,10 @@ export default function AISettingsTab({ settings, setSettings, loading, onSave }
               type="checkbox"
               checked={settings.enabled}
               onChange={(e) =>
-                setSettings({ ...settings, enabled: e.target.checked })
+                setSettings({
+                  ...settings,
+                  enabled: e.target.checked,
+                })
               }
               className="sr-only peer"
             />
@@ -124,7 +144,9 @@ export default function AISettingsTab({ settings, setSettings, loading, onSave }
               <div className="relative" ref={providerRef}>
                 <button
                   type="button"
-                  onClick={() => setProviderDropdownOpen(!providerDropdownOpen)}
+                  onClick={() =>
+                    setProviderDropdownOpen(!providerDropdownOpen)
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white flex items-center justify-between"
                 >
                   <span>{currentProviderLabel}</span>
@@ -135,7 +157,10 @@ export default function AISettingsTab({ settings, setSettings, loading, onSave }
                   />
                 </button>
                 {providerDropdownOpen && (
-                  <div className="fixed inset-0 z-40" onClick={() => setProviderDropdownOpen(false)} />
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setProviderDropdownOpen(false)}
+                  />
                 )}
                 <Popover
                   open={providerDropdownOpen}
@@ -170,7 +195,10 @@ export default function AISettingsTab({ settings, setSettings, loading, onSave }
                 type="password"
                 value={settings.apiKey}
                 onChange={(e) =>
-                  setSettings({ ...settings, apiKey: e.target.value })
+                  setSettings({
+                    ...settings,
+                    apiKey: e.target.value,
+                  })
                 }
                 placeholder="Nhập API key..."
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
@@ -191,7 +219,10 @@ export default function AISettingsTab({ settings, setSettings, loading, onSave }
                     type="text"
                     value={settings.model}
                     onChange={(e) =>
-                      setSettings({ ...settings, model: e.target.value })
+                      setSettings({
+                        ...settings,
+                        model: e.target.value,
+                      })
                     }
                     onFocus={() => setModelDropdownOpen(true)}
                     placeholder="Nhập tên model hoặc chọn từ danh sách..."
@@ -199,7 +230,9 @@ export default function AISettingsTab({ settings, setSettings, loading, onSave }
                   />
                   <button
                     type="button"
-                    onClick={() => setModelDropdownOpen(!modelDropdownOpen)}
+                    onClick={() =>
+                      setModelDropdownOpen(!modelDropdownOpen)
+                    }
                     className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition flex items-center"
                   >
                     <FiChevronDown
@@ -210,7 +243,10 @@ export default function AISettingsTab({ settings, setSettings, loading, onSave }
                   </button>
                 </div>
                 {modelDropdownOpen && (
-                  <div className="fixed inset-0 z-40" onClick={() => setModelDropdownOpen(false)} />
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setModelDropdownOpen(false)}
+                  />
                 )}
                 <Popover
                   open={modelDropdownOpen}
@@ -232,7 +268,9 @@ export default function AISettingsTab({ settings, setSettings, loading, onSave }
                         }`}
                       >
                         <div className="font-medium">{model.label}</div>
-                        <div className="text-xs text-gray-500">{model.value}</div>
+                        <div className="text-xs text-gray-500">
+                          {model.value}
+                        </div>
                       </button>
                     ))}
                     {availableModels.length === 0 && (
@@ -244,7 +282,8 @@ export default function AISettingsTab({ settings, setSettings, loading, onSave }
                 </Popover>
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                Bạn có thể nhập tên model tùy chỉnh hoặc chọn từ danh sách gợi ý
+                Bạn có thể nhập tên model tùy chỉnh hoặc chọn từ danh sách gợi
+                ý
               </p>
             </div>
 
@@ -327,4 +366,3 @@ export default function AISettingsTab({ settings, setSettings, loading, onSave }
     </div>
   );
 }
-

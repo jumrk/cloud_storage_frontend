@@ -10,7 +10,6 @@ import {
 import { RiDeleteBin6Line } from "react-icons/ri";
 import toast from "react-hot-toast";
 import Button_icon from "@/shared/ui/ButtonIcon";
-
 function CircleActionButton({ icon, bg, onClick, ariaLabel, children }) {
   return (
     <button
@@ -19,12 +18,11 @@ function CircleActionButton({ icon, bg, onClick, ariaLabel, children }) {
       aria-label={ariaLabel}
       type="button"
     >
-      {icon}
-      {children}
+      {" "}
+      {icon} {children}{" "}
     </button>
   );
 }
-
 export default function ActionZone({
   isMobile,
   selectedItems = [],
@@ -46,7 +44,6 @@ export default function ActionZone({
   if (isMobile && selectedItems.length > 0) {
     const allFolders = selectedItems.every((item) => item.type === "folder");
     const isTrashPage = showRestore || showPermanentDelete;
-
     return (
       <div
         className={`fixed top-1/2 right-2 z-50 flex flex-col gap-4 items-center -translate-y-1/2 transition-all duration-500 ${
@@ -106,18 +103,25 @@ export default function ActionZone({
             onClick={() => {
               // Lọc chỉ lấy file (không lấy folder)
               const filesOnly = selectedItems.filter(
-                (item) => item.type === "file"
+                (item) => item.type === "file",
               );
-              if (filesOnly.length > 0 && onDownload) {
-                onDownload(filesOnly);
+              // Filter files that have temp or Drive URL (allow download from temp even if Drive upload in progress)
+              const readyFiles = filesOnly.filter((file) => {
+                const hasTemp = file.tempDownloadUrl && file.tempFileStatus === "completed";
+                const hasDrive = file.driveFileId || file.driveUrl || file.url;
+                return hasTemp || hasDrive;
+              });
+              if (readyFiles.length > 0 && onDownload) {
+                onDownload(readyFiles);
+              } else if (filesOnly.length > 0) {
+                // All files are not ready (no temp and no Drive)
+                toast.error("File chưa sẵn sàng để tải xuống. Vui lòng đợi upload hoàn thành.");
               }
             }}
             ariaLabel={
               selectedItems.length === 1
                 ? "Tải xuống"
-                : `Tải xuống ${
-                    selectedItems.filter((item) => item.type === "file").length
-                  } file`
+                : `Tải xuống ${selectedItems.filter((item) => item.type === "file").length} file`
             }
           />
         )}
@@ -151,14 +155,12 @@ export default function ActionZone({
       </div>
     );
   }
-
   // Desktop: action zone khi kéo thả
   if (!isMobile && draggedItems.length > 0) {
     const allFolders = draggedItems.every((item) => item.type === "folder");
     const isTrashPage = showRestore || showPermanentDelete;
-
     return (
-      <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 flex gap-2 sm:gap-4 md:gap-6 lg:gap-8 bg-white/80 rounded-xl shadow-2xl p-2 sm:p-4 md:p-6 border border-gray-200 pointer-events-none max-w-[95vw] overflow-x-auto animate-slide-up">
+      <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 flex gap-2 sm:gap-4 md:gap-6 lg:gap-8 bg-white rounded-xl shadow-2xl p-2 sm:p-4 md:p-6 border border-gray-200 pointer-events-none max-w-[95vw] overflow-x-auto animate-slide-up">
         {/* Cấp quyền - chỉ hiện khi không phải trash page */}
         {!isTrashPage && canGrantPermission && allFolders && (
           <Button_icon
@@ -195,9 +197,7 @@ export default function ActionZone({
             text={
               draggedItems.length === 1
                 ? "Tải xuống"
-                : `Tải xuống ${
-                    draggedItems.filter((item) => item.type === "file").length
-                  } file`
+                : `Tải xuống ${draggedItems.filter((item) => item.type === "file").length} file`
             }
             icon={<FiDownload size={26} />}
             bg="bg-[#828DAD]"
@@ -205,8 +205,17 @@ export default function ActionZone({
             onDropAction={(items) => {
               // Lọc chỉ lấy file (không lấy folder)
               const filesOnly = items.filter((item) => item.type === "file");
-              if (filesOnly.length > 0 && onDownload) {
-                onDownload(filesOnly);
+              // Filter files that have temp or Drive URL (allow download from temp even if Drive upload in progress)
+              const readyFiles = filesOnly.filter((file) => {
+                const hasTemp = file.tempDownloadUrl && file.tempFileStatus === "completed";
+                const hasDrive = file.driveFileId || file.driveUrl || file.url;
+                return hasTemp || hasDrive;
+              });
+              if (readyFiles.length > 0 && onDownload) {
+                onDownload(readyFiles);
+              } else if (filesOnly.length > 0) {
+                // All files are not ready (no temp and no Drive)
+                toast.error("File chưa sẵn sàng để tải xuống. Vui lòng đợi upload hoàn thành.");
               }
             }}
           />
@@ -244,7 +253,6 @@ export default function ActionZone({
       </div>
     );
   }
-
   // Desktop: action zone khi chọn items (cho trash page)
   if (
     !isMobile &&
@@ -252,7 +260,7 @@ export default function ActionZone({
     (showRestore || showPermanentDelete)
   ) {
     return (
-      <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 flex gap-8 bg-white/80 rounded-xl shadow-2xl p-6 border border-gray-200 animate-slide-up">
+      <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 flex gap-8 bg-white rounded-xl shadow-2xl p-6 border border-gray-200 animate-slide-up">
         {showRestore && (
           <button
             onClick={() => onRestore && onRestore()}
@@ -280,6 +288,5 @@ export default function ActionZone({
       </div>
     );
   }
-
   return null;
 }

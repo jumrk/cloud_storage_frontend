@@ -30,6 +30,7 @@ export default function StorageDonutChart({
       </div>
     );
   }
+
   let usedVal = Number(used) || 0;
   let totalVal = Number(total) || 0;
   let remain = Math.max(totalVal - usedVal, 0);
@@ -48,6 +49,7 @@ export default function StorageDonutChart({
     { name: "Đã dùng", value: usedVal },
     { name: "Còn lại", value: remain },
   ];
+
   return (
     <div className="bg-white rounded-xl shadow p-4">
       <div className="font-semibold mb-2">{title}</div>
@@ -76,11 +78,11 @@ export default function StorageDonutChart({
         </PieChart>
       </ResponsiveContainer>
       <div className="text-center mt-2 text-sm text-gray-500">
-        Đã dùng:{" "}
+        Đã dùng:
         <span className="font-semibold text-gray-700">
           {formatSize(usedVal)}
-        </span>{" "}
-        / Còn lại:{" "}
+        </span>
+        / Còn lại:
         <span className="font-semibold text-gray-700">
           {formatSize(remain)}
         </span>
@@ -88,4 +90,3 @@ export default function StorageDonutChart({
     </div>
   );
 }
-

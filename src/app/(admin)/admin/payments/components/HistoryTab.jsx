@@ -1,26 +1,18 @@
 "use client";
-
 import React from "react";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import EmptyState from "@/shared/ui/EmptyState";
-
-const STATUS_LABEL = {
-  paid: "Hoàn thành",
-  cancelled: "Đã huỷ",
-};
-
+const STATUS_LABEL = { paid: "Hoàn thành", cancelled: "Đã huỷ" };
 function formatPrice(price) {
   if (!price) return "Miễn phí";
   return price.toLocaleString("vi-VN") + "₫";
 }
-
 function formatDate(dateStr) {
   if (!dateStr) return "";
   const d = new Date(dateStr);
   return d.toLocaleString("vi-VN");
 }
-
 export default function HistoryTab({
   orders,
   loading,
@@ -37,7 +29,6 @@ export default function HistoryTab({
         statusFilter ? order.status === statusFilter : true
       )
     : [];
-
   return (
     <>
       <div className="flex flex-col md:flex-row md:items-center gap-2 mb-4">
@@ -164,5 +155,3 @@ export default function HistoryTab({
     </>
   );
 }
-
-

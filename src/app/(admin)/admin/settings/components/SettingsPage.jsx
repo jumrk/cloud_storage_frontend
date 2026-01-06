@@ -1,20 +1,24 @@
 "use client";
-
 import React, { useState } from "react";
-import { FiSettings, FiLoader, FiMessageCircle, FiEye, FiMic, FiVolume2 } from "react-icons/fi";
+import {
+  FiSettings,
+  FiLoader,
+  FiMessageCircle,
+  FiEye,
+  FiMic,
+  FiVolume2,
+} from "react-icons/fi";
 import useSettingsPage from "../hooks/useSettingsPage";
 import AISettingsTab from "./AISettingsTab";
 import AIOCRSettingsTab from "./AIOCRSettingsTab";
 import AIASRSettingsTab from "./AIASRSettingsTab";
 import AIVoiceSettingsTab from "./AIVoiceSettingsTab";
-
 const TABS = [
   { id: "chat", label: "AI Chat", icon: FiMessageCircle },
   { id: "ocr", label: "AI OCR", icon: FiEye },
   { id: "asr", label: "AI ASR", icon: FiVolume2 },
   { id: "voice", label: "AI Lồng tiếng", icon: FiMic },
 ];
-
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("chat");
   const {
@@ -36,7 +40,6 @@ export default function SettingsPage() {
     voiceSettingsLoading,
     handleSaveVoiceSettings,
   } = useSettingsPage();
-
   return (
     <div className="w-full max-w-6xl mx-auto px-4 py-6">
       <div className="mb-5">
@@ -50,7 +53,6 @@ export default function SettingsPage() {
           Quản lý và cấu hình các thiết lập của hệ thống D2MBox.
         </p>
       </div>
-
       {/* Tabs Navigation */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-4">
         <div className="flex border-b border-gray-200">
@@ -66,14 +68,12 @@ export default function SettingsPage() {
                     : "border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300"
                 }`}
               >
-                <Icon className="text-base" />
-                <span>{tab.label}</span>
+                <Icon className="text-base" /> <span>{tab.label}</span>
               </button>
             );
           })}
         </div>
       </div>
-
       {/* Tab Content */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
         {loadingSettings ? (
@@ -121,4 +121,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-

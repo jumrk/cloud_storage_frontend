@@ -4,7 +4,6 @@ import { FiX, FiSearch, FiCheck, FiSend } from "react-icons/fi";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 import getAvatarUrl from "@/shared/utils/getAvatarUrl";
-
 export default function ForwardModal({
   open,
   onClose,
@@ -16,7 +15,6 @@ export default function ForwardModal({
   const [search, setSearch] = useState("");
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [selectedGroups, setSelectedGroups] = useState([]);
-
   const filteredChats = useMemo(() => {
     if (!search.trim()) return chats;
     const lowered = search.toLowerCase();
@@ -26,7 +24,6 @@ export default function ForwardModal({
         chat.email?.toLowerCase().includes(lowered)
     );
   }, [chats, search]);
-
   const handleToggle = (chat) => {
     if (chat.type === "group") {
       setSelectedGroups((prev) =>
@@ -42,7 +39,6 @@ export default function ForwardModal({
       );
     }
   };
-
   const handleForward = () => {
     if (!selectedUsers.length && !selectedGroups.length) return;
     onForward(message._id, selectedUsers, selectedGroups);
@@ -51,24 +47,18 @@ export default function ForwardModal({
     setSearch("");
     onClose();
   };
-
   const isSelected = (chat) =>
     chat.type === "group"
       ? selectedGroups.includes(chat.id)
       : selectedUsers.includes(chat.id);
-
   if (!open) return null;
-
   return (
     <>
-      <div
-        className="fixed inset-0 bg-black/40 z-50"
-        onClick={onClose}
-      />
+      <div className="fixed inset-0 bg-black/40 z-50" onClick={onClose} />
       <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)]">
-          <h3 className="text-lg font-semibold text-text-strong">
+          <h3 className="text-lg font-semibold text-gray-900">
             Chuyển tiếp tin nhắn
           </h3>
           <button
@@ -79,11 +69,10 @@ export default function ForwardModal({
             <FiX size={20} />
           </button>
         </div>
-
         {/* Search */}
         <div className="px-5 py-3">
           <div className="relative">
-            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" />
             <input
               type="text"
               className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-50)] focus:outline-none focus:ring-2 focus:ring-brand/30"
@@ -93,13 +82,12 @@ export default function ForwardModal({
             />
           </div>
         </div>
-
         {/* Preview message */}
         {message && (
           <div className="px-5 pb-3">
             <div className="p-3 rounded-xl bg-[var(--color-surface-50)] border border-[var(--color-border)]">
-              <p className="text-xs text-text-muted mb-1">Tin nhắn:</p>
-              <p className="text-sm text-text-strong line-clamp-2">
+              <p className="text-xs text-gray-600 mb-1">Tin nhắn:</p>
+              <p className="text-sm text-gray-900 line-clamp-2">
                 {message.content?.startsWith("__CHAT_ATTACHMENT__:")
                   ? "📎 Tệp đính kèm"
                   : message.content}
@@ -107,11 +95,10 @@ export default function ForwardModal({
             </div>
           </div>
         )}
-
         {/* Chat list */}
         <div className="max-h-64 overflow-y-auto px-5 pb-3">
           {filteredChats.length === 0 ? (
-            <p className="text-center text-text-muted py-8">
+            <p className="text-center text-gray-600 py-8">
               Không tìm thấy cuộc trò chuyện
             </p>
           ) : (
@@ -142,10 +129,10 @@ export default function ForwardModal({
                     )}
                   </div>
                   <div className="flex-1 min-w-0 text-left">
-                    <p className="font-medium text-text-strong truncate">
+                    <p className="font-medium text-gray-900 truncate">
                       {chat.name}
                     </p>
-                    <p className="text-xs text-text-muted truncate">
+                    <p className="text-xs text-gray-600 truncate">
                       {chat.type === "group"
                         ? `${chat.members?.length || 0} thành viên`
                         : chat.email || ""}
@@ -165,11 +152,10 @@ export default function ForwardModal({
             </div>
           )}
         </div>
-
         {/* Footer */}
         <div className="px-5 py-4 border-t border-[var(--color-border)] bg-[var(--color-surface-50)]">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-text-muted">
+            <p className="text-sm text-gray-600">
               Đã chọn: {selectedUsers.length + selectedGroups.length}
             </p>
             <button
@@ -178,8 +164,7 @@ export default function ForwardModal({
               onClick={handleForward}
               disabled={!selectedUsers.length && !selectedGroups.length}
             >
-              <FiSend size={16} />
-              Gửi
+              <FiSend size={16} /> Gửi
             </button>
           </div>
         </div>
@@ -187,4 +172,3 @@ export default function ForwardModal({
     </>
   );
 }
-

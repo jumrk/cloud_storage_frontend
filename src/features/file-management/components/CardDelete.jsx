@@ -39,7 +39,7 @@ function CardDelete({
 
   return (
     <div
-      className={`group relative w-full max-w-[180px] flex-1 basis-1/2 sm:basis-auto overflow-hidden m-2 bg-white rounded-2xl p-4 h-[160px] transition-all duration-300 shadow hover:shadow-xl hover:-translate-y-1 flex flex-col justify-center items-center cursor-pointer border border-gray-100 ${
+      className={`group relative w-full flex-1 overflow-hidden bg-white rounded-xl p-3 h-[140px] transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5 flex flex-col justify-center items-center cursor-pointer border border-gray-100 ${
         isFolder ? "hover:bg-blue-50" : "hover:bg-gray-50"
       }`}
       title={data.name}
@@ -62,7 +62,7 @@ function CardDelete({
 
       {/* Icon khôi phục / xóa vĩnh viễn desktop */}
       {!isMobile && (
-        <div 
+        <div
           className="absolute top-3 right-3 flex flex-col gap-2 z-50 opacity-0 translate-x-3 pointer-events-none transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0 group-hover:pointer-events-auto"
           onClick={(e) => {
             // Stop propagation to prevent parent onClick from firing
@@ -76,7 +76,7 @@ function CardDelete({
           }}
         >
           <button
-            className="text-green-500 hover:text-green-700 bg-white/90 rounded-full p-1.5 shadow-sm transition-colors"
+            className="text-green-500 hover:text-green-700 bg-white rounded-full p-1.5 shadow-sm transition-colors"
             title="Khôi phục"
             onClick={(e) => {
               e.stopPropagation();
@@ -95,9 +95,9 @@ function CardDelete({
             <FiRotateCw size={16} />
           </button>
           <button
-            className="text-red-500 hover:text-red-700 bg-white/90 rounded-full p-1.5 shadow-sm transition-colors relative z-50"
+            className="text-red-500 hover:text-red-700 bg-white rounded-full p-1.5 shadow-sm transition-colors relative z-50"
             title="Xóa vĩnh viễn"
-            style={{ pointerEvents: 'auto' }}
+            style={{ pointerEvents: "auto" }}
             onClick={(e) => {
               e.stopPropagation();
               e.preventDefault();
@@ -132,19 +132,17 @@ function CardDelete({
       <Image
         src={icon}
         alt="icon"
-        className="w-14 h-14 mb-2 object-contain drop-shadow"
-        width={56}
-        height={56}
+        className="w-12 h-12 mb-1.5 object-contain drop-shadow"
+        width={48}
+        height={48}
         placeholder="blur"
         blurDataURL="data:image/png;base64,..."
         priority
       />
-
-      <p className="text-center text-sm font-sm truncate w-full mt-1 text-gray-800 select-none">
+      <p className="text-center text-xs font-medium truncate w-full mt-1 text-gray-800 select-none leading-tight">
         {data.name}
       </p>
-
-      <p className="text-center text-xs text-gray-500 mt-1">
+      <p className="text-center text-[10px] text-gray-500 mt-0.5">
         {formatDate(data.deletedAt || data.date)}
       </p>
     </div>
@@ -152,4 +150,3 @@ function CardDelete({
 }
 
 export default CardDelete;
-

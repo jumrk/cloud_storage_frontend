@@ -1,7 +1,6 @@
 "use client";
 import React from "react";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
-
 function CardSkeleton() {
   return (
     <div className="rounded-2xl border border-neutral-200 bg-white p-3 shadow-sm">
@@ -20,11 +19,15 @@ function CardSkeleton() {
     </div>
   );
 }
-
 export default function ListBoardSkeleton() {
   return (
     <div className="w-[352px] min-w-[352px] min-h-[560px] rounded-2xl border border-dashed border-neutral-300 bg-white shadow-sm">
-      <SkeletonTheme baseColor="#e5e7eb" highlightColor="#f3f4f6">
+      <SkeletonTheme
+        baseColor="#e5e7eb"
+        highlightColor="#f3f4f6"
+        baseColorDark="#334155"
+        highlightColorDark="#475569"
+      >
         {/* Header */}
         <div className="px-4 pt-3 pb-2">
           <div className="flex items-start gap-2">
@@ -38,7 +41,6 @@ export default function ListBoardSkeleton() {
             </div>
           </div>
         </div>
-
         {/* Add area */}
         <div className="px-3">
           <div className="rounded-2xl border border-neutral-200 p-2">
@@ -49,7 +51,6 @@ export default function ListBoardSkeleton() {
             </div>
           </div>
         </div>
-
         {/* Cards */}
         <div className="px-3 pb-3">
           <div className="mt-2 space-y-2">

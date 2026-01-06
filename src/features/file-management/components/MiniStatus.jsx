@@ -5,7 +5,6 @@ import axiosClient from "@/shared/lib/axiosClient";
 import toast from "react-hot-toast";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
-
 const calculateOptimalChunkSize = (fileSize) => {
   if (fileSize < 1 * 1024 * 1024) return Math.max(1, Math.floor(fileSize / 2));
   if (fileSize < 10 * 1024 * 1024) return 2 * 1024 * 1024;
@@ -20,16 +19,13 @@ const createFileChunks = (file) => {
   const optimalChunkSize = calculateOptimalChunkSize(file.size);
   const chunks = [];
   let start = 0;
-
   while (start < file.size) {
     const end = Math.min(start + optimalChunkSize, file.size);
     chunks.push({ start, end, size: end - start });
     start = end;
   }
-
   return chunks;
 };
-
 const readFileChunk = (file, start, end) =>
   new Promise((resolve, reject) => {
     const r = new FileReader();
@@ -52,7 +48,6 @@ const MiniStatusBatch = ({
   useChunkedUpload = false,
 }) => {
   const t = useTranslations();
-
   const [fileStates, setFileStates] = useState(
     files.map((f) => ({
       file: f.file,
@@ -64,7 +59,7 @@ const MiniStatusBatch = ({
       chunks: [],
       uploadId: null,
       error: null,
-    }))
+    })),
   );
   const [progress, setProgress] = useState(0);
   const [isVisible, setIsVisible] = useState(true);
@@ -72,22 +67,22 @@ const MiniStatusBatch = ({
   const [result, setResult] = useState(null);
   const [eta, setEta] = useState(null); // Estimated time of arrival in seconds
   const [speed, setSpeed] = useState(0); // Upload speed in bytes per second
-
   const hasUploaded = useRef(false);
   const cancelledRef = useRef({});
   const abortControllersRef = useRef({});
   const isUploadingRef = useRef(false);
   const hasCompletedRef = useRef(false);
-
   const statusPollersRef = useRef({});
+
   useEffect(() => {
     return () => {
       Object.values(statusPollersRef.current || {}).forEach((id) =>
-        clearInterval(id)
+        clearInterval(id),
       );
       statusPollersRef.current = {};
     };
   }, []);
+
   const lastStatusRef = useRef({});
   const uploadSpeedRef = useRef({}); // Track upload speed per file: { fileIndex: { bytes: number, time: number } }
   const progressHistoryRef = useRef([]); // Track progress over time for ETA calculation
@@ -96,35 +91,43 @@ const MiniStatusBatch = ({
     if (!current.length) return 0;
     // Ensure completed files always count as 100%
     const sum = current.reduce((acc, f) => {
-      const fileProgress = f.status === "success" ? 100 : (Number(f.progress) || 0);
+      const fileProgress =
+        f.status === "success" ? 100 : Number(f.progress) || 0;
       return acc + fileProgress;
     }, 0);
     return Math.round(sum / current.length);
   };
 
   // Calculate ETA based on current speed and remaining progress
-  const calculateETA = (currentProgress, currentSpeed, totalFiles, completedFiles, fileStates) => {
+  const calculateETA = (
+    currentProgress,
+    currentSpeed,
+    totalFiles,
+    completedFiles,
+    fileStates,
+  ) => {
     if (currentSpeed <= 0 || currentProgress >= 100) return null;
-    
     const remainingProgress = 100 - currentProgress;
     const remainingFiles = totalFiles - completedFiles;
-    
     // Get current uploading file
-    const currentFile = fileStates?.find(f => f.status === "uploading" || f.status === "processing");
+    const currentFile = fileStates?.find(
+      (f) => f.status === "uploading" || f.status === "processing",
+    );
     if (!currentFile || !currentFile.file) {
       // If no current file, estimate based on average
       const avgTimePerFile = 5; // fallback 5 seconds per file
       return remainingFiles * avgTimePerFile;
     }
-    
     // Calculate remaining bytes for current file
-    const currentFileRemainingBytes = currentFile.file.size * (1 - (currentFile.progress / 100));
-    const estimatedSecondsForCurrentFile = currentFileRemainingBytes / currentSpeed;
-    
+    const currentFileRemainingBytes =
+      currentFile.file.size * (1 - currentFile.progress / 100);
+    const estimatedSecondsForCurrentFile =
+      currentFileRemainingBytes / currentSpeed;
     // Add estimated time for remaining files (using average speed from current file)
-    const avgTimePerFile = estimatedSecondsForCurrentFile > 0 ? estimatedSecondsForCurrentFile : 5;
-    const totalEstimated = estimatedSecondsForCurrentFile + ((remainingFiles - 1) * avgTimePerFile);
-    
+    const avgTimePerFile =
+      estimatedSecondsForCurrentFile > 0 ? estimatedSecondsForCurrentFile : 5;
+    const totalEstimated =
+      estimatedSecondsForCurrentFile + (remainingFiles - 1) * avgTimePerFile;
     return totalEstimated > 0 ? Math.round(totalEstimated) : null;
   };
 
@@ -150,12 +153,12 @@ const MiniStatusBatch = ({
     const gb = mb / 1024;
     return `${gb.toFixed(2)} GB/s`;
   };
+
   const pollStatusUntilDone = (uploadId, fileIndex, fileSize) => {
     if (statusPollersRef.current[fileIndex]) {
       clearInterval(statusPollersRef.current[fileIndex]);
       delete statusPollersRef.current[fileIndex];
     }
-
     const tick = async () => {
       try {
         const res = await axiosClient.get("/api/upload/status", {
@@ -163,7 +166,6 @@ const MiniStatusBatch = ({
         });
         const data = res.data;
         if (!data?.success) return;
-
         lastStatusRef.current[fileIndex] = {
           assembledBytes: data.contiguousWatermark,
           driveBytes: data.nextDriveOffset,
@@ -177,60 +179,61 @@ const MiniStatusBatch = ({
         ) {
           setFileStates((prev) =>
             prev.map((f, idx) =>
-              idx === fileIndex ? { ...f, status: "processing" } : f
-            )
+              idx === fileIndex ? { ...f, status: "processing" } : f,
+            ),
           );
           return;
         }
         clearInterval(statusPollersRef.current[fileIndex]);
         delete statusPollersRef.current[fileIndex];
-
         setFileStates((prev) => {
           const next = prev.map((f, idx) =>
-            idx === fileIndex ? { ...f, status: "success", progress: 100 } : f
+            idx === fileIndex ? { ...f, status: "success", progress: 100 } : f,
           );
           const overallProgress = calculateOverallProgress(next);
           setProgress(overallProgress);
-          
           // Calculate ETA
-          const completedFiles = next.filter(f => f.status === "success").length;
-          const etaSeconds = calculateETA(overallProgress, speed, next.length, completedFiles, next);
+          const completedFiles = next.filter(
+            (f) => f.status === "success",
+          ).length;
+          const etaSeconds = calculateETA(
+            overallProgress,
+            speed,
+            next.length,
+            completedFiles,
+            next,
+          );
           setEta(etaSeconds);
-          
           return next;
         });
       } catch (e) {
         console.log("[FE] status poll error:", e?.message);
       }
     };
-
     tick();
     statusPollersRef.current[fileIndex] = setInterval(tick, 1500);
   };
+
   const uploadFileWithChunks = async (fileState, fileIndex) => {
     const file = fileState.file;
     const chunks = createFileChunks(file);
-
     abortControllersRef.current[fileIndex] = new AbortController();
     setFileStates((prev) =>
       prev.map((f, idx) =>
-        idx === fileIndex ? { ...f, chunks, status: "uploading" } : f
-      )
+        idx === fileIndex ? { ...f, chunks, status: "uploading" } : f,
+      ),
     );
-
     let uploadId = fileState.uploadId;
-
     if (!uploadId) {
       try {
         const firstChunkBuf = await readFileChunk(
           file,
           chunks[0].start,
-          chunks[0].end
+          chunks[0].end,
         );
         uploadId = `${batchId}-${fileIndex}-${Date.now()}-${Math.random()
           .toString(36)
           .slice(2, 11)}`;
-
         const firstHeaders = {
           "Content-Type": "application/octet-stream",
           "X-Upload-Id": encodeURIComponent(uploadId),
@@ -238,7 +241,7 @@ const MiniStatusBatch = ({
           "X-Total-Chunks": chunks.length,
           "X-File-Name": encodeURIComponent(file.name),
           "X-Mime-Type": encodeURIComponent(
-            file.type || "application/octet-stream"
+            file.type || "application/octet-stream",
           ),
           "X-Parent-Id": encodeURIComponent(parentId || ""),
           "X-Is-First-Chunk": "1",
@@ -249,22 +252,19 @@ const MiniStatusBatch = ({
           "X-Chunk-Start": chunks[0].start,
           "X-Chunk-End": chunks[0].end,
         };
-
         if (isFolder && fileIndex === 0 && emptyFolders?.length > 0) {
           firstHeaders["X-Empty-Folders"] = encodeURIComponent(
-            JSON.stringify(emptyFolders)
+            JSON.stringify(emptyFolders),
           );
         }
-
         if (cancelledRef.current[fileIndex]) {
           setFileStates((prev) =>
             prev.map((f, idx) =>
-              idx === fileIndex ? { ...f, status: "cancelled" } : f
-            )
+              idx === fileIndex ? { ...f, status: "cancelled" } : f,
+            ),
           );
           return;
         }
-
         const resp = await axiosClient.post("/api/upload", firstChunkBuf, {
           headers: firstHeaders,
           signal: abortControllersRef.current[fileIndex]?.signal,
@@ -274,13 +274,11 @@ const MiniStatusBatch = ({
           toast.error(data.error || "Lỗi upload");
           throw new Error(data.error || "Lỗi upload");
         }
-
         const assembledBytes = Number(data.assembledBytes || 0);
         const pct = Math.max(
           0,
-          Math.min(100, Math.round((assembledBytes / file.size) * 100))
+          Math.min(100, Math.round((assembledBytes / file.size) * 100)),
         );
-
         // Track upload speed
         const now = Date.now();
         if (!uploadSpeedRef.current[fileIndex]) {
@@ -292,23 +290,31 @@ const MiniStatusBatch = ({
           const bytesDiff = assembledBytes - speedData.bytes;
           const currentSpeed = bytesDiff / timeDiff;
           setSpeed(currentSpeed);
-          uploadSpeedRef.current[fileIndex] = { bytes: assembledBytes, time: now };
+          uploadSpeedRef.current[fileIndex] = {
+            bytes: assembledBytes,
+            time: now,
+          };
         }
-
         setFileStates((prev) => {
           const next = prev.map((f, idx) =>
             idx === fileIndex
               ? { ...f, uploadId, progress: pct, status: "uploading" }
-              : f
+              : f,
           );
           const overallProgress = calculateOverallProgress(next);
           setProgress(overallProgress);
-          
           // Calculate ETA
-          const completedFiles = next.filter(f => f.status === "success").length;
-          const etaSeconds = calculateETA(overallProgress, speed, next.length, completedFiles, next);
+          const completedFiles = next.filter(
+            (f) => f.status === "success",
+          ).length;
+          const etaSeconds = calculateETA(
+            overallProgress,
+            speed,
+            next.length,
+            completedFiles,
+            next,
+          );
           setEta(etaSeconds);
-          
           return next;
         });
       } catch (error) {
@@ -318,8 +324,8 @@ const MiniStatusBatch = ({
         ) {
           setFileStates((prev) =>
             prev.map((f, idx) =>
-              idx === fileIndex ? { ...f, status: "cancelled" } : f
-            )
+              idx === fileIndex ? { ...f, status: "cancelled" } : f,
+            ),
           );
           return;
         }
@@ -330,35 +336,32 @@ const MiniStatusBatch = ({
         toast.error(msg);
         setFileStates((prev) =>
           prev.map((f, idx) =>
-            idx === fileIndex ? { ...f, status: "error", error: msg } : f
-          )
+            idx === fileIndex ? { ...f, status: "error", error: msg } : f,
+          ),
         );
         return;
       }
     }
-
     for (let i = 1; i < chunks.length; i++) {
       if (cancelledRef.current[fileIndex]) {
         setFileStates((prev) =>
           prev.map((f, idx) =>
-            idx === fileIndex ? { ...f, status: "cancelled" } : f
-          )
+            idx === fileIndex ? { ...f, status: "cancelled" } : f,
+          ),
         );
         return;
       }
       try {
         const ch = chunks[i];
         const buf = await readFileChunk(file, ch.start, ch.end);
-
         if (cancelledRef.current[fileIndex]) {
           setFileStates((prev) =>
             prev.map((f, idx) =>
-              idx === fileIndex ? { ...f, status: "cancelled" } : f
-            )
+              idx === fileIndex ? { ...f, status: "cancelled" } : f,
+            ),
           );
           return;
         }
-
         const headers = {
           "Content-Type": "application/octet-stream",
           "X-Upload-Id": uploadId,
@@ -366,7 +369,7 @@ const MiniStatusBatch = ({
           "X-Total-Chunks": chunks.length,
           "X-File-Name": encodeURIComponent(file.name),
           "X-Mime-Type": encodeURIComponent(
-            file.type || "application/octet-stream"
+            file.type || "application/octet-stream",
           ),
           "X-Parent-Id": encodeURIComponent(parentId || ""),
           "X-Is-First-Chunk": "0",
@@ -377,7 +380,6 @@ const MiniStatusBatch = ({
           "X-Chunk-Start": ch.start,
           "X-Chunk-End": ch.end,
         };
-
         const resp = await axiosClient.post("/api/upload", buf, {
           headers,
           signal: abortControllersRef.current[fileIndex]?.signal,
@@ -386,14 +388,12 @@ const MiniStatusBatch = ({
         if (resp.status !== 200 || !data.success) {
           throw new Error(data.error || `Upload chunk ${i} thất bại`);
         }
-
         const assembledBytes = Number(data.assembledBytes || 0);
         const pct = Math.max(
           0,
-          Math.min(100, Math.round((assembledBytes / file.size) * 100))
+          Math.min(100, Math.round((assembledBytes / file.size) * 100)),
         );
         const isLast = i === chunks.length - 1;
-
         // Track upload speed
         const now = Date.now();
         if (!uploadSpeedRef.current[fileIndex]) {
@@ -405,9 +405,11 @@ const MiniStatusBatch = ({
           const bytesDiff = assembledBytes - speedData.bytes;
           const currentSpeed = bytesDiff / timeDiff;
           setSpeed(currentSpeed);
-          uploadSpeedRef.current[fileIndex] = { bytes: assembledBytes, time: now };
+          uploadSpeedRef.current[fileIndex] = {
+            bytes: assembledBytes,
+            time: now,
+          };
         }
-
         setFileStates((prev) => {
           const next = prev.map((f, idx) =>
             idx === fileIndex
@@ -416,19 +418,24 @@ const MiniStatusBatch = ({
                   progress: pct,
                   status: isLast ? "processing" : "uploading",
                 }
-              : f
+              : f,
           );
           const overallProgress = calculateOverallProgress(next);
           setProgress(overallProgress);
-          
           // Calculate ETA
-          const completedFiles = next.filter(f => f.status === "success").length;
-          const etaSeconds = calculateETA(overallProgress, speed, next.length, completedFiles, next);
+          const completedFiles = next.filter(
+            (f) => f.status === "success",
+          ).length;
+          const etaSeconds = calculateETA(
+            overallProgress,
+            speed,
+            next.length,
+            completedFiles,
+            next,
+          );
           setEta(etaSeconds);
-          
           return next;
         });
-
         if (isLast) {
           if (!CLOSE_ON_PROCESSING) {
             pollStatusUntilDone(uploadId, fileIndex, file.size);
@@ -441,18 +448,16 @@ const MiniStatusBatch = ({
         ) {
           setFileStates((prev) =>
             prev.map((f, idx) =>
-              idx === fileIndex ? { ...f, status: "cancelled" } : f
-            )
+              idx === fileIndex ? { ...f, status: "cancelled" } : f,
+            ),
           );
           return;
         }
-
         const statusCode = error?.response?.status;
         const msg =
           error?.response?.data?.error ||
           error?.response?.data?.message ||
           error?.message;
-
         if (
           statusCode === 499 ||
           (msg &&
@@ -466,18 +471,17 @@ const MiniStatusBatch = ({
         ) {
           setFileStates((prev) =>
             prev.map((f, idx) =>
-              idx === fileIndex ? { ...f, status: "cancelled" } : f
-            )
+              idx === fileIndex ? { ...f, status: "cancelled" } : f,
+            ),
           );
           return;
         }
-
         setFileStates((prev) =>
           prev.map((f, idx) =>
             idx === fileIndex
               ? { ...f, status: "error", error: msg || "Upload chunk thất bại" }
-              : f
-          )
+              : f,
+          ),
         );
         return;
       }
@@ -486,16 +490,13 @@ const MiniStatusBatch = ({
 
   const cancelUpload = async (fileIndex) => {
     cancelledRef.current[fileIndex] = true;
-
     if (statusPollersRef.current[fileIndex]) {
       clearInterval(statusPollersRef.current[fileIndex]);
       delete statusPollersRef.current[fileIndex];
     }
-
     if (abortControllersRef.current[fileIndex]) {
       abortControllersRef.current[fileIndex].abort();
     }
-
     const fileState = fileStates[fileIndex];
     if (fileState.uploadId) {
       try {
@@ -506,8 +507,8 @@ const MiniStatusBatch = ({
         if (data?.success || response.status === 200) {
           setFileStates((prev) =>
             prev.map((f, idx) =>
-              idx === fileIndex ? { ...f, status: "cancelled" } : f
-            )
+              idx === fileIndex ? { ...f, status: "cancelled" } : f,
+            ),
           );
         } else {
           setFileStates((prev) =>
@@ -518,8 +519,8 @@ const MiniStatusBatch = ({
                     status: "error",
                     error: data?.error || "Hủy upload thất bại",
                   }
-                : f
-            )
+                : f,
+            ),
           );
         }
       } catch (error) {
@@ -530,49 +531,49 @@ const MiniStatusBatch = ({
         if (String(msg).includes("hủy")) {
           setFileStates((prev) =>
             prev.map((f, idx) =>
-              idx === fileIndex ? { ...f, status: "cancelled" } : f
-            )
+              idx === fileIndex ? { ...f, status: "cancelled" } : f,
+            ),
           );
         } else {
           setFileStates((prev) =>
             prev.map((f, idx) =>
               idx === fileIndex
                 ? { ...f, status: "error", error: msg || "Hủy upload thất bại" }
-                : f
-            )
+                : f,
+            ),
           );
         }
       }
     } else {
       setFileStates((prev) =>
         prev.map((f, idx) =>
-          idx === fileIndex ? { ...f, status: "cancelled" } : f
-        )
+          idx === fileIndex ? { ...f, status: "cancelled" } : f,
+        ),
       );
     }
   };
 
   useEffect(() => {
     // For permanent-delete, move, and create_folder, skip the upload check
-    const isNonUploadBatch = batchType === "permanent-delete" || batchType === "move" || batchType === "create_folder";
-    
+    const isNonUploadBatch =
+      batchType === "permanent-delete" ||
+      batchType === "move" ||
+      batchType === "create_folder";
     if (!isNonUploadBatch && (hasUploaded.current || isUploadingRef.current)) {
       return;
     }
-    
     if (!isNonUploadBatch) {
       hasUploaded.current = true;
       isUploadingRef.current = true;
       hasCompletedRef.current = false;
     }
-
     const handleError = (error) => {
       console.error("Upload error:", error);
       if (!isNonUploadBatch) {
         isUploadingRef.current = false;
       }
       setFileStates((prev) =>
-        prev.map((f) => ({ ...f, status: "error", error: error.message }))
+        prev.map((f) => ({ ...f, status: "error", error: error.message })),
       );
       setProgress(100);
     };
@@ -586,21 +587,23 @@ const MiniStatusBatch = ({
         const startTime = Date.now();
         const totalItems = items.length;
         let lastProgress = 0;
-
         // Track progress based on time elapsed and estimated processing time
         // Each item takes approximately 50-100ms + processing time
         const progressInterval = setInterval(() => {
           const elapsed = (Date.now() - startTime) / 1000;
-          
           // Estimate: each item takes ~0.1-0.15 seconds on average (50ms delay + processing)
-          const estimatedProcessed = Math.min(totalItems, Math.floor(elapsed / 0.12));
-          const estimatedProgress = Math.min(95, (estimatedProcessed / totalItems) * 100);
-          
+          const estimatedProcessed = Math.min(
+            totalItems,
+            Math.floor(elapsed / 0.12),
+          );
+          const estimatedProgress = Math.min(
+            95,
+            (estimatedProcessed / totalItems) * 100,
+          );
           // Only update if progress increased
           if (estimatedProgress > lastProgress) {
             setProgress(estimatedProgress);
             lastProgress = estimatedProgress;
-            
             // Calculate ETA
             if (estimatedProcessed > 0 && elapsed > 0) {
               const avgTimePerItem = elapsed / estimatedProcessed;
@@ -610,7 +613,6 @@ const MiniStatusBatch = ({
             }
           }
         }, 100); // Update every 100ms for smoother progress
-
         try {
           const res = await axiosClient.post("/api/upload/delete", { items });
           clearInterval(progressInterval);
@@ -623,7 +625,7 @@ const MiniStatusBatch = ({
               setIsVisible(false);
               onComplete?.(json);
             },
-            json.success ? 1500 : 2000
+            json.success ? 1500 : 2000,
           );
         } catch (err) {
           clearInterval(progressInterval);
@@ -648,21 +650,23 @@ const MiniStatusBatch = ({
         const startTime = Date.now();
         const totalItems = items.length;
         let lastProgress = 0;
-
         // Track progress based on time elapsed and estimated processing time
         // Each item takes approximately 50-100ms + processing time
         const progressInterval = setInterval(() => {
           const elapsed = (Date.now() - startTime) / 1000;
-          
           // Estimate: each item takes ~0.1-0.15 seconds on average (50ms delay + processing)
-          const estimatedProcessed = Math.min(totalItems, Math.floor(elapsed / 0.12));
-          const estimatedProgress = Math.min(95, (estimatedProcessed / totalItems) * 100);
-          
+          const estimatedProcessed = Math.min(
+            totalItems,
+            Math.floor(elapsed / 0.12),
+          );
+          const estimatedProgress = Math.min(
+            95,
+            (estimatedProcessed / totalItems) * 100,
+          );
           // Only update if progress increased
           if (estimatedProgress > lastProgress) {
             setProgress(estimatedProgress);
             lastProgress = estimatedProgress;
-            
             // Calculate ETA
             if (estimatedProcessed > 0 && elapsed > 0) {
               const avgTimePerItem = elapsed / estimatedProcessed;
@@ -672,11 +676,17 @@ const MiniStatusBatch = ({
             }
           }
         }, 100); // Update every 100ms for smoother progress
-
         try {
-          const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+          const token =
+            typeof window !== "undefined"
+              ? localStorage.getItem("token")
+              : null;
           const headers = token ? { Authorization: `Bearer ${token}` } : {};
-          const res = await axiosClient.post("/api/upload/permanent-delete", { items }, { headers });
+          const res = await axiosClient.post(
+            "/api/upload/permanent-delete",
+            { items },
+            { headers },
+          );
           clearInterval(progressInterval);
           const json = res.data;
           setStatus(json.success ? "success" : "error");
@@ -687,7 +697,7 @@ const MiniStatusBatch = ({
               setIsVisible(false);
               onComplete?.(json);
             },
-            json.success ? 1500 : 2000
+            json.success ? 1500 : 2000,
           );
         } catch (err) {
           clearInterval(progressInterval);
@@ -712,21 +722,23 @@ const MiniStatusBatch = ({
         const startTime = Date.now();
         const totalItems = items.length;
         let lastProgress = 0;
-
         // Track progress based on time elapsed and estimated processing time
         // Each item takes approximately 50-100ms + processing time
         const progressInterval = setInterval(() => {
           const elapsed = (Date.now() - startTime) / 1000;
-          
           // Estimate: each item takes ~0.1-0.15 seconds on average (50ms delay + processing)
-          const estimatedProcessed = Math.min(totalItems, Math.floor(elapsed / 0.12));
-          const estimatedProgress = Math.min(95, (estimatedProcessed / totalItems) * 100);
-          
+          const estimatedProcessed = Math.min(
+            totalItems,
+            Math.floor(elapsed / 0.12),
+          );
+          const estimatedProgress = Math.min(
+            95,
+            (estimatedProcessed / totalItems) * 100,
+          );
           // Only update if progress increased
           if (estimatedProgress > lastProgress) {
             setProgress(estimatedProgress);
             lastProgress = estimatedProgress;
-            
             // Calculate ETA
             if (estimatedProcessed > 0 && elapsed > 0) {
               const avgTimePerItem = elapsed / estimatedProcessed;
@@ -736,7 +748,6 @@ const MiniStatusBatch = ({
             }
           }
         }, 100); // Update every 100ms for smoother progress
-
         try {
           const res = await axiosClient.post("/api/upload/move", {
             items,
@@ -752,7 +763,7 @@ const MiniStatusBatch = ({
               setIsVisible(false);
               onComplete?.(json);
             },
-            json.success ? 1500 : 2000
+            json.success ? 1500 : 2000,
           );
         } catch (err) {
           clearInterval(progressInterval);
@@ -786,7 +797,7 @@ const MiniStatusBatch = ({
               setIsVisible(false);
               onComplete?.(json);
             },
-            json.success && json.folder ? 1500 : 2000
+            json.success && json.folder ? 1500 : 2000,
           );
         } catch (err) {
           setStatus("error");
@@ -814,19 +825,15 @@ const MiniStatusBatch = ({
                       status: "error",
                       error: "File không hợp lệ hoặc rỗng",
                     }
-                  : ff
-              )
+                  : ff,
+              ),
             );
             continue;
           }
-
           await uploadFileWithChunks(fileStates[i], i);
-
           if (i < fileStates.length - 1) {
             await new Promise((r) => setTimeout(r, 500));
-          }
-
-          // Progress is updated inside uploadFileWithChunks
+          } // Progress is updated inside uploadFileWithChunks
         }
       } catch (e) {
         handleError(e);
@@ -853,26 +860,33 @@ const MiniStatusBatch = ({
     const allDone = fileStates.every((f) => isDoneStatus(f.status));
     if (allDone && fileStates.length > 0 && !hasCompletedRef.current) {
       hasCompletedRef.current = true;
-
       const successfulFiles = fileStates.filter(
-        (f) => f.status === "success"
+        (f) => f.status === "success",
       ).length;
       const hasErrors = fileStates.some((f) => f.status === "error");
       const processingFiles = fileStates.filter(
-        (f) => f.status === "processing"
+        (f) => f.status === "processing",
       ).length;
-      setTimeout(() => {
-        isUploadingRef.current = false;
-        setIsVisible(false);
-        onComplete?.({
-          success: successfulFiles > 0,
-          totalFiles: fileStates.length,
-          successfulFiles,
-          hasErrors,
-          processingFiles,
-          finalizing: processingFiles > 0,
-        });
-      }, 2000);
+      // Collect uploadIds from all files that have been uploaded (including processing)
+      // This includes files that are still uploading to Drive
+      const uploadIds = fileStates
+        .filter(
+          (f) =>
+            (f.status === "success" || f.status === "processing") && f.uploadId,
+        )
+        .map((f) => f.uploadId);
+      // No delay - hide immediately and let data render as soon as it's available
+      isUploadingRef.current = false;
+      setIsVisible(false);
+      onComplete?.({
+        success: successfulFiles > 0,
+        totalFiles: fileStates.length,
+        successfulFiles,
+        hasErrors,
+        processingFiles,
+        finalizing: processingFiles > 0,
+        uploadIds, // Pass uploadIds for real-time updates (includes processing files)
+      });
     }
   }, [fileStates, files.length, batchType, onComplete]);
 
@@ -881,46 +895,49 @@ const MiniStatusBatch = ({
   if (batchType === "move") {
     return (
       <div
-        className="fixed bottom-6 right-6 bg-white rounded-lg shadow-card p-5 flex flex-col gap-4 max-w-[450px] w-full border border-border z-[9999]"
+        className="fixed bottom-2 right-2 sm:bottom-4 sm:right-4 md:bottom-6 md:right-6 bg-white rounded-lg shadow-card p-2 sm:p-3 md:p-5 flex flex-col gap-1.5 sm:gap-2 md:gap-4 max-w-[calc(100vw-1rem)] sm:max-w-[calc(100vw-2rem)] md:max-w-[450px] w-full border border-gray-200 z-[9999]"
         style={style}
       >
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-1 sm:gap-2 mb-0.5 sm:mb-1 md:mb-2">
           {status === "pending" ? (
-            <FiUpload className="text-brand animate-pulse" size={20} />
+            <FiUpload className="text-brand animate-pulse" size={14} />
           ) : status === "success" ? (
-            <FiCheck className="text-success" size={20} />
+            <FiCheck className="text-success" size={14} />
           ) : (
-            <FiX className="text-danger" size={20} />
+            <FiX className="text-danger" size={14} />
           )}
-          <span className="font-semibold text-base text-text-strong truncate">
+          <span className="font-semibold text-xs sm:text-sm md:text-base text-gray-900 truncate">
             {status === "pending"
               ? t("upload_status.moving")
               : status === "success"
-              ? t("upload_status.move_success")
-              : t("upload_status.move_failed")}
+                ? t("upload_status.move_success")
+                : t("upload_status.move_failed")}
           </span>
         </div>
-        <div className="w-full bg-surface-soft rounded-full h-2.5">
+        <div className="w-full bg-gray-100 rounded-full h-2 sm:h-2.5">
           <div
-            className={`h-2.5 rounded-full transition-all duration-300 ${
+            className={`h-2 sm:h-2.5 rounded-full transition-all duration-300 ${
               status === "success"
                 ? "bg-success"
                 : status === "error"
-                ? "bg-danger"
-                : "bg-brand"
+                  ? "bg-danger"
+                  : "bg-brand"
             }`}
             style={{ width: `${progress}%` }}
           />
         </div>
         {/* Progress info: ETA */}
         {status === "pending" && progress < 100 && eta && eta > 0 && (
-          <div className="flex items-center justify-end text-xs text-text-muted">
+          <div className="flex items-center justify-end text-[9px] sm:text-[10px] md:text-xs text-gray-600">
             <span>Còn lại: {formatETA(eta)}</span>
           </div>
         )}
-        <div className="flex flex-col gap-1 mt-2 max-h-32 overflow-y-auto">
+        <div className="flex flex-col gap-1 sm:gap-1 md:gap-1.5 mt-0.5 sm:mt-1 md:mt-2 max-h-20 sm:max-h-24 md:max-h-32 overflow-y-auto sidebar-scrollbar">
           {moveItems?.map((item, idx) => (
-            <div key={idx} className="flex w-full items-center gap-2 text-xs">
+            <div
+              key={idx}
+              className="flex w-full items-center gap-1 sm:gap-1.5 md:gap-2 text-[10px] sm:text-xs"
+            >
               <Image
                 src={
                   item.type === "folder"
@@ -928,7 +945,7 @@ const MiniStatusBatch = ({
                     : "/images/icon/png.png"
                 }
                 alt="icon"
-                className="w-4 h-4 object-contain flex-shrink-0"
+                className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 object-contain flex-shrink-0"
                 width={16}
                 height={16}
                 placeholder="blur"
@@ -936,7 +953,7 @@ const MiniStatusBatch = ({
                 priority
               />
               <span
-                className="flex-1 truncate overflow-hidden min-w-0 file-name-fixed-width text-brand-700 font-semibold"
+                className="flex-1 truncate overflow-hidden min-w-0 file-name-fixed-width text-brand-700 font-semibold text-[10px] sm:text-xs"
                 title={item.name || item.id}
               >
                 {item.name || item.id}
@@ -951,54 +968,54 @@ const MiniStatusBatch = ({
   if (batchType === "create_folder") {
     return (
       <div
-        className="fixed bottom-6 right-6 bg-white rounded-lg shadow-card p-5 flex flex-col gap-4 min-w-[320px] max-w-[450px] border border-border z-[9999]"
+        className="fixed bottom-2 right-2 sm:bottom-4 sm:right-4 md:bottom-6 md:right-6 bg-white rounded-lg shadow-card p-2 sm:p-3 md:p-5 flex flex-col gap-1.5 sm:gap-2 md:gap-4 min-w-[240px] sm:min-w-[280px] md:min-w-[320px] max-w-[calc(100vw-1rem)] sm:max-w-[calc(100vw-2rem)] md:max-w-[450px] border border-gray-200 z-[9999]"
         style={style}
       >
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-1 sm:gap-2 mb-0.5 sm:mb-1 md:mb-2">
           {status === "pending" ? (
-            <FiUpload className="text-brand animate-pulse" size={20} />
+            <FiUpload className="text-brand animate-pulse" size={14} />
           ) : status === "success" ? (
-            <FiCheck className="text-success" size={20} />
+            <FiCheck className="text-success" size={14} />
           ) : (
-            <FiX className="text-danger" size={20} />
+            <FiX className="text-danger" size={14} />
           )}
-          <span className="font-semibold text-base text-text-strong truncate">
+          <span className="font-semibold text-xs sm:text-sm md:text-base text-gray-900 truncate">
             {status === "pending"
               ? t("upload_status.creating_folder")
               : status === "success"
-              ? t("upload_status.create_folder_success")
-              : t("upload_status.create_folder_failed")}
+                ? t("upload_status.create_folder_success")
+                : t("upload_status.create_folder_failed")}
           </span>
         </div>
-        <div className="w-full bg-surface-soft rounded-full h-2.5">
+        <div className="w-full bg-gray-100 rounded-full h-2 sm:h-2.5">
           <div
-            className={`h-2.5 rounded-full transition-all duration-300 ${
+            className={`h-2 sm:h-2.5 rounded-full transition-all duration-300 ${
               status === "success"
                 ? "bg-success"
                 : status === "error"
-                ? "bg-danger"
-                : "bg-brand"
+                  ? "bg-danger"
+                  : "bg-brand"
             }`}
             style={{ width: `${progress}%` }}
           />
         </div>
-        <div className="flex items-center gap-2 text-xs mt-2">
+        <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2 text-[10px] sm:text-xs mt-0.5 sm:mt-1 md:mt-2">
           <Image
             src={"/images/icon/folder.png"}
             alt="icon"
-            className="w-4 h-4 object-contain flex-shrink-0"
+            className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 object-contain flex-shrink-0"
             width={16}
             height={16}
             placeholder="blur"
             blurDataURL="data:image/png;base64,..."
             priority
           />
-          <span className="truncate flex-1 text-brand-700 font-semibold">
+          <span className="truncate flex-1 text-brand-700 font-semibold text-[10px] sm:text-xs">
             {folderName}
           </span>
         </div>
         {status === "error" && (
-          <div className="text-xs text-danger mt-2">
+          <div className="text-[10px] sm:text-xs text-danger mt-1 sm:mt-2">
             {result?.error || t("upload_status.create_folder_error")}
           </div>
         )}
@@ -1010,52 +1027,55 @@ const MiniStatusBatch = ({
     const isPermanent = batchType === "permanent-delete";
     return (
       <div
-        className="fixed bottom-6 right-6 bg-white rounded-lg shadow-card p-5 flex flex-col gap-4 max-w-[450px] w-full border border-border z-[9999]"
+        className="fixed bottom-2 right-2 sm:bottom-4 sm:right-4 md:bottom-6 md:right-6 bg-white rounded-lg shadow-card p-2 sm:p-3 md:p-5 flex flex-col gap-1.5 sm:gap-2 md:gap-4 max-w-[calc(100vw-1rem)] sm:max-w-[calc(100vw-2rem)] md:max-w-[450px] w-full border border-gray-200 z-[9999]"
         style={style}
       >
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-1 sm:gap-2 mb-0.5 sm:mb-1 md:mb-2">
           {status === "pending" ? (
-            <FiUpload className="text-brand animate-pulse" size={20} />
+            <FiUpload className="text-brand animate-pulse" size={14} />
           ) : status === "success" ? (
-            <FiCheck className="text-success" size={20} />
+            <FiCheck className="text-success" size={14} />
           ) : (
-            <FiX className="text-danger" size={20} />
+            <FiX className="text-danger" size={14} />
           )}
-          <span className="font-semibold text-base text-text-strong truncate">
+          <span className="font-semibold text-xs sm:text-sm md:text-base text-gray-900 truncate">
             {status === "pending"
               ? isPermanent
                 ? "Đang xóa vĩnh viễn..."
                 : t("upload_status.deleting")
               : status === "success"
-              ? isPermanent
-                ? "Đã xóa vĩnh viễn"
-                : t("upload_status.delete_success")
-              : isPermanent
-              ? "Xóa vĩnh viễn thất bại"
-              : t("upload_status.delete_failed")}
+                ? isPermanent
+                  ? "Đã xóa vĩnh viễn"
+                  : t("upload_status.delete_success")
+                : isPermanent
+                  ? "Xóa vĩnh viễn thất bại"
+                  : t("upload_status.delete_failed")}
           </span>
         </div>
-        <div className="w-full bg-surface-soft rounded-full h-2.5">
+        <div className="w-full bg-gray-100 rounded-full h-2 sm:h-2.5">
           <div
-            className={`h-2.5 rounded-full transition-all duration-300 ${
+            className={`h-2 sm:h-2.5 rounded-full transition-all duration-300 ${
               status === "success"
                 ? "bg-success"
                 : status === "error"
-                ? "bg-danger"
-                : "bg-brand"
+                  ? "bg-danger"
+                  : "bg-brand"
             }`}
             style={{ width: `${progress}%` }}
           />
         </div>
         {/* Progress info: ETA */}
         {status === "pending" && progress < 100 && eta && eta > 0 && (
-          <div className="flex items-center justify-end text-xs text-text-muted">
+          <div className="flex items-center justify-end text-[9px] sm:text-[10px] md:text-xs text-gray-600">
             <span>Còn lại: {formatETA(eta)}</span>
           </div>
         )}
-        <div className="flex flex-col gap-1 mt-2 max-h-32 overflow-y-auto">
+        <div className="flex flex-col gap-1 sm:gap-1 md:gap-1.5 mt-0.5 sm:mt-1 md:mt-2 max-h-20 sm:max-h-24 md:max-h-32 overflow-y-auto sidebar-scrollbar">
           {moveItems?.map((item, idx) => (
-            <div key={idx} className="flex w-full items-center gap-2 text-xs">
+            <div
+              key={idx}
+              className="flex w-full items-center gap-1 sm:gap-1.5 md:gap-2 text-[10px] sm:text-xs"
+            >
               <Image
                 src={
                   item.type === "folder"
@@ -1063,7 +1083,7 @@ const MiniStatusBatch = ({
                     : "/images/icon/png.png"
                 }
                 alt="icon"
-                className="w-4 h-4 object-contain flex-shrink-0"
+                className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 object-contain flex-shrink-0"
                 width={16}
                 height={16}
                 placeholder="blur"
@@ -1071,7 +1091,7 @@ const MiniStatusBatch = ({
                 priority
               />
               <span
-                className="flex-1 truncate overflow-hidden min-w-0 file-name-fixed-width text-danger-700 font-semibold"
+                className="flex-1 truncate overflow-hidden min-w-0 file-name-fixed-width text-danger-700 font-semibold text-[10px] sm:text-xs"
                 title={item.name || item.id}
               >
                 {item.name || item.id}
@@ -1085,64 +1105,61 @@ const MiniStatusBatch = ({
 
   return (
     <div
-      className="fixed bottom-6 right-6 bg-white rounded-lg shadow-card p-5 flex flex-col gap-4 max-w-[450px] w-full border border-border z-[9999]"
+      className="fixed bottom-2 right-2 sm:bottom-4 sm:right-4 md:bottom-6 md:right-6 bg-white rounded-lg shadow-card p-2 sm:p-3 md:p-5 flex flex-col gap-1.5 sm:gap-2 md:gap-4 max-w-[calc(100vw-1rem)] sm:max-w-[calc(100vw-2rem)] md:max-w-[450px] w-full border border-gray-200 z-[9999]"
       style={style}
     >
-      <div className="flex items-center gap-2 mb-2">
+      <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2 mb-0.5 sm:mb-1 md:mb-2">
         {progress < 100 ? (
           <Loader size="small" position="inline" hideText />
         ) : fileStates.some((f) => f.status === "error") ? (
-          <FiX className="text-danger" size={16} />
+          <FiX className="text-danger" size={10} />
         ) : (
-          <FiCheck className="text-success" size={16} />
+          <FiCheck className="text-success" size={10} />
         )}
-        <span className="font-semibold text-base text-text-strong truncate">
+        <span className="font-semibold text-xs sm:text-sm md:text-base text-gray-900 truncate">
           {progress < 100
             ? t("upload_status.uploading", { progress })
             : fileStates.some((f) => f.status === "error")
-            ? t("upload_status.has_error")
-            : t("upload_status.upload_success")}
+              ? t("upload_status.has_error")
+              : t("upload_status.upload_success")}
         </span>
       </div>
-
-      <div className="w-full bg-surface-soft rounded-full h-2.5">
+      <div className="w-full bg-gray-100 rounded-full h-2 sm:h-2.5">
         <div
-          className="bg-brand h-2.5 rounded-full transition-all duration-300"
+          className="bg-brand h-2 sm:h-2.5 rounded-full transition-all duration-300"
           style={{ width: `${progress}%` }}
         />
       </div>
-
       {/* Progress info: speed and ETA */}
       {progress < 100 && (
-        <div className="flex items-center justify-between text-xs text-text-muted">
+        <div className="flex items-center justify-between text-[9px] sm:text-[10px] md:text-xs text-gray-600">
           <span>{formatSpeed(speed)}</span>
           {eta && eta > 0 && <span>Còn lại: {formatETA(eta)}</span>}
         </div>
       )}
-
-      <div className="flex flex-col gap-2 max-h-48 overflow-y-auto">
+      <div className="flex flex-col gap-1 sm:gap-1 md:gap-1.5 max-h-20 sm:max-h-24 md:max-h-32 overflow-y-auto sidebar-scrollbar">
         {isFolder ? (
-          <div className="flex items-center gap-2 text-xs">
+          <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2 text-[10px] sm:text-xs">
             <Image
               src={"/images/icon/folder.png"}
               alt="icon"
-              className="w-4 h-4 object-contain flex-shrink-0"
+              className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 object-contain flex-shrink-0"
               width={16}
               height={16}
               placeholder="blur"
               blurDataURL="data:image/png;base64,..."
               priority
             />
-            <span className="truncate flex-1 text-brand-700 font-semibold">
+            <span className="truncate flex-1 text-brand-700 font-semibold text-[10px] sm:text-xs">
               {folderName}
             </span>
             <div className="flex-shrink-0">
               {progress < 100 ? (
-                <FiUpload className="text-brand animate-pulse" size={14} />
+                <FiUpload className="text-brand animate-pulse" size={10} />
               ) : fileStates.some((f) => f.status === "error") ? (
-                <FiX className="text-danger" size={14} />
+                <FiX className="text-danger" size={10} />
               ) : (
-                <FiCheck className="text-success" size={14} />
+                <FiCheck className="text-success" size={10} />
               )}
             </div>
           </div>
@@ -1150,12 +1167,15 @@ const MiniStatusBatch = ({
           fileStates.map((f, idx) => {
             const drivePct = lastStatusRef.current[idx]?.drivePct ?? null;
             return (
-              <div key={idx} className="flex flex-col gap-1 w-full">
-                <div className="flex w-full items-center gap-2 text-sm">
+              <div
+                key={idx}
+                className="flex flex-col gap-0.5 sm:gap-0.5 md:gap-1 w-full"
+              >
+                <div className="flex w-full items-center gap-1 sm:gap-1.5 md:gap-2 text-[10px] sm:text-xs">
                   <Image
                     src={f.icon}
                     alt="icon"
-                    className="w-4 h-4 object-contain flex-shrink-0"
+                    className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 object-contain flex-shrink-0"
                     width={16}
                     height={16}
                     placeholder="blur"
@@ -1164,48 +1184,47 @@ const MiniStatusBatch = ({
                   />
                   <span
                     className={
-                      "flex-1 truncate overflow-hidden min-w-0 file-name-fixed-width" +
+                      "flex-1 truncate overflow-hidden min-w-0 file-name-fixed-width text-[10px] sm:text-xs" +
                       (f.status === "success"
                         ? " text-success-600"
                         : f.status === "error"
-                        ? " text-danger-600"
-                        : f.status === "uploading"
-                        ? " text-brand-600"
-                        : f.status === "processing"
-                        ? " text-warning-600"
-                        : " text-text-muted")
+                          ? " text-danger-600"
+                          : f.status === "uploading"
+                            ? " text-brand-600"
+                            : f.status === "processing"
+                              ? " text-warning-600"
+                              : " text-gray-600")
                     }
                     title={f.name}
                   >
                     {f.name}
                     {f.status === "processing" && drivePct != null && (
-                      <span className="ml-2 text-text-muted">
-                        (Drive {drivePct}%)
+                      <span className="ml-0.5 sm:ml-1 md:ml-2 text-gray-600 text-[9px] sm:text-[10px] md:text-xs">
+                        {" "}
+                        (Drive {drivePct}%){" "}
                       </span>
                     )}
                   </span>
-
-                  <div className="flex-shrink-0 flex items-center gap-1">
+                  <div className="flex-shrink-0 flex items-center gap-0.5 sm:gap-0.5 md:gap-1">
                     <CircularProgress
                       percent={f.progress || 0}
-                      size={18}
-                      stroke={3}
+                      size={14}
+                      stroke={2}
                     />
                     {f.status === "success" ? (
-                      <FiCheck className="text-success" size={14} />
+                      <FiCheck className="text-success" size={10} />
                     ) : f.status === "error" ? (
-                      <FiX className="text-danger" size={14} />
+                      <FiX className="text-danger" size={10} />
                     ) : f.status === "uploading" ? (
                       <FiUpload
                         className="text-brand animate-pulse"
-                        size={14}
+                        size={10}
                       />
                     ) : f.status === "processing" ? (
-                      <FiClock className="text-warning-600" size={14} />
+                      <FiClock className="text-warning-600" size={10} />
                     ) : (
-                      <FiClock className="text-text-muted" size={14} />
+                      <FiClock className="text-gray-600" size={10} />
                     )}
-
                     {(f.status === "uploading" ||
                       f.status === "processing") && (
                       <button
@@ -1213,7 +1232,7 @@ const MiniStatusBatch = ({
                         className="text-danger hover:opacity-90"
                         title="Cancel upload"
                       >
-                        <FiX size={12} />
+                        <FiX size={9} />
                       </button>
                     )}
                     {f.status === "error" && (
@@ -1224,13 +1243,18 @@ const MiniStatusBatch = ({
                         className="text-brand hover:opacity-90"
                         title="Retry upload"
                       >
-                        <FiUpload size={12} />
+                        <FiUpload size={9} />
                       </button>
                     )}
                   </div>
                 </div>
                 {f.status === "error" && f.error && (
-                  <div className="text-xs text-danger ml-6">{f.error}</div>
+                  <div
+                    className="text-[9px] sm:text-[10px] md:text-xs text-danger ml-4 sm:ml-5 md:ml-6 break-words max-w-full"
+                    title={f.error}
+                  >
+                    {f.error}
+                  </div>
                 )}
               </div>
             );

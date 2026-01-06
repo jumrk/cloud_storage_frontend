@@ -1,20 +1,19 @@
 "use client";
 import React, { useState, useRef } from "react";
 import { useTranslations } from "next-intl";
-
 function Accordion({ q, a, open, onClick, contentId }) {
   const contentRef = useRef(null);
   return (
-    <div className="border-b last:border-b-0 border-border">
+    <div className="border-b last:border-b-0 border-gray-200">
       <button
         className={`w-full text-left py-4 px-2 flex justify-between items-center focus:outline-none transition-colors rounded-lg ${
-          open ? "bg-surface-50" : "hover:bg-surface-50"
+          open ? "bg-white" : "hover:bg-white"
         }`}
         onClick={onClick}
         aria-expanded={open}
         aria-controls={contentId}
       >
-        <span className="font-medium text-text-strong text-base md:text-lg">
+        <span className="font-medium text-gray-900 text-base md:text-lg">
           {q}
         </span>
         <span
@@ -34,7 +33,6 @@ function Accordion({ q, a, open, onClick, contentId }) {
           </svg>
         </span>
       </button>
-
       <div
         id={contentId}
         ref={contentRef}
@@ -43,27 +41,25 @@ function Accordion({ q, a, open, onClick, contentId }) {
           opacity: open ? 1 : 0,
           transition: "max-height 0.4s cubic-bezier(.4,0,.2,1), opacity 0.3s",
         }}
-        className="overflow-hidden rounded-b-lg bg-surface-50"
+        className="overflow-hidden rounded-b-lg bg-white"
         aria-hidden={!open}
       >
-        <div className="px-4 pb-4 pt-1 text-base text-text-muted">{a}</div>
+        <div className="px-4 pb-4 pt-1 text-base text-gray-600">{a}</div>
       </div>
     </div>
   );
 }
-
 export default function FAQSection() {
   const t = useTranslations();
   const [openIdx, setOpenIdx] = useState(null);
   const faqs = t.raw("pages.faq.faqs");
-
   return (
-    <div className="w-full min-h-screen bg-surface-50 pb-16">
+    <div className="w-full min-h-screen bg-white pb-16">
       <section className="mx-auto max-w-2xl px-4 pt-12 pb-8">
         <h1 className="mb-6 text-center text-3xl font-bold text-brand md:text-4xl">
           {t("pages.faq.title")}
         </h1>
-        <div className="divide-y rounded-2xl border border-border bg-white shadow">
+        <div className="divide-y rounded-2xl border border-gray-200 bg-white shadow">
           {faqs.map((item, idx) => (
             <Accordion
               key={item.q}

@@ -1,58 +1,52 @@
 import { useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
-import { FiPhoneOff, FiPhoneCall, FiVideo, FiAlertCircle } from "react-icons/fi";
-
+import {
+  FiPhoneOff,
+  FiPhoneCall,
+  FiVideo,
+  FiAlertCircle,
+} from "react-icons/fi";
 const STATUS_TEXT = {
   incoming: "incoming",
   outgoing: "outgoing",
   connecting: "connecting",
   connected: "connected",
 };
-
-export default function CallOverlay({
-  state,
-  onAccept,
-  onReject,
-  onEnd,
-}) {
+export default function CallOverlay({ state, onAccept, onReject, onEnd }) {
   const t = useTranslations();
   const localRef = useRef(null);
   const remoteRef = useRef(null);
-
   useEffect(() => {
     if (localRef.current && state?.localStream) {
       localRef.current.srcObject = state.localStream;
     }
   }, [state?.localStream]);
-
   useEffect(() => {
     if (remoteRef.current && state?.remoteStream) {
       remoteRef.current.srcObject = state.remoteStream;
     }
   }, [state?.remoteStream]);
-
   if (!state || state.status === "idle") return null;
-
   const isVideo = state.type === "video";
   const statusKey = STATUS_TEXT[state.status] || state.status;
-
   const renderControls = () => {
     if (state.status === "incoming") {
       return (
         <div className="flex gap-3">
+          
           <button
             className="px-4 py-2 rounded-full bg-[var(--color-danger-500)] text-white flex items-center gap-2 shadow"
             onClick={onReject}
           >
-            <FiPhoneOff />
-            {t("chat.conversation.reject")}
+            
+            <FiPhoneOff /> {t("chat.conversation.reject")}
           </button>
           <button
             className="px-4 py-2 rounded-full bg-brand text-white flex items-center gap-2 shadow"
             onClick={onAccept}
           >
-            <FiPhoneCall />
-            {t("chat.conversation.accept")}
+            
+            <FiPhoneCall /> {t("chat.conversation.accept")}
           </button>
         </div>
       );
@@ -63,8 +57,8 @@ export default function CallOverlay({
           className="px-4 py-2 rounded-full bg-[var(--color-danger-500)] text-white flex items-center gap-2 shadow"
           onClick={() => onEnd()}
         >
-          <FiPhoneOff />
-          {t("chat.conversation.cancel")}
+          
+          <FiPhoneOff /> {t("chat.conversation.cancel")}
         </button>
       );
     }
@@ -73,16 +67,18 @@ export default function CallOverlay({
         className="px-4 py-2 rounded-full bg-[var(--color-danger-500)] text-white flex items-center gap-2 shadow"
         onClick={() => onEnd()}
       >
-        <FiPhoneOff />
-        {t("chat.conversation.end_call")}
+        
+        <FiPhoneOff /> {t("chat.conversation.end_call")}
       </button>
     );
   };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+      
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col md:flex-row">
+        
         <div className="flex-1 relative bg-black text-white flex items-center justify-center">
+          
           {isVideo && state.remoteStream ? (
             <video
               ref={remoteRef}
@@ -93,7 +89,9 @@ export default function CallOverlay({
             />
           ) : (
             <div className="flex flex-col items-center gap-4 p-8">
+              
               <div className="w-24 h-24 rounded-full bg-brand flex items-center justify-center text-4xl font-semibold">
+                
                 {state.peerUser?.fullName
                   ? state.peerUser.fullName[0]?.toUpperCase()
                   : "?"}
@@ -112,11 +110,15 @@ export default function CallOverlay({
           )}
         </div>
         <div className="w-full md:w-80 p-6 flex flex-col gap-4 justify-between">
+          
           <div className="space-y-2">
-            <p className="text-sm uppercase text-text-muted tracking-wide">
+            
+            <p className="text-sm uppercase text-gray-600 tracking-wide">
+              
               {t(`chat.conversation.${statusKey}`, statusKey)}
             </p>
-            <h3 className="text-2xl font-semibold text-text-strong">
+            <h3 className="text-2xl font-semibold text-gray-900">
+              
               {state.peerUser?.fullName ||
                 state.peerUser?.name ||
                 state.peerUser?._id ||
@@ -124,11 +126,12 @@ export default function CallOverlay({
             </h3>
             {state.error && (
               <p className="text-sm text-[var(--color-danger-500)] flex items-center gap-2">
-                <FiAlertCircle />
-                {state.error}
+                
+                <FiAlertCircle /> {state.error}
               </p>
             )}
-            <p className="text-sm text-text-muted">
+            <p className="text-sm text-gray-600">
+              
               {state.type === "video"
                 ? t("chat.conversation.video_call")
                 : t("chat.conversation.audio_call")}
@@ -140,5 +143,3 @@ export default function CallOverlay({
     </div>
   );
 }
-
-

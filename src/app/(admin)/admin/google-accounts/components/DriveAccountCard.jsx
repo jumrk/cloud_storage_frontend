@@ -1,8 +1,6 @@
 "use client";
-
 import React from "react";
 import { formatSize } from "@/shared/utils/driveUtils";
-
 export default function DriveAccountCard({ account, onDelete, onRelink }) {
   if (!account) return null;
   return (
@@ -19,8 +17,7 @@ export default function DriveAccountCard({ account, onDelete, onRelink }) {
         </div>
       </div>
       <div className="flex justify-between text-sm text-gray-600">
-        <span>Đã dùng:</span>
-        <span>{formatSize(account.usedStorage)}</span>
+        <span>Đã dùng:</span> <span>{formatSize(account.usedStorage)}</span>
       </div>
       <div className="flex justify-between text-sm text-gray-600">
         <span>Tổng dung lượng:</span>
@@ -59,5 +56,3 @@ export default function DriveAccountCard({ account, onDelete, onRelink }) {
     </div>
   );
 }
-
-

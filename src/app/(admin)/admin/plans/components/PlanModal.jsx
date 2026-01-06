@@ -87,11 +87,11 @@ export default function PlanModal({ open, onClose, plan, onSubmit, loading }) {
   const [errors, setErrors] = useState({});
   const [featureInput, setFeatureInput] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
-
   const isEdit = Boolean(plan);
 
   useEffect(() => {
     if (!open) return;
+
     if (plan) {
       const storage = splitStorage(plan.storage);
       setForm({
@@ -118,6 +118,7 @@ export default function PlanModal({ open, onClose, plan, onSubmit, loading }) {
       });
       setIsCustom(false);
     }
+
     setFeatureInput("");
     setErrors({});
     setSlugTouched(false);
@@ -129,7 +130,10 @@ export default function PlanModal({ open, onClose, plan, onSubmit, loading }) {
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
-    setErrors((prev) => ({ ...prev, [name]: undefined }));
+    setErrors((prev) => ({
+      ...prev,
+      [name]: undefined,
+    }));
   };
 
   const handleNameChange = (e) => {
@@ -138,7 +142,10 @@ export default function PlanModal({ open, onClose, plan, onSubmit, loading }) {
       ...prev,
       name: value,
     }));
-    setErrors((prev) => ({ ...prev, name: undefined }));
+    setErrors((prev) => ({
+      ...prev,
+      name: undefined,
+    }));
   };
 
   const handlePriceChange = (e) => {
@@ -151,7 +158,10 @@ export default function PlanModal({ open, onClose, plan, onSubmit, loading }) {
       ...prev,
       [name]: formatted,
     }));
-    setErrors((prev) => ({ ...prev, [name]: undefined }));
+    setErrors((prev) => ({
+      ...prev,
+      [name]: undefined,
+    }));
   };
 
   const addFeature = () => {
@@ -162,7 +172,10 @@ export default function PlanModal({ open, onClose, plan, onSubmit, loading }) {
       description: [...(prev.description || []), value],
     }));
     setFeatureInput("");
-    setErrors((prev) => ({ ...prev, description: undefined }));
+    setErrors((prev) => ({
+      ...prev,
+      description: undefined,
+    }));
   };
 
   const removeFeature = (index) => {
@@ -174,8 +187,10 @@ export default function PlanModal({ open, onClose, plan, onSubmit, loading }) {
 
   const validate = () => {
     const nextErrors = {};
+
     if (!form.name.trim()) nextErrors.name = "Vui lòng nhập tên gói";
     if (!form.slug.trim()) nextErrors.slug = "Slug không được bỏ trống";
+
     if (!isCustom) {
       if (!form.storageValue || Number(form.storageValue) <= 0) {
         nextErrors.storageValue = "Dung lượng phải lớn hơn 0";
@@ -183,25 +198,31 @@ export default function PlanModal({ open, onClose, plan, onSubmit, loading }) {
       if (!form.users || Number(form.users) < 1) {
         nextErrors.users = "Người dùng phải >= 1";
       }
+
       const priceMonthValue = parseVNCurrency(form.priceMonth);
       if (priceMonthValue < 0) {
         nextErrors.priceMonth = "Giá tháng không hợp lệ";
       }
+
       const priceYearValue = parseVNCurrency(form.priceYear);
       if (priceYearValue < 0) {
         nextErrors.priceYear = "Giá năm không hợp lệ";
       }
     }
+
     const saleValue = Number(form.sale || 0);
     if (saleValue < 0 || saleValue > 100) {
       nextErrors.sale = "Giảm giá nằm trong 0 - 100%";
     }
+
     if (!form.description || form.description.length === 0) {
       nextErrors.description = "Vui lòng thêm ít nhất 1 mô tả";
     }
+
     if (form.credis < 0) {
       nextErrors.credis = "Credis phải >= 0";
     }
+
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   };
@@ -209,6 +230,7 @@ export default function PlanModal({ open, onClose, plan, onSubmit, loading }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!validate()) return;
+
     const payload = {
       ...form,
       slug: slugify(form.slug),
@@ -224,13 +246,12 @@ export default function PlanModal({ open, onClose, plan, onSubmit, loading }) {
       description: form.description.map((item) => item.trim()).filter(Boolean),
       _id: plan?._id,
     };
+
     onSubmit && onSubmit(payload);
   };
 
-  if (!open) return null;
-
   return (
-    <Modal onClose={onClose}>
+    <Modal isOpen={open} onClose={onClose}>
       <div className="w-full max-w-4xl max-h-[90vh] scrollbar-hide overflow-y-auto p-6 bg-white rounded-3xl shadow-2xl border border-slate-100">
         <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
           <div>
@@ -245,7 +266,10 @@ export default function PlanModal({ open, onClose, plan, onSubmit, loading }) {
             <ToggleChip
               active={form.featured}
               onClick={() =>
-                setForm((prev) => ({ ...prev, featured: !prev.featured }))
+                setForm((prev) => ({
+                  ...prev,
+                  featured: !prev.featured,
+                }))
               }
               label="Gói nổi bật"
             />
@@ -305,8 +329,14 @@ export default function PlanModal({ open, onClose, plan, onSubmit, loading }) {
                 options={STATUS_OPTIONS}
                 disabled={loading}
                 onChange={(val) => {
-                  setForm((prev) => ({ ...prev, status: val }));
-                  setErrors((prev) => ({ ...prev, status: undefined }));
+                  setForm((prev) => ({
+                    ...prev,
+                    status: val,
+                  }));
+                  setErrors((prev) => ({
+                    ...prev,
+                    status: undefined,
+                  }));
                 }}
               />
               <div className="grid md:grid-cols-2 gap-3">
@@ -380,7 +410,10 @@ export default function PlanModal({ open, onClose, plan, onSubmit, loading }) {
                       disabled={loading}
                       className="w-32"
                       onChange={(val) =>
-                        setForm((prev) => ({ ...prev, storageUnit: val }))
+                        setForm((prev) => ({
+                          ...prev,
+                          storageUnit: val,
+                        }))
                       }
                     />
                   </div>
@@ -540,6 +573,7 @@ function DropdownField({
         setOpen(false);
       }
     }
+
     if (open) {
       document.addEventListener("mousedown", handleClickOutside);
     }

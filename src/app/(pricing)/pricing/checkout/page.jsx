@@ -1,5 +1,4 @@
 "use client";
-
 import { Suspense, useMemo, useState } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -14,6 +13,7 @@ import {
   useCheckoutSummary,
   useCheckoutOrder,
 } from "@/features/pricing/hooks";
+import { usePendingOrder } from "@/features/plans/hooks";
 import { formatMoney } from "@/features/pricing/utils";
 
 function CheckoutContent() {
@@ -27,7 +27,6 @@ function CheckoutContent() {
   const usersParam =
     searchParams.get("customUsers") || searchParams.get("users");
   const credisParam = searchParams.get("credis");
-
   const [cycle, setCycle] = useState(cycleParam === "year" ? "year" : "month");
   const [paymentOption, setPaymentOption] = useState("bank_transfer");
 
@@ -57,7 +56,7 @@ function CheckoutContent() {
     orderType,
     currentUser,
     planSlug,
-    plan
+    plan,
   );
 
   const handleInputChange = (e) => {
@@ -68,6 +67,7 @@ function CheckoutContent() {
   const handleCustomInput = (e) => {
     handleFormCustomInput(e, () => setSummary(null));
   };
+
   const { slastExists, slastChecking } = useSlastCheck(form.slast);
 
   const buildPayload = () => buildFormPayload(cycle, orderType, paymentOption);
@@ -96,20 +96,28 @@ function CheckoutContent() {
 
   const { submitting, success, submitOrder, setSuccess } =
     useCheckoutOrder(buildPayload);
+  const {
+    hasPendingOrder,
+    pendingOrder,
+    loading: pendingLoading,
+  } = usePendingOrder();
 
   // Handlers
   const handleGenerateSummary = async (e) => {
     e.preventDefault();
+    if (hasPendingOrder) {
+      toast.error(
+        "Bạn đang có đơn hàng chờ duyệt. Vui lòng đợi admin xử lý trước khi tạo đơn mới.",
+      );
+      return;
+    }
     if (!validateForm(slastExists)) return;
     const result = await generateSummary();
     if (!result.success) {
       const errorMessage =
         result.error || "Có lỗi xảy ra khi tạo hướng dẫn thanh toán.";
       toast.error(errorMessage);
-      setErrors((prev) => ({
-        ...prev,
-        form: errorMessage,
-      }));
+      setErrors((prev) => ({ ...prev, form: errorMessage }));
       // Quay về trang trước sau 2 giây
       setTimeout(() => {
         router.back();
@@ -120,23 +128,23 @@ function CheckoutContent() {
   };
 
   const handleConfirmOrder = async () => {
+    if (hasPendingOrder) {
+      toast.error(
+        "Bạn đang có đơn hàng chờ duyệt. Vui lòng đợi admin xử lý trước khi tạo đơn mới.",
+      );
+      return;
+    }
     if (!summary) {
       const errorMessage = "Vui lòng tạo hướng dẫn thanh toán trước.";
       toast.error(errorMessage);
-      setErrors((prev) => ({
-        ...prev,
-        form: errorMessage,
-      }));
+      setErrors((prev) => ({ ...prev, form: errorMessage }));
       return;
     }
     const result = await submitOrder();
     if (!result.success) {
       const errorMessage = result.error || "Có lỗi xảy ra khi tạo đơn hàng.";
       toast.error(errorMessage);
-      setErrors((prev) => ({
-        ...prev,
-        form: errorMessage,
-      }));
+      setErrors((prev) => ({ ...prev, form: errorMessage }));
     }
   };
 
@@ -178,14 +186,47 @@ function CheckoutContent() {
             </button>
           </div>
         </div>
-
+        {hasPendingOrder && !pendingLoading && (
+          <div className="bg-brand-50 border border-brand-300 rounded-xl p-4 text-brand-800 mb-6">
+            <div className="flex items-start gap-3">
+              <div className="shrink-0 mt-0.5">
+                <svg
+                  className="w-5 h-5 text-brand-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-brand-900 mb-1">
+                  Đang có đơn hàng chờ duyệt
+                </h3>
+                <p className="text-brand-700 text-sm">
+                  Bạn đã gửi yêu cầu nâng cấp/gia hạn gói{" "}
+                  <span className="font-medium">
+                    {pendingOrder?.plan?.name || ""}
+                  </span>
+                  . Vui lòng đợi admin duyệt đơn hàng trước khi thực hiện giao
+                  dịch mới. Bạn có thể quay lại trang quản lý gói để xem trạng
+                  thái đơn hàng.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
         {!planSlug && (
           <div className="bg-white border border-[var(--color-border)] rounded-xl p-4 text-[var(--color-danger)]">
             Không tìm thấy gói hợp lệ. Vui lòng quay lại bảng giá để chọn gói
             cần mua.
           </div>
         )}
-
         <div className="grid lg:grid-cols-2 gap-6">
           <div className="bg-white rounded-3xl shadow-card border border-[var(--color-border)] p-6 space-y-6">
             <section className="space-y-4">
@@ -256,14 +297,13 @@ function CheckoutContent() {
                     plan)
                     ? "Đang tính toán số tiền cần thanh toán..."
                     : summary
-                    ? `Đã tính tất cả ưu đãi & mã giảm giá.`
-                    : isAuthenticated && orderType !== "register"
-                    ? "Đang tính toán số tiền cần thanh toán..."
-                    : "Điền thông tin để hệ thống tạo hướng dẫn thanh toán."}
+                      ? `Đã tính tất cả ưu đãi & mã giảm giá.`
+                      : isAuthenticated && orderType !== "register"
+                        ? "Đang tính toán số tiền cần thanh toán..."
+                        : "Điền thông tin để hệ thống tạo hướng dẫn thanh toán."}
                 </p>
               </div>
             </section>
-
             {isAuthenticated && orderType !== "register" ? (
               // Hiển thị thông tin user khi đã đăng nhập
               <div className="space-y-4">
@@ -274,7 +314,7 @@ function CheckoutContent() {
                   <div className="space-y-2 text-sm">
                     <div>
                       <span className="text-[var(--color-text-muted)]">
-                        Họ và tên:{" "}
+                        Họ và tên:
                       </span>
                       <span className="font-medium text-[var(--color-text-strong)]">
                         {form.fullName || "Chưa cập nhật"}
@@ -282,7 +322,7 @@ function CheckoutContent() {
                     </div>
                     <div>
                       <span className="text-[var(--color-text-muted)]">
-                        Email:{" "}
+                        Email:
                       </span>
                       <span className="font-medium text-[var(--color-text-strong)]">
                         {form.email}
@@ -290,7 +330,7 @@ function CheckoutContent() {
                     </div>
                     <div>
                       <span className="text-[var(--color-text-muted)]">
-                        Số điện thoại:{" "}
+                        Số điện thoại:
                       </span>
                       <span className="font-medium text-[var(--color-text-strong)]">
                         {form.phone || "Chưa cập nhật"}
@@ -298,7 +338,7 @@ function CheckoutContent() {
                     </div>
                     <div>
                       <span className="text-[var(--color-text-muted)]">
-                        Định danh:{" "}
+                        Định danh:
                       </span>
                       <span className="font-medium text-[var(--color-text-strong)]">
                         {form.slast}
@@ -395,7 +435,6 @@ function CheckoutContent() {
                     </p>
                   )}
                 </div>
-
                 {plan?.isCustom && (
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
@@ -431,7 +470,6 @@ function CheckoutContent() {
                     )}
                   </div>
                 )}
-
                 <div>
                   <label className="text-sm font-medium text-[var(--color-text-strong)]">
                     Mã giảm giá (nếu có)
@@ -444,23 +482,26 @@ function CheckoutContent() {
                     className="w-full mt-1 px-4 py-3 rounded-2xl border border-[var(--color-border)] uppercase focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-200)]"
                     placeholder="D2M2025"
                   />
+                  <p className="text-xs text-[var(--color-text-muted)] mt-1">
+                    Mã giảm giá chỉ áp dụng cho lần đầu mua gói.
+                  </p>
                 </div>
-
                 {errors.form && (
                   <div className="text-sm text-[var(--color-danger)] bg-[var(--color-danger-50)] border border-[var(--color-danger-200)] rounded-xl px-3 py-2">
                     {errors.form}
                   </div>
                 )}
-
                 <div className="flex flex-wrap gap-3">
                   <button
                     type="submit"
                     className="flex-1 min-w-[180px] inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--color-brand-500)] text-white font-semibold px-4 py-3 shadow hover:bg-[var(--color-brand-600)] transition disabled:opacity-60"
-                    disabled={loadingSummary}
+                    disabled={loadingSummary || hasPendingOrder}
                   >
-                    {loadingSummary
-                      ? "Đang xử lý..."
-                      : "Tạo hướng dẫn thanh toán"}
+                    {hasPendingOrder
+                      ? "Đang chờ duyệt đơn"
+                      : loadingSummary
+                        ? "Đang xử lý..."
+                        : "Tạo hướng dẫn thanh toán"}
                   </button>
                   <button
                     type="button"
@@ -472,7 +513,6 @@ function CheckoutContent() {
                 </div>
               </form>
             )}
-
             {/* Custom plan và discount code cho user đã đăng nhập */}
             {isAuthenticated && orderType !== "register" && (
               <div className="space-y-4">
@@ -511,29 +551,46 @@ function CheckoutContent() {
                     )}
                   </div>
                 )}
-
-                <div>
-                  <label className="text-sm font-medium text-[var(--color-text-strong)]">
-                    Mã giảm giá (nếu có)
-                  </label>
-                  <input
-                    type="text"
-                    name="discountCode"
-                    value={form.discountCode}
-                    onChange={handleInputChange}
-                    className="w-full mt-1 px-4 py-3 rounded-2xl border border-[var(--color-border)] uppercase focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-200)]"
-                    placeholder="D2M2025"
-                  />
-                </div>
-
+                {orderType === "register" ? (
+                  <div>
+                    <label className="text-sm font-medium text-[var(--color-text-strong)]">
+                      Mã giảm giá (nếu có)
+                    </label>
+                    <input
+                      type="text"
+                      name="discountCode"
+                      value={form.discountCode}
+                      onChange={handleInputChange}
+                      className="w-full mt-1 px-4 py-3 rounded-2xl border border-[var(--color-border)] uppercase focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-200)]"
+                      placeholder="D2M2025"
+                    />
+                    <p className="text-xs text-[var(--color-text-muted)] mt-1">
+                      Mã giảm giá chỉ áp dụng cho lần đầu mua gói.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-50)] p-4">
+                    <p className="text-sm text-[var(--color-text-muted)]">
+                      <strong className="text-[var(--color-text-strong)]">
+                        Mã giảm giá:
+                      </strong>{" "}
+                      Chỉ áp dụng cho lần đầu mua gói. Không thể sử dụng cho
+                      nâng cấp hoặc gia hạn.
+                    </p>
+                  </div>
+                )}
                 <div className="flex flex-wrap gap-3">
                   <button
                     type="button"
                     onClick={handleGenerateSummary}
                     className="flex-1 min-w-[180px] inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--color-brand-500)] text-white font-semibold px-4 py-3 shadow hover:bg-[var(--color-brand-600)] transition disabled:opacity-60"
-                    disabled={loadingSummary}
+                    disabled={loadingSummary || hasPendingOrder}
                   >
-                    {loadingSummary ? "Đang tính toán..." : "Tính lại giá"}
+                    {hasPendingOrder
+                      ? "Đang chờ duyệt đơn"
+                      : loadingSummary
+                        ? "Đang tính toán..."
+                        : "Tính lại giá"}
                   </button>
                   <button
                     type="button"
@@ -546,7 +603,6 @@ function CheckoutContent() {
               </div>
             )}
           </div>
-
           <div className="bg-white rounded-3xl shadow-card border border-[var(--color-border)] p-6 space-y-6">
             <section className="space-y-3">
               <div className="flex items-center justify-between">
@@ -585,7 +641,6 @@ function CheckoutContent() {
                 </button>
               </div>
             </section>
-
             <section className="space-y-4">
               <h3 className="text-lg font-semibold text-[var(--color-text-strong)]">
                 Chi tiết thanh toán
@@ -639,8 +694,7 @@ function CheckoutContent() {
                       </div>
                     ) : (
                       <div className="flex justify-between text-sm text-[var(--color-text-muted)]">
-                        <span>Mã giảm giá</span>
-                        <span>Không áp dụng</span>
+                        <span>Mã giảm giá</span> <span>Không áp dụng</span>
                       </div>
                     )}
                     <hr />
@@ -652,24 +706,23 @@ function CheckoutContent() {
                   <div className="rounded-2xl border border-[var(--color-border)] p-4 space-y-2 bg-[var(--color-surface-50)]">
                     <div className="text-sm text-[var(--color-text-muted)]">
                       <p>
-                        Ngân hàng:{" "}
+                        Ngân hàng:
                         <strong>{summary.payment.bankTransfer.bankName}</strong>
                       </p>
                       <p>
-                        Số tài khoản:{" "}
+                        Số tài khoản:
                         <strong>
                           {summary.payment.bankTransfer.accountNumber}
                         </strong>
                       </p>
                       <p>
-                        Chủ TK:{" "}
+                        Chủ TK:
                         <strong>
                           {summary.payment.bankTransfer.accountName}
                         </strong>
                       </p>
                       <p>
-                        Nội dung chuyển khoản:
-                        <br />
+                        Nội dung chuyển khoản: <br />
                         <span className="text-sm font-semibold">
                           {summary.payment.bankTransfer.transferContent}
                         </span>
@@ -697,11 +750,10 @@ function CheckoutContent() {
                 <div className="rounded-2xl border border-dashed border-[var(--color-border)] p-6 text-center text-sm text-[var(--color-text-muted)]">
                   {loadingSummary
                     ? "Đang tính toán số tiền cần thanh toán..."
-                    : 'Điền thông tin bên trái và nhấn "Tạo hướng dẫn thanh toán" để nhận QR cùng nội dung chuyển khoản.'}
+                    : 'Điền thông tin bên trái và nhấn"Tạo hướng dẫn thanh toán" để nhận QR cùng nội dung chuyển khoản.'}
                 </div>
               )}
             </section>
-
             <section className="space-y-4">
               <h3 className="text-lg font-semibold text-[var(--color-text-strong)]">
                 Quyền lợi của gói
@@ -723,17 +775,18 @@ function CheckoutContent() {
                 )}
               </ul>
             </section>
-
             <div className="space-y-3">
               <button
                 type="button"
                 onClick={handleConfirmOrder}
-                disabled={!summary || submitting}
+                disabled={!summary || submitting || hasPendingOrder}
                 className="w-full rounded-2xl bg-[var(--color-brand-500)] text-white font-semibold py-3 shadow hover:bg-[var(--color-brand-600)] disabled:opacity-60"
               >
-                {submitting
-                  ? "Đang gửi yêu cầu..."
-                  : "Xác nhận đã chuyển khoản"}
+                {hasPendingOrder
+                  ? "Đang chờ duyệt đơn"
+                  : submitting
+                    ? "Đang gửi yêu cầu..."
+                    : "Xác nhận đã chuyển khoản"}
               </button>
               {success && (
                 <div className="rounded-2xl border border-[var(--color-success-300)] bg-[var(--color-success-50)] text-[var(--color-success-700)] text-sm px-4 py-3">
@@ -748,8 +801,6 @@ function CheckoutContent() {
     </div>
   );
 }
-
-// Loading fallback component
 function CheckoutLoading() {
   return (
     <div className="min-h-screen bg-[var(--color-surface-soft)] py-12 px-4">
@@ -772,7 +823,6 @@ function CheckoutLoading() {
     </div>
   );
 }
-
 export default function CheckoutPage() {
   return (
     <Suspense fallback={<CheckoutLoading />}>

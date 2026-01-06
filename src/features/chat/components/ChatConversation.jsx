@@ -31,6 +31,8 @@ import {
   FiMoreHorizontal,
   FiSettings,
   FiImage,
+  FiHardDrive,
+  FiArrowLeft,
 } from "react-icons/fi";
 import { TbPinnedOff } from "react-icons/tb";
 import { BsCheck2All } from "react-icons/bs";
@@ -52,7 +54,6 @@ import {
 } from "@/features/chat/utils/messageUtils";
 import getAvatarUrl from "@/shared/utils/getAvatarUrl";
 import SystemFilePickerModal from "./SystemFilePickerModal";
-import { FiHardDrive, FiArrowLeft } from "react-icons/fi";
 
 const MAIN_PX = "px-3 sm:px-6 lg:px-16";
 const AVATAR_SIZE = 44;
@@ -65,6 +66,7 @@ const formatRecordingTime = (seconds) => {
   const secs = (seconds % 60).toString().padStart(2, "0");
   return `${mins}:${secs}`;
 };
+
 export default function ChatConversation({
   chat,
   messages,
@@ -148,7 +150,6 @@ export default function ChatConversation({
   const reactionPickerRef = useRef(null);
   const [editInput, setEditInput] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(null);
-
   const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
 
   // Track scroll state
@@ -160,7 +161,6 @@ export default function ChatConversation({
   const scrollToBottom = useCallback((instant = false) => {
     const container = scrollRef.current;
     if (!container) return;
-
     if (instant) {
       container.scrollTop = container.scrollHeight;
     } else {
@@ -194,30 +194,23 @@ export default function ChatConversation({
     if (!messages || messages.length === 0) return;
     // Skip if loading more old messages (user scrolling up)
     if (loadingMore) return;
-
     const container = scrollRef.current;
     if (!container) return;
-
     const isInitialLoad = !hasInitialScrolledRef.current;
     const isNewMessage =
       messages.length > lastMessageCountRef.current &&
       hasInitialScrolledRef.current;
-
     // Update refs
     lastMessageCountRef.current = messages.length;
-
     if (isInitialLoad) {
       // First time loading this chat - scroll to bottom instantly
       hasInitialScrolledRef.current = true;
-
       // Force scroll to bottom immediately
       container.scrollTop = container.scrollHeight;
-
       // Use requestAnimationFrame to ensure DOM is painted
       requestAnimationFrame(() => {
         container.scrollTop = container.scrollHeight;
       });
-
       // Also scroll after delays to handle lazy-loaded content (images, etc.)
       const timers = [50, 100, 200, 400, 800, 1500].map((delay) =>
         setTimeout(() => {
@@ -226,7 +219,6 @@ export default function ChatConversation({
           }
         }, delay)
       );
-
       return () => timers.forEach(clearTimeout);
     } else if (isNewMessage || isTyping) {
       // New message arrived - smooth scroll
@@ -236,7 +228,6 @@ export default function ChatConversation({
       });
     }
   }, [messages, loadingMessages, loadingMore, isTyping]);
-
   useEffect(() => {
     messageRefs.current = {};
     setSearchQuery("");
@@ -245,13 +236,11 @@ export default function ChatConversation({
     setSearchOpen(false);
     setInfoOpen(false);
   }, [chat?.id]);
-
   useEffect(() => {
     if (loadingMore && scrollRef.current) {
       prevScrollHeight.current = scrollRef.current.scrollHeight;
     }
   }, [loadingMore]);
-
   useEffect(() => {
     if (!loadingMore && scrollRef.current && prevScrollHeight.current) {
       const el = scrollRef.current;
@@ -260,7 +249,6 @@ export default function ChatConversation({
       prevScrollHeight.current = 0;
     }
   }, [loadingMore]);
-
   useEffect(() => {
     if (!searchQuery) {
       setSearchMatches([]);
@@ -269,11 +257,7 @@ export default function ChatConversation({
     }
     const lowered = searchQuery.toLowerCase();
     const matches = messages
-      .map((msg, idx) => ({
-        idx,
-        id: msg._id || idx,
-        content: msg.content,
-      }))
+      .map((msg, idx) => ({ idx, id: msg._id || idx, content: msg.content }))
       .filter(({ content }) => {
         if (typeof content !== "string") return false;
         if (parseAttachmentContent(content)) return false;
@@ -284,7 +268,6 @@ export default function ChatConversation({
       matches.length ? Math.min(prev, matches.length - 1) : 0
     );
   }, [searchQuery, messages]);
-
   useEffect(() => {
     if (!searchMatches.length) return;
     const target = messageRefs.current[searchMatches[activeMatch]?.id];
@@ -297,7 +280,6 @@ export default function ChatConversation({
       return () => clearTimeout(timeout);
     }
   }, [activeMatch, searchMatches]);
-
   useEffect(() => {
     if (!searchOpen) {
       Object.values(messageRefs.current).forEach((node) =>
@@ -305,7 +287,6 @@ export default function ChatConversation({
       );
     }
   }, [searchOpen]);
-
   useEffect(() => {
     if (!emojiOpen) return;
     const handleClick = (event) => {
@@ -320,7 +301,6 @@ export default function ChatConversation({
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, [emojiOpen]);
-
   const ensureProfile = async () => {
     if (!chat?.id) return;
     if (profile && profile._id === chat.id) return;
@@ -337,21 +317,17 @@ export default function ChatConversation({
       setLoadingProfile(false);
     }
   };
-
   const handleOpenInfo = async () => {
     setInfoOpen(true);
     await ensureProfile();
   };
-
   const infoData = useMemo(
     () => profile || userMap[chat?.id] || chat || {},
     [profile, userMap, chat]
   );
-
   const handleAttachmentClick = () => {
     fileInputRef.current?.click();
   };
-
   const handleAttachmentChange = async (e) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -362,7 +338,6 @@ export default function ChatConversation({
       }
     }
   };
-
   const handleEmojiSelect = (emojiData) => {
     if (!emojiData?.emoji) return;
     setInput((prev) => `${prev}${emojiData.emoji}`);
@@ -477,6 +452,7 @@ export default function ChatConversation({
     }
     setEmojiOpen(false);
     setRecordingError("");
+
     if (
       typeof window === "undefined" ||
       !navigator?.mediaDevices?.getUserMedia
@@ -484,6 +460,7 @@ export default function ChatConversation({
       setRecordingError("Thiết bị không hỗ trợ ghi âm.");
       return;
     }
+
     try {
       if (typeof MediaRecorder === "undefined") {
         setRecordingError("Trình duyệt không hỗ trợ ghi âm.");
@@ -499,35 +476,42 @@ export default function ChatConversation({
       const recorder = new MediaRecorder(stream, { mimeType });
       recordingChunksRef.current = [];
       recordingShouldSaveRef.current = true;
+
       recorder.ondataavailable = (event) => {
         if (event.data && event.data.size) {
           recordingChunksRef.current.push(event.data);
         }
       };
+
       recorder.onstop = () => {
         setRecordingActive(false);
         stream.getTracks().forEach((track) => track.stop());
         recordingStreamRef.current = null;
         mediaRecorderRef.current = null;
+
         const shouldSave = recordingShouldSaveRef.current;
-        recordingShouldSaveRef.current = true;
+        recordingShouldSaveRef.current = true; // Reset for next recording
         if (!shouldSave) {
           recordingChunksRef.current = [];
           setRecordingDuration(0);
           return;
         }
+
         const chunks = recordingChunksRef.current;
         if (!chunks.length) {
           setRecordingError("Không có âm thanh nào được ghi.");
           return;
         }
+
         const blob = new Blob(chunks, { type: mimeType });
         const url = URL.createObjectURL(blob);
         setRecordingPreview({ blob, url, mimeType });
         recordingChunksRef.current = [];
       };
+
       mediaRecorderRef.current = recorder;
-      recorder.start(250);
+      recorder.start(250); // Collect 250ms chunks
+
       setRecordingActive(true);
       setRecordingDuration(0);
       recordingTimerRef.current = setInterval(() => {
@@ -549,7 +533,7 @@ export default function ChatConversation({
   const cancelRecording = () => {
     setRecordingError("");
     if (recordingActive) {
-      recordingShouldSaveRef.current = false;
+      recordingShouldSaveRef.current = false; // Prevent saving on stop
       stopRecording();
     }
     if (recordingPreview) {
@@ -626,7 +610,7 @@ export default function ChatConversation({
       part.toLowerCase() === searchQuery.toLowerCase() ? (
         <mark
           key={`${part}-${idx}`}
-          className="bg-yellow-200 text-text-strong px-1 rounded"
+          className="bg-yellow-200 text-gray-900 px-1 rounded"
         >
           {part}
         </mark>
@@ -670,32 +654,37 @@ export default function ChatConversation({
 
   const renderAttachment = (attachment, isMine, messageCreatedAt) => {
     if (!attachment) return null;
+
     const expiresAt =
       attachment.expiresAt && !Number.isNaN(Number(attachment.expiresAt))
         ? new Date(Number(attachment.expiresAt))
         : messageCreatedAt
         ? new Date(new Date(messageCreatedAt).getTime() + ATTACHMENT_TTL_MS)
         : null;
+
     const isExpired =
       Boolean(attachment.expired) ||
       (expiresAt ? Date.now() > expiresAt.getTime() : false);
     const hasData = Boolean(attachment.data);
     const canPreview = hasData && !isExpired;
+
     const isImage = attachment.mime?.startsWith("image/");
     const isAudio = attachment.mime?.startsWith("audio/");
     const src =
       canPreview && attachment.mime
         ? `data:${attachment.mime};base64,${attachment.data}`
         : null;
-    const titleClass = isMine ? "text-white" : "text-text-strong";
-    const subClass = isMine ? "text-white/70" : "text-text-muted";
+
+    const titleClass = isMine ? "text-white" : "text-gray-900";
+    const subClass = isMine ? "text-white/70" : "text-gray-600";
+
     return (
       <div className="flex flex-col gap-3">
         <div className="flex items-center gap-3">
           <div
             className={`w-12 h-12 rounded-2xl ${
               isMine
-                ? "bg-white/20 border-white/30"
+                ? "bg-white border-white/30"
                 : "bg-[var(--color-surface-50)] border-[var(--color-border)]"
             } border flex items-center justify-center overflow-hidden`}
           >
@@ -719,7 +708,7 @@ export default function ChatConversation({
               {formatBytes(attachment.size)}
             </p>
             {expiresAt && (
-              <p className="text-[11px] text-text-muted mt-0.5">
+              <p className="text-[11px] text-gray-600 mt-0.5">
                 {isExpired
                   ? "Tệp đã hết hạn (lưu tối đa 3 ngày)."
                   : `Tự xoá vào ${expiresAt.toLocaleDateString()} ${expiresAt.toLocaleTimeString(
@@ -737,8 +726,7 @@ export default function ChatConversation({
               }`}
               onClick={() => handleDownloadAttachment(attachment)}
             >
-              <FiDownload />
-              {t("chat.conversation.download_attachment")}
+              <FiDownload /> {t("chat.conversation.download_attachment")}
             </button>
           )}
         </div>
@@ -772,11 +760,13 @@ export default function ChatConversation({
   // Render system file attachment (from file management system)
   const renderSystemFile = (systemFile, isMine) => {
     if (!systemFile) return null;
+
     const isImage = systemFile.mime?.startsWith("image/");
     const isAudio = systemFile.mime?.startsWith("audio/");
     const isVideo = systemFile.mime?.startsWith("video/");
-    const titleClass = isMine ? "text-white" : "text-text-strong";
-    const subClass = isMine ? "text-white/70" : "text-text-muted";
+
+    const titleClass = isMine ? "text-white" : "text-gray-900";
+    const subClass = isMine ? "text-white/70" : "text-gray-600";
 
     const handleDownload = () => {
       if (systemFile.downloadUrl) {
@@ -805,7 +795,7 @@ export default function ChatConversation({
           <div
             className={`w-12 h-12 rounded-2xl ${
               isMine
-                ? "bg-white/20 border-white/30"
+                ? "bg-white border-white/30"
                 : "bg-[var(--color-surface-50)] border-[var(--color-border)]"
             } border flex items-center justify-center overflow-hidden`}
           >
@@ -827,8 +817,7 @@ export default function ChatConversation({
               {formatBytes(systemFile.size)}
             </p>
             <p className="text-[11px] text-brand flex items-center gap-1 mt-0.5">
-              <FiHardDrive size={10} />
-              File hệ thống
+              <FiHardDrive size={10} /> File hệ thống
             </p>
           </div>
           <button
@@ -838,8 +827,7 @@ export default function ChatConversation({
             }`}
             onClick={handleDownload}
           >
-            <FiDownload />
-            {t("chat.conversation.download_attachment")}
+            <FiDownload /> {t("chat.conversation.download_attachment")}
           </button>
         </div>
       </div>
@@ -929,7 +917,7 @@ export default function ChatConversation({
   };
 
   const handlePinnedKeyDown = (event) => {
-    if (event.key === "Enter" || event.key === " ") {
+    if (event.key === "Enter" || event.key === "") {
       event.preventDefault();
       focusPinnedMessage();
     }
@@ -1047,7 +1035,7 @@ export default function ChatConversation({
         <p className="font-semibold text-brand-500">
           {sender.fullName || sender.name || sender.email || "Người dùng"}
         </p>
-        <p className="text-text-muted line-clamp-1">
+        <p className="text-gray-600 line-clamp-1">
           {replyTo.content?.startsWith("__CHAT_ATTACHMENT__:")
             ? "📎 Tệp đính kèm"
             : replyTo.content}
@@ -1059,10 +1047,12 @@ export default function ChatConversation({
   // Render reactions on message
   const renderReactions = (msg) => {
     if (!msg.reactions?.length) return null;
+
     const grouped = msg.reactions.reduce((acc, r) => {
       acc[r.emoji] = (acc[r.emoji] || 0) + 1;
       return acc;
     }, {});
+
     return (
       <div className="flex flex-wrap gap-1 mt-1">
         {Object.entries(grouped).map(([emoji, count]) => {
@@ -1076,7 +1066,7 @@ export default function ChatConversation({
               className={`text-xs px-1.5 py-0.5 rounded-full border transition ${
                 isMyReaction
                   ? "bg-brand/10 border-brand/30"
-                  : "bg-white/80 border-[var(--color-border)]/50 hover:bg-white"
+                  : "bg-white border-[var(--color-border)]/50 hover:bg-white"
               }`}
               onClick={() => handleReaction(msg, emoji)}
             >
@@ -1114,7 +1104,7 @@ export default function ChatConversation({
 
   return (
     <div className="relative flex flex-col h-full w-full">
-      <div className="bg-white/95 backdrop-blur py-2 lg:py-3 border-b border-white/80 shadow-[0_8px_30px_rgba(15,23,42,0.12)]">
+      <div className="bg-white backdrop-blur py-2 lg:py-3 border-b border-white/80 shadow-[0_8px_30px_rgba(15,23,42,0.12)]">
         <div
           className={`${MAIN_PX} py-2 lg:py-3 flex items-center justify-between gap-2 lg:gap-4`}
         >
@@ -1123,12 +1113,11 @@ export default function ChatConversation({
             <button
               type="button"
               onClick={onMobileBack}
-              className="lg:hidden flex items-center justify-center w-9 h-9 rounded-xl text-text-muted hover:text-text-strong hover:bg-[var(--color-surface-50)] transition shrink-0"
+              className="lg:hidden flex items-center justify-center w-9 h-9 rounded-xl text-gray-600 hover:text-gray-900 hover:bg-[var(--color-surface-50)] transition shrink-0"
               title="Quay lại"
             >
               <FiArrowLeft size={20} />
             </button>
-
             <div
               className="flex items-center justify-center rounded-xl lg:rounded-2xl bg-white border border-[var(--color-border)]/50 overflow-hidden shadow-sm shrink-0"
               style={{ width: 40, height: 40 }}
@@ -1150,7 +1139,7 @@ export default function ChatConversation({
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <h2 className="font-semibold text-base lg:text-lg text-text-strong truncate">
+                <h2 className="font-semibold text-base lg:text-lg text-gray-900 truncate">
                   {chat?.name || t("chat.conversation.select_conversation")}
                 </h2>
                 {/* Labels hidden on mobile */}
@@ -1163,7 +1152,7 @@ export default function ChatConversation({
                   </span>
                 ))}
               </div>
-              <div className="text-[11px] flex items-center gap-3 mt-1 text-text-muted">
+              <div className="text-[11px] flex items-center gap-3 mt-1 text-gray-600">
                 <span
                   className={`inline-flex items-center gap-1 uppercase tracking-widest ${
                     isOnline ? "text-green-600" : "text-gray-400"
@@ -1193,7 +1182,7 @@ export default function ChatConversation({
               className={`inline-flex items-center justify-center w-9 h-9 lg:w-10 lg:h-10 rounded-xl lg:rounded-2xl border border-[var(--color-border)] transition ${
                 searchOpen
                   ? "bg-brand text-white"
-                  : "hover:bg-[var(--color-surface-50)] text-text-strong"
+                  : "hover:bg-[var(--color-surface-50)] text-gray-900"
               }`}
               onClick={() =>
                 setSearchOpen((prev) => {
@@ -1208,7 +1197,7 @@ export default function ChatConversation({
             {/* Call buttons - hidden on small mobile */}
             <button
               type="button"
-              className="hidden sm:inline-flex items-center justify-center w-9 h-9 lg:w-10 lg:h-10 rounded-xl lg:rounded-2xl border border-[var(--color-border)] hover:bg-[var(--color-surface-50)] text-text-strong transition disabled:opacity-40 disabled:cursor-not-allowed"
+              className="hidden sm:inline-flex items-center justify-center w-9 h-9 lg:w-10 lg:h-10 rounded-xl lg:rounded-2xl border border-[var(--color-border)] hover:bg-[var(--color-surface-50)] text-gray-900 transition disabled:opacity-40 disabled:cursor-not-allowed"
               onClick={() => onStartCall("audio")}
               disabled={callBusy || !chat}
               title={t("chat.conversation.audio_call")}
@@ -1217,7 +1206,7 @@ export default function ChatConversation({
             </button>
             <button
               type="button"
-              className="inline-flex items-center justify-center w-9 h-9 lg:w-10 lg:h-10 rounded-xl lg:rounded-2xl border border-[var(--color-border)] hover:bg-[var(--color-surface-50)] text-text-strong transition disabled:opacity-40 disabled:cursor-not-allowed"
+              className="inline-flex items-center justify-center w-9 h-9 lg:w-10 lg:h-10 rounded-xl lg:rounded-2xl border border-[var(--color-border)] hover:bg-[var(--color-surface-50)] text-gray-900 transition disabled:opacity-40 disabled:cursor-not-allowed"
               onClick={() => onStartCall("video")}
               disabled={callBusy || !chat}
               title={t("chat.conversation.video_call")}
@@ -1227,7 +1216,7 @@ export default function ChatConversation({
             {/* Desktop only buttons */}
             <button
               type="button"
-              className="hidden lg:inline-flex items-center justify-center w-10 h-10 rounded-2xl border border-[var(--color-border)] hover:bg-[var(--color-surface-50)] text-text-strong transition"
+              className="hidden lg:inline-flex items-center justify-center w-10 h-10 rounded-2xl border border-[var(--color-border)] hover:bg-[var(--color-surface-50)] text-gray-900 transition"
               onClick={onOpenMediaGallery}
               title="Thư viện phương tiện"
             >
@@ -1236,7 +1225,7 @@ export default function ChatConversation({
             {chat?.type === "group" && (
               <button
                 type="button"
-                className="inline-flex items-center justify-center w-9 h-9 lg:w-10 lg:h-10 rounded-xl lg:rounded-2xl border border-[var(--color-border)] hover:bg-[var(--color-surface-50)] text-text-strong transition"
+                className="inline-flex items-center justify-center w-9 h-9 lg:w-10 lg:h-10 rounded-xl lg:rounded-2xl border border-[var(--color-border)] hover:bg-[var(--color-surface-50)] text-gray-900 transition"
                 onClick={onOpenGroupSettings}
                 title="Cài đặt nhóm"
               >
@@ -1245,7 +1234,7 @@ export default function ChatConversation({
             )}
             <button
               type="button"
-              className="inline-flex items-center justify-center w-9 h-9 lg:w-10 lg:h-10 rounded-xl lg:rounded-2xl border border-[var(--color-border)] hover:bg-[var(--color-surface-50)] text-text-strong transition"
+              className="inline-flex items-center justify-center w-9 h-9 lg:w-10 lg:h-10 rounded-xl lg:rounded-2xl border border-[var(--color-border)] hover:bg-[var(--color-surface-50)] text-gray-900 transition"
               onClick={handleOpenInfo}
               title={t("chat.conversation.info_title")}
             >
@@ -1262,7 +1251,7 @@ export default function ChatConversation({
           <div className={`${MAIN_PX} pb-4`}>
             <div className="flex items-center gap-2">
               <div className="relative flex-1">
-                <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+                <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" />
                 <input
                   className="w-full pl-9 pr-10 py-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-50)] focus:outline-none focus:ring-2 focus:ring-brand"
                   placeholder={t("chat.conversation.search_placeholder")}
@@ -1272,7 +1261,7 @@ export default function ChatConversation({
                 {searchQuery && (
                   <button
                     type="button"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-strong"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-900"
                     onClick={() => setSearchQuery("")}
                     aria-label="Clear search"
                   >
@@ -1281,7 +1270,7 @@ export default function ChatConversation({
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-3 mt-2 text-xs text-text-muted">
+            <div className="flex items-center gap-3 mt-2 text-xs text-gray-600">
               <span>
                 {searchMatches.length
                   ? `${activeMatch + 1}/${searchMatches.length}`
@@ -1315,19 +1304,19 @@ export default function ChatConversation({
               tabIndex={0}
               onClick={focusPinnedMessage}
               onKeyDown={handlePinnedKeyDown}
-              className="flex items-center gap-3 rounded-2xl border border-[var(--color-border)]/40 bg-white/90 px-4 py-2 shadow-sm cursor-pointer hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand transition"
+              className="flex items-center gap-3 rounded-2xl border border-[var(--color-border)]/40 bg-white px-4 py-2 shadow-sm cursor-pointer hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand transition"
             >
               <div className="text-xs font-semibold uppercase text-[var(--color-info-500)] tracking-wide">
                 {t("chat.conversation.pinned")}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-text-strong leading-snug line-clamp-2 break-words">
+                <p className="text-sm text-gray-900 leading-snug line-clamp-2 break-words">
                   {renderPinnedPreview(pinned)}
                 </p>
               </div>
               <button
                 type="button"
-                className="p-1 rounded-full text-text-muted hover:text-text-strong"
+                className="p-1 rounded-full text-gray-600 hover:text-gray-900"
                 onClick={(event) => {
                   event.stopPropagation();
                   onUnpinMessage();
@@ -1340,7 +1329,6 @@ export default function ChatConversation({
           </div>
         )}
       </div>
-
       <div
         className={`flex-1 overflow-y-auto hide-scrollbar ${MAIN_PX} pt-4 lg:pt-8 pb-24 lg:pb-28 chat-messages-area`}
         ref={scrollRef}
@@ -1355,7 +1343,7 @@ export default function ChatConversation({
         {/* Loading indicator when scrolling up to load more */}
         {loadingMore && (
           <div className="flex items-center justify-center py-4 mb-2">
-            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 shadow-md border border-[var(--color-border)]/30">
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-md border border-[var(--color-border)]/30">
               <div className="flex gap-1">
                 <span
                   className="w-2 h-2 bg-brand rounded-full animate-bounce"
@@ -1370,17 +1358,16 @@ export default function ChatConversation({
                   style={{ animationDelay: "300ms" }}
                 />
               </div>
-              <span className="text-xs text-text-muted font-medium">
+              <span className="text-xs text-gray-600 font-medium">
                 Đang tải tin nhắn cũ...
               </span>
             </div>
           </div>
         )}
-
         {/* Show indicator that more messages can be loaded */}
         {hasMore && !loadingMore && (
           <div className="flex items-center justify-center py-2 mb-2">
-            <div className="px-3 py-1 rounded-full bg-[var(--color-surface-50)] text-xs text-text-muted">
+            <div className="px-3 py-1 rounded-full bg-[var(--color-surface-50)] text-xs text-gray-600">
               ↑ Cuộn lên để xem tin nhắn cũ hơn
             </div>
           </div>
@@ -1446,13 +1433,13 @@ export default function ChatConversation({
                 <React.Fragment key={key}>
                   {showDayDivider && (
                     <div className="flex justify-center my-6">
-                      <span className="day-divider px-4 py-1 rounded-full bg-white/80 text-xs font-semibold text-text-muted shadow-sm border border-white/80">
+                      <span className="day-divider px-4 py-1 rounded-full bg-white text-xs font-semibold text-gray-600 shadow-sm border border-white/80">
                         {formatDayLabel(msg.createdAt)}
                       </span>
                     </div>
                   )}
                   <div className="flex justify-center my-3">
-                    <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--color-surface-100)]/80 text-xs text-text-muted shadow-sm border border-[var(--color-border)]/30">
+                    <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--color-surface-100)]/80 text-xs text-gray-600 shadow-sm border border-[var(--color-border)]/30">
                       <span>{formatSystemMessage(systemMsg)}</span>
                     </div>
                   </div>
@@ -1464,7 +1451,7 @@ export default function ChatConversation({
               <React.Fragment key={key}>
                 {showDayDivider && (
                   <div className="flex justify-center my-6">
-                    <span className="day-divider px-4 py-1 rounded-full bg-white/80 text-xs font-semibold text-text-muted shadow-sm border border-white/80">
+                    <span className="day-divider px-4 py-1 rounded-full bg-white text-xs font-semibold text-gray-600 shadow-sm border border-white/80">
                       {formatDayLabel(msg.createdAt)}
                     </span>
                   </div>
@@ -1505,15 +1492,13 @@ export default function ChatConversation({
                   >
                     {/* Reply preview */}
                     {msg.replyTo && renderReplyPreview(msg.replyTo)}
-
                     {/* Forwarded indicator */}
                     {msg.forwardedFrom && (
-                      <div className="flex items-center gap-1 text-[10px] text-text-muted mb-1">
+                      <div className="flex items-center gap-1 text-[10px] text-gray-600 mb-1">
                         <FiShare size={10} />
                         <span>Đã chuyển tiếp</span>
                       </div>
                     )}
-
                     {chat?.type === "group" && !isMe && (
                       <p className="text-[11px] font-semibold text-brand-500 mb-1">
                         {sender?.fullName ||
@@ -1525,7 +1510,7 @@ export default function ChatConversation({
                     )}
                     <div className="text-[15px] leading-relaxed break-words">
                       {msg.deletedForAll ? (
-                        <span className="italic text-text-muted">
+                        <span className="italic text-gray-600">
                           Tin nhắn đã bị xóa
                         </span>
                       ) : gifUrl ? (
@@ -1540,11 +1525,9 @@ export default function ChatConversation({
                         msg.content
                       )}
                     </div>
-
                     {/* Reactions */}
                     {renderReactions(msg)}
-
-                    <div className="flex items-center gap-1 text-[11px] text-text-muted/80 mt-2 justify-end">
+                    <div className="flex items-center gap-1 text-[11px] text-gray-600/80 mt-2 justify-end">
                       {msg.edited && (
                         <span className="italic mr-1">đã sửa</span>
                       )}
@@ -1552,7 +1535,7 @@ export default function ChatConversation({
                       {isMe && (
                         <BsCheck2All
                           className={`text-xs ${
-                            msg.isRead ? "text-brand" : "text-text-muted/70"
+                            msg.isRead ? "text-brand" : "text-gray-600/70"
                           }`}
                         />
                       )}
@@ -1560,7 +1543,6 @@ export default function ChatConversation({
                         <FiStar className="text-xs text-yellow-500 fill-yellow-500" />
                       )}
                     </div>
-
                     {/* Action buttons on hover */}
                     <div
                       className={`absolute -top-3 ${
@@ -1581,23 +1563,21 @@ export default function ChatConversation({
                         ))}
                         <button
                           type="button"
-                          className="w-6 h-6 flex items-center justify-center text-text-muted hover:text-text-strong transition"
+                          className="w-6 h-6 flex items-center justify-center text-gray-600 hover:text-gray-900 transition"
                           onClick={() => setReactionPickerOpen(msg._id)}
                         >
                           <FiSmile size={14} />
                         </button>
                       </div>
-
                       {/* More actions */}
                       <button
                         type="button"
-                        className="w-7 h-7 flex items-center justify-center bg-white rounded-full shadow-lg border border-[var(--color-border)]/50 text-text-muted hover:text-text-strong transition"
+                        className="w-7 h-7 flex items-center justify-center bg-white rounded-full shadow-lg border border-[var(--color-border)]/50 text-gray-600 hover:text-gray-900 transition"
                         onClick={(e) => handleContextMenu(e, msg)}
                       >
                         <FiMoreHorizontal size={14} />
                       </button>
                     </div>
-
                     {/* Reaction picker popup */}
                     {reactionPickerOpen === msg._id && (
                       <div
@@ -1624,7 +1604,6 @@ export default function ChatConversation({
             );
           })
         )}
-
         {isTyping && (
           <div className="mb-2 flex justify-start items-end">
             <Image
@@ -1647,8 +1626,7 @@ export default function ChatConversation({
               }}
             >
               <span className="typing-ellipsis">
-                <span className="dot" />
-                <span className="dot" />
+                <span className="dot" /> <span className="dot" />
                 <span className="dot" />
               </span>
             </div>
@@ -1656,11 +1634,10 @@ export default function ChatConversation({
         )}
         <div ref={messagesEndRef} />
       </div>
-
       {recordingActive && (
         <div className={`${MAIN_PX} pt-4`}>
-          <div className="flex items-center justify-between rounded-2xl bg-white/90 px-4 py-3 border border-white/80 shadow-md">
-            <div className="flex items-center gap-3 text-sm font-semibold text-text-strong">
+          <div className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 border border-white/80 shadow-md">
+            <div className="flex items-center gap-3 text-sm font-semibold text-gray-900">
               <span className="w-2.5 h-2.5 rounded-full bg-[var(--color-danger-500)] animate-pulse" />
               <span>
                 Đang ghi âm • {formatRecordingTime(recordingDuration)}
@@ -1685,7 +1662,6 @@ export default function ChatConversation({
           </div>
         </div>
       )}
-
       {recordingPreview && (
         <div className={`${MAIN_PX} pt-3`}>
           <div className="space-y-3 rounded-2xl bg-white px-4 py-3 border border-white/80 shadow-lg">
@@ -1712,20 +1688,19 @@ export default function ChatConversation({
           </div>
         </div>
       )}
-
       {/* Reply bar */}
       {replyingTo && (
         <div className={`${MAIN_PX} pt-3`}>
-          <div className="flex items-center gap-3 rounded-2xl bg-white/90 px-4 py-2.5 border border-[var(--color-border)]/40 shadow-sm">
+          <div className="flex items-center gap-3 rounded-2xl bg-white px-4 py-2.5 border border-[var(--color-border)]/40 shadow-sm">
             <FiCornerUpLeft className="text-brand shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-xs font-semibold text-brand">
-                Trả lời{" "}
+                Trả lời{""}
                 {userMap[replyingTo.from]?.fullName ||
                   userMap[replyingTo.from]?.name ||
                   "Tin nhắn"}
               </p>
-              <p className="text-sm text-text-muted truncate">
+              <p className="text-sm text-gray-600 truncate">
                 {replyingTo.content?.startsWith("__CHAT_ATTACHMENT__:")
                   ? "📎 Tệp đính kèm"
                   : replyingTo.content}
@@ -1733,7 +1708,7 @@ export default function ChatConversation({
             </div>
             <button
               type="button"
-              className="p-1.5 rounded-full hover:bg-[var(--color-surface-50)] text-text-muted hover:text-text-strong transition"
+              className="p-1.5 rounded-full hover:bg-[var(--color-surface-50)] text-gray-600 hover:text-gray-900 transition"
               onClick={() => setReplyingTo(null)}
             >
               <FiX size={16} />
@@ -1741,11 +1716,10 @@ export default function ChatConversation({
           </div>
         </div>
       )}
-
       {/* Edit bar */}
       {editingMessage && (
         <div className={`${MAIN_PX} pt-3`}>
-          <div className="rounded-2xl bg-white/90 px-4 py-3 border border-brand/40 shadow-sm">
+          <div className="rounded-2xl bg-white px-4 py-3 border border-brand/40 shadow-sm">
             <div className="flex items-center gap-2 mb-2">
               <FiEdit2 className="text-brand shrink-0" size={14} />
               <span className="text-xs font-semibold text-brand">
@@ -1753,7 +1727,7 @@ export default function ChatConversation({
               </span>
               <button
                 type="button"
-                className="ml-auto p-1 rounded-full hover:bg-[var(--color-surface-50)] text-text-muted hover:text-text-strong transition"
+                className="ml-auto p-1 rounded-full hover:bg-[var(--color-surface-50)] text-gray-600 hover:text-gray-900 transition"
                 onClick={handleCancelEdit}
               >
                 <FiX size={14} />
@@ -1787,7 +1761,6 @@ export default function ChatConversation({
           </div>
         </div>
       )}
-
       {/* Floating input composer */}
       <div className="fixed lg:absolute bottom-[68px] lg:bottom-0 left-0 right-0 z-30 pointer-events-none">
         {/* Emoji/GIF Picker - positioned above the icons on the left */}
@@ -1814,8 +1787,8 @@ export default function ChatConversation({
               >
                 {/* Header */}
                 <div className="p-3 border-b border-[var(--color-border)] bg-gradient-to-r from-purple-500 to-pink-500">
-                  <div className="flex items-center gap-2 bg-white/90 rounded-xl px-3 py-2">
-                    <FiSearch size={16} className="text-text-muted" />
+                  <div className="flex items-center gap-2 bg-white rounded-xl px-3 py-2">
+                    <FiSearch size={16} className="text-gray-600" />
                     <input
                       type="text"
                       placeholder="Tìm kiếm GIF..."
@@ -1828,7 +1801,7 @@ export default function ChatConversation({
                       <button
                         type="button"
                         onClick={() => setGifSearch("")}
-                        className="text-text-muted hover:text-text-strong"
+                        className="text-gray-600 hover:text-gray-900"
                       >
                         <FiX size={14} />
                       </button>
@@ -1842,7 +1815,7 @@ export default function ChatConversation({
                       <div className="animate-spin rounded-full h-8 w-8 border-2 border-purple-500 border-t-transparent"></div>
                     </div>
                   ) : gifs.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full text-text-muted">
+                    <div className="flex flex-col items-center justify-center h-full text-gray-600">
                       <FiFilm size={40} className="mb-2 opacity-50" />
                       <p className="text-sm">Không tìm thấy GIF</p>
                     </div>
@@ -1872,7 +1845,7 @@ export default function ChatConversation({
                 </div>
                 {/* Footer */}
                 <div className="p-2 border-t border-[var(--color-border)] bg-gray-50 flex items-center justify-center gap-1">
-                  <span className="text-xs text-text-muted">Powered by</span>
+                  <span className="text-xs text-gray-600">Powered by</span>
                   <span className="text-xs font-semibold text-purple-600">
                     Tenor
                   </span>
@@ -1898,13 +1871,13 @@ export default function ChatConversation({
             className="hidden"
             onChange={handleAttachmentChange}
           />
-          <div className="chat-composer flex items-center gap-2 lg:gap-3 rounded-full bg-white/95 backdrop-blur-md px-2 sm:px-3 lg:px-5 py-2 lg:py-3 shadow-[0_-10px_40px_rgba(15,23,42,0.15)] border border-white/80">
-            <div className="flex items-center gap-2 lg:gap-3 text-text-muted">
+          <div className="chat-composer flex items-center gap-2 lg:gap-3 rounded-full bg-white backdrop-blur-md px-2 sm:px-3 lg:px-5 py-2 lg:py-3 shadow-[0_-10px_40px_rgba(15,23,42,0.15)] border border-white/80">
+            <div className="flex items-center gap-2 lg:gap-3 text-gray-600">
               {/* Attachment dropdown menu */}
               <div className="relative flex items-center">
                 <button
                   type="button"
-                  className={`flex items-center justify-center hover:text-text-strong transition disabled:opacity-40 ${
+                  className={`flex items-center justify-center hover:text-gray-900 transition disabled:opacity-40 ${
                     attachmentMenuOpen ? "text-brand" : ""
                   }`}
                   tabIndex={-1}
@@ -1922,22 +1895,22 @@ export default function ChatConversation({
                     />
                     <div
                       ref={attachmentMenuRef}
-                      className="absolute bottom-full left-0 mb-8 w-56 bg-white rounded-xl shadow-2xl border border-border py-2 z-50"
+                      className="absolute bottom-full left-0 mb-8 w-56 bg-white rounded-xl shadow-2xl border border-gray-200 py-2 z-50"
                     >
                       <button
                         type="button"
-                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-text-strong hover:bg-surface-50 transition"
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-900 hover:bg-white transition"
                         onClick={() => {
                           setAttachmentMenuOpen(false);
                           handleAttachmentClick();
                         }}
                       >
-                        <FiPaperclip size={18} className="text-text-muted" />
+                        <FiPaperclip size={18} className="text-gray-600" />
                         <span>Tải lên từ máy tính</span>
                       </button>
                       <button
                         type="button"
-                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-text-strong hover:bg-surface-50 transition"
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-900 hover:bg-white transition"
                         onClick={() => {
                           setAttachmentMenuOpen(false);
                           setSystemFilePickerOpen(true);
@@ -1954,9 +1927,7 @@ export default function ChatConversation({
                 type="button"
                 ref={emojiButtonRef}
                 className={`flex items-center justify-center transition ${
-                  emojiOpen
-                    ? "text-brand"
-                    : "hover:text-text-strong text-text-muted"
+                  emojiOpen ? "text-brand" : "hover:text-gray-900 text-gray-600"
                 }`}
                 title="Biểu tượng cảm xúc"
                 aria-pressed={emojiOpen}
@@ -1972,7 +1943,7 @@ export default function ChatConversation({
                 className={`flex items-center justify-center transition ${
                   gifOpen
                     ? "text-purple-500"
-                    : "hover:text-text-strong text-text-muted"
+                    : "hover:text-gray-900 text-gray-600"
                 }`}
                 title="GIF"
                 aria-pressed={gifOpen}
@@ -1985,7 +1956,7 @@ export default function ChatConversation({
               </button>
             </div>
             <input
-              className="flex-1 bg-transparent border-none focus:outline-none text-[15px] placeholder:text-text-muted"
+              className="flex-1 bg-transparent border-none focus:outline-none text-[15px] placeholder:text-gray-600"
               placeholder={t("chat.conversation.input_placeholder")}
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -2010,13 +1981,13 @@ export default function ChatConversation({
                 }, 2000);
               }}
             />
-            <div className="flex items-center gap-1 text-text-muted shrink-0">
+            <div className="flex items-center gap-1 text-gray-600 shrink-0">
               <button
                 type="button"
                 className={`flex items-center justify-center w-8 h-8 lg:w-10 lg:h-10 rounded-full border border-transparent transition ${
                   recordingActive
                     ? "bg-[var(--color-danger-500)] text-white animate-pulse"
-                    : "text-text-muted hover:text-text-strong"
+                    : "text-gray-600 hover:text-gray-900"
                 }`}
                 title={recordingActive ? "Dừng ghi âm" : "Ghi âm thoại"}
                 onClick={() =>
@@ -2054,7 +2025,6 @@ export default function ChatConversation({
           </p>
         )}
       </div>
-
       {/* Context Menu */}
       {contextMenu && (
         <>
@@ -2073,27 +2043,23 @@ export default function ChatConversation({
             {/* Reply */}
             <button
               type="button"
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-text-strong hover:bg-[var(--color-surface-50)] transition"
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-900 hover:bg-[var(--color-surface-50)] transition"
               onClick={() => handleReply(contextMenu.message)}
             >
-              <FiCornerUpLeft size={16} />
-              Trả lời
+              <FiCornerUpLeft size={16} /> Trả lời
             </button>
-
             {/* Forward */}
             <button
               type="button"
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-text-strong hover:bg-[var(--color-surface-50)] transition"
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-900 hover:bg-[var(--color-surface-50)] transition"
               onClick={() => handleForward(contextMenu.message)}
             >
-              <FiShare size={16} />
-              Chuyển tiếp
+              <FiShare size={16} /> Chuyển tiếp
             </button>
-
             {/* Star */}
             <button
               type="button"
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-text-strong hover:bg-[var(--color-surface-50)] transition"
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-900 hover:bg-[var(--color-surface-50)] transition"
               onClick={() => handleStar(contextMenu.message)}
             >
               <FiStar
@@ -2108,11 +2074,10 @@ export default function ChatConversation({
                 ? "Bỏ đánh dấu"
                 : "Đánh dấu sao"}
             </button>
-
             {/* Pin/Unpin */}
             <button
               type="button"
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-text-strong hover:bg-[var(--color-surface-50)] transition"
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-900 hover:bg-[var(--color-surface-50)] transition"
               onClick={() => {
                 const isPinned = pinnedMessage?.id === contextMenu.message._id;
                 if (isPinned) {
@@ -2135,7 +2100,6 @@ export default function ChatConversation({
                 ? "Bỏ ghim"
                 : "Ghim tin nhắn"}
             </button>
-
             {/* Edit (only for own messages) */}
             {contextMenu.isMe &&
               !contextMenu.message.content?.startsWith(
@@ -2144,26 +2108,21 @@ export default function ChatConversation({
               !contextMenu.message.deletedForAll && (
                 <button
                   type="button"
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-text-strong hover:bg-[var(--color-surface-50)] transition"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-900 hover:bg-[var(--color-surface-50)] transition"
                   onClick={() => handleStartEdit(contextMenu.message)}
                 >
-                  <FiEdit2 size={16} />
-                  Chỉnh sửa
+                  <FiEdit2 size={16} /> Chỉnh sửa
                 </button>
               )}
-
             <div className="h-px bg-[var(--color-border)] my-1" />
-
             {/* Delete for me */}
             <button
               type="button"
               className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--color-danger-500)] hover:bg-[var(--color-surface-50)] transition"
               onClick={() => handleDelete(contextMenu.message, false)}
             >
-              <FiTrash2 size={16} />
-              Xóa phía tôi
+              <FiTrash2 size={16} /> Xóa phía tôi
             </button>
-
             {/* Delete for all (only for own messages) */}
             {contextMenu.isMe && !contextMenu.message.deletedForAll && (
               <button
@@ -2171,14 +2130,12 @@ export default function ChatConversation({
                 className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--color-danger-500)] hover:bg-[var(--color-surface-50)] transition"
                 onClick={() => setDeleteConfirm(contextMenu.message)}
               >
-                <FiTrash2 size={16} />
-                Xóa cho tất cả
+                <FiTrash2 size={16} /> Xóa cho tất cả
               </button>
             )}
           </div>
         </>
       )}
-
       {/* Delete Confirmation Modal */}
       {deleteConfirm && (
         <>
@@ -2187,17 +2144,17 @@ export default function ChatConversation({
             onClick={() => setDeleteConfirm(null)}
           />
           <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm">
-            <h3 className="text-lg font-semibold text-text-strong mb-2">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
               Xóa tin nhắn?
             </h3>
-            <p className="text-sm text-text-muted mb-6">
+            <p className="text-sm text-gray-600 mb-6">
               Tin nhắn này sẽ bị xóa cho tất cả mọi người trong cuộc trò chuyện.
               Hành động này không thể hoàn tác.
             </p>
             <div className="flex items-center justify-end gap-3">
               <button
                 type="button"
-                className="px-4 py-2 rounded-xl text-sm font-medium text-text-strong hover:bg-[var(--color-surface-50)] transition"
+                className="px-4 py-2 rounded-xl text-sm font-medium text-gray-900 hover:bg-[var(--color-surface-50)] transition"
                 onClick={() => setDeleteConfirm(null)}
               >
                 Hủy
@@ -2213,7 +2170,6 @@ export default function ChatConversation({
           </div>
         </>
       )}
-
       {infoOpen && (
         <>
           <div
@@ -2222,7 +2178,7 @@ export default function ChatConversation({
           />
           <div className="fixed top-0 right-0 bottom-0 w-full max-w-sm bg-white z-50 shadow-2xl flex flex-col">
             <div className="flex items-center justify-between p-4 border-b border-[var(--color-border)]">
-              <h3 className="text-lg font-semibold text-text-strong">
+              <h3 className="text-lg font-semibold text-gray-900">
                 {t("chat.conversation.info_title")}
               </h3>
               <button
@@ -2250,10 +2206,10 @@ export default function ChatConversation({
                       priority
                     />
                     <div className="min-w-0">
-                      <p className="font-semibold text-text-strong truncate">
+                      <p className="font-semibold text-gray-900 truncate">
                         {infoData?.fullName || infoData?.name}
                       </p>
-                      <p className="text-sm text-text-muted truncate">
+                      <p className="text-sm text-gray-600 truncate">
                         {chat?.type === "group"
                           ? `${chat?.members?.length || 0} thành viên`
                           : infoData?.email || infoData?.slast}
@@ -2265,11 +2221,10 @@ export default function ChatConversation({
                       {profileError}
                     </p>
                   )}
-
                   {/* Group members preview */}
                   {chat?.type === "group" && chat?.members?.length > 0 && (
                     <div>
-                      <p className="text-text-muted text-xs uppercase mb-2">
+                      <p className="text-gray-600 text-xs uppercase mb-2">
                         Thành viên
                       </p>
                       <div className="flex flex-wrap gap-2">
@@ -2285,7 +2240,7 @@ export default function ChatConversation({
                               width={24}
                               height={24}
                             />
-                            <span className="text-xs text-text-strong truncate max-w-[80px]">
+                            <span className="text-xs text-gray-900 truncate max-w-[80px]">
                               {member.fullName || member.name || member.email}
                             </span>
                           </div>
@@ -2305,24 +2260,23 @@ export default function ChatConversation({
                       </div>
                     </div>
                   )}
-
                   {/* User info (for direct chat) */}
                   {chat?.type !== "group" && (
                     <div className="grid grid-cols-1 gap-3 text-sm">
                       <div>
-                        <p className="text-text-muted text-xs uppercase">
+                        <p className="text-gray-600 text-xs uppercase">
                           {t("chat.conversation.email")}
                         </p>
                         <p className="font-medium">{infoData?.email || "—"}</p>
                       </div>
                       <div>
-                        <p className="text-text-muted text-xs uppercase">
+                        <p className="text-gray-600 text-xs uppercase">
                           {t("chat.conversation.phone")}
                         </p>
                         <p className="font-medium">{infoData?.phone || "—"}</p>
                       </div>
                       <div>
-                        <p className="text-text-muted text-xs uppercase">
+                        <p className="text-gray-600 text-xs uppercase">
                           {t("chat.conversation.role")}
                         </p>
                         <p className="font-medium capitalize">
@@ -2330,7 +2284,7 @@ export default function ChatConversation({
                         </p>
                       </div>
                       <div>
-                        <p className="text-text-muted text-xs uppercase">
+                        <p className="text-gray-600 text-xs uppercase">
                           {t("chat.conversation.joined")}
                         </p>
                         <p className="font-medium">
@@ -2352,7 +2306,7 @@ export default function ChatConversation({
                       }}
                     >
                       <FiImage className="text-brand" size={18} />
-                      <span className="font-medium text-text-strong">
+                      <span className="font-medium text-gray-900">
                         Thư viện phương tiện
                       </span>
                     </button>
@@ -2366,13 +2320,12 @@ export default function ChatConversation({
                         }}
                       >
                         <FiSettings className="text-brand" size={18} />
-                        <span className="font-medium text-text-strong">
+                        <span className="font-medium text-gray-900">
                           Cài đặt nhóm
                         </span>
                       </button>
                     )}
                   </div>
-
                   {pinned && (
                     <div className="border border-[var(--color-border)] rounded-2xl p-3 bg-[var(--color-surface-50)]">
                       <div className="flex items-center justify-between mb-2">
@@ -2387,7 +2340,7 @@ export default function ChatConversation({
                           {t("chat.conversation.unpin")}
                         </button>
                       </div>
-                      <p className="text-sm text-text-strong break-words">
+                      <p className="text-sm text-gray-900 break-words">
                         {renderPinnedPreview(pinned)}
                       </p>
                     </div>
@@ -2398,7 +2351,6 @@ export default function ChatConversation({
           </div>
         </>
       )}
-
       <style jsx>{`
         .typing-ellipsis {
           display: flex;
@@ -2468,7 +2420,6 @@ export default function ChatConversation({
           border-bottom-left-radius: 6px;
         }
       `}</style>
-
       {/* System File Picker Modal */}
       <SystemFilePickerModal
         isOpen={systemFilePickerOpen}

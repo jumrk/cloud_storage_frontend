@@ -1,5 +1,4 @@
 "use client";
-
 import React from "react";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
@@ -8,11 +7,9 @@ import Modal from "@/shared/ui/Modal";
 import useGoogleAccountsPage from "../hooks/useGoogleAccountsPage";
 import TotalStorageBar from "./TotalStorageBar";
 import DriveAccountCard from "./DriveAccountCard";
-
 const oauthUrl = process.env.NEXT_PUBLIC_API_BASE
   ? `${process.env.NEXT_PUBLIC_API_BASE}/api/auth/oauth`
   : "/api/auth/oauth";
-
 export default function GoogleAccountsPage() {
   const {
     accounts,
@@ -35,7 +32,6 @@ export default function GoogleAccountsPage() {
     handleConfirmDelete,
     handleRelink,
   } = useGoogleAccountsPage();
-
   return (
     <div className="w-full max-w-6xl mx-auto px-2 py-4">
       <div className="mb-2">
@@ -46,7 +42,6 @@ export default function GoogleAccountsPage() {
           Quản lý các tài khoản Google Drive đã liên kết tại đây.
         </p>
       </div>
-
       <div className="mb-6 flex justify-center">
         <div className="w-full md:w-2/3">
           {loading ? (
@@ -56,7 +51,6 @@ export default function GoogleAccountsPage() {
           )}
         </div>
       </div>
-
       <div className="flex flex-col md:flex-row md:items-center gap-2 mb-6">
         <input
           className="border border-gray-200 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 w-full md:w-64"
@@ -91,7 +85,6 @@ export default function GoogleAccountsPage() {
           + Liên kết tài khoản
         </a>
       </div>
-
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
           {Array.from({ length: 4 }).map((_, idx) => (
@@ -122,7 +115,6 @@ export default function GoogleAccountsPage() {
           ))}
         </div>
       )}
-
       {showDeleteModal && (
         <Modal onClose={() => setShowDeleteModal(false)}>
           <div className="p-6 max-w-md w-full">
@@ -155,5 +147,3 @@ export default function GoogleAccountsPage() {
     </div>
   );
 }
-
-

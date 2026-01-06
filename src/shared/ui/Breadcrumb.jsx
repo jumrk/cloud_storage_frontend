@@ -10,7 +10,7 @@ export default function Breadcrumb({ items = [], onItemClick }) {
       {/* Home icon - always visible */}
       <button
         onClick={() => onItemClick && onItemClick(null)}
-        className="text-gray-600 dark:text-gray-200 hover:text-brand transition-colors"
+        className="text-gray-600 hover:text-brand transition-colors"
         aria-label="Về trang chủ"
       >
         <svg
@@ -23,24 +23,24 @@ export default function Breadcrumb({ items = [], onItemClick }) {
         </svg>
       </button>
 
-      {hasItems && items.map((item, index) => (
-        <React.Fragment key={index}>
-          <span className="mx-2 text-gray-500 dark:text-gray-300 text-sm">/</span>
-          {index === items.length - 1 ? (
-            <span className="text-blue-600 dark:text-blue-400 font-medium text-sm">
-              {item.label}
-            </span>
-          ) : (
-            <button
-              onClick={() => onItemClick && onItemClick(item.id)}
-              className="text-gray-600 dark:text-gray-200 hover:underline transition-colors text-sm"
-            >
-              {item.label}
-            </button>
-          )}
-        </React.Fragment>
-      ))}
+      {hasItems &&
+        items.map((item, index) => (
+          <React.Fragment key={index}>
+            <span className="mx-2 text-gray-500 text-sm">/</span>
+            {index === items.length - 1 ? (
+              <span className="text-blue-600 font-medium text-sm">
+                {item.label}
+              </span>
+            ) : (
+              <button
+                onClick={() => onItemClick && onItemClick(item.id)}
+                className="text-gray-600 hover:underline transition-colors text-sm"
+              >
+                {item.label}
+              </button>
+            )}
+          </React.Fragment>
+        ))}
     </div>
   );
 }
-

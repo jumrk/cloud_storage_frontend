@@ -1,10 +1,6 @@
 "use client";
 import { useState } from "react";
-import {
-  FiFolderPlus,
-  FiFilter,
-  FiSearch,
-} from "react-icons/fi";
+import { FiFolderPlus, FiFilter, FiSearch } from "react-icons/fi";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import toast, { Toaster } from "react-hot-toast";
@@ -61,6 +57,7 @@ export default function ProjectsPage() {
   return (
     <div className="w-full max-w-6xl mx-auto px-2 py-4">
       <Toaster position="top-right" />
+
       {/* Header + mô tả */}
       <div className="mb-2">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1">
@@ -123,7 +120,8 @@ export default function ProjectsPage() {
             setShowCreateModal(true);
           }}
         >
-          <FiFolderPlus className="text-lg" /> Thêm dự án
+          <FiFolderPlus className="text-lg" />
+          Thêm dự án
         </button>
       </div>
 
@@ -178,10 +176,7 @@ export default function ProjectsPage() {
               <tr>
                 <td colSpan={6} className="text-center text-gray-400 py-12">
                   <div className="flex flex-col items-center justify-center w-full">
-                    <EmptyState
-                      message="Chưa có dự án nào."
-                      height={180}
-                    />
+                    <EmptyState message="Chưa có dự án nào." height={180} />
                   </div>
                 </td>
               </tr>
@@ -307,4 +302,3 @@ export default function ProjectsPage() {
     </div>
   );
 }
-

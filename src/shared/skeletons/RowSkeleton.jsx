@@ -1,7 +1,6 @@
 "use client";
 import React from "react";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
-
 function RowSkeleton() {
   return (
     <div className="py-1">
@@ -18,11 +17,15 @@ function RowSkeleton() {
     </div>
   );
 }
-
 export default function ChecklistBlockSkeleton() {
   return (
     <div className="p-3 border border-black/30 border-dashed rounded-2xl w-full bg-white">
-      <SkeletonTheme baseColor="#e5e7eb" highlightColor="#f3f4f6">
+      <SkeletonTheme
+        baseColor="#e5e7eb"
+        highlightColor="#f3f4f6"
+        baseColorDark="#334155"
+        highlightColorDark="#475569"
+      >
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -31,7 +34,6 @@ export default function ChecklistBlockSkeleton() {
           </div>
           <Skeleton width={60} height={32} />
         </div>
-
         <div className="mt-2 space-y-2">
           {/* Progress */}
           <div className="flex items-center gap-2 text-sm">
@@ -40,14 +42,12 @@ export default function ChecklistBlockSkeleton() {
               <Skeleton height={10} borderRadius={999} />
             </div>
           </div>
-
           {/* Items */}
           <div className="mt-2">
             {Array.from({ length: 4 }).map((_, i) => (
               <RowSkeleton key={i} />
             ))}
           </div>
-
           {/* Add button */}
           <div className="pt-1">
             <Skeleton width={92} height={32} />

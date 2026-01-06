@@ -21,7 +21,6 @@ import "react-loading-skeleton/dist/skeleton.css";
 function formatNotificationTime(date) {
   const now = new Date();
   const diff = Math.floor((now - date) / 1000);
-
   if (diff < 60) return "Vừa xong";
   if (diff < 3600) return `${Math.floor(diff / 60)} phút trước`;
   if (diff < 86400) return `${Math.floor(diff / 3600)} giờ trước`;
@@ -52,7 +51,7 @@ function getNotificationIcon(type, metadata) {
     case "system":
     case "info":
     default:
-      return <FiBell className="text-text-muted" />;
+      return <FiBell className="text-gray-600" />;
   }
 }
 
@@ -62,7 +61,6 @@ export default function NotificationsPage({ onUpdateUnreadCount }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [unreadCount, setUnreadCount] = useState(0);
-
   const fetchNotifications = useCallback(async () => {
     try {
       setLoading(true);
@@ -84,7 +82,6 @@ export default function NotificationsPage({ onUpdateUnreadCount }) {
       setLoading(false);
     }
   }, [filter]);
-
   const fetchUnreadCount = useCallback(async () => {
     try {
       const res = await axiosClient.get("/api/notification/unread-count");
@@ -96,12 +93,10 @@ export default function NotificationsPage({ onUpdateUnreadCount }) {
       console.error("Failed to fetch unread count:", err);
     }
   }, [onUpdateUnreadCount]);
-
   useEffect(() => {
     fetchNotifications();
     fetchUnreadCount();
   }, [fetchNotifications, fetchUnreadCount]);
-
   const handleMarkAsRead = async (id) => {
     try {
       await axiosClient.patch(`/api/notification/${id}/read`);
@@ -113,7 +108,6 @@ export default function NotificationsPage({ onUpdateUnreadCount }) {
       console.error("Failed to mark as read:", err);
     }
   };
-
   const handleMarkAllAsRead = async () => {
     try {
       await axiosClient.post("/api/notification/read-all");
@@ -124,7 +118,6 @@ export default function NotificationsPage({ onUpdateUnreadCount }) {
       console.error("Failed to mark all as read:", err);
     }
   };
-
   const handleDelete = async (id) => {
     try {
       await axiosClient.delete(`/api/notification/${id}`);
@@ -134,7 +127,6 @@ export default function NotificationsPage({ onUpdateUnreadCount }) {
       console.error("Failed to delete notification:", err);
     }
   };
-
   const handleClearAll = async () => {
     try {
       await axiosClient.delete("/api/notification");
@@ -145,22 +137,20 @@ export default function NotificationsPage({ onUpdateUnreadCount }) {
       console.error("Failed to clear notifications:", err);
     }
   };
-
   const filteredNotifications = notifications;
-
   return (
     <div className="flex flex-col h-full bg-white pb-20 lg:pb-0">
       {/* Header */}
       <div className="px-4 lg:px-6 py-4 lg:py-5 border-b border-[var(--color-border)]">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold text-text-strong">Thông báo</h1>
+            <h1 className="text-xl font-bold text-gray-900">Thông báo</h1>
             <button
               onClick={() => {
                 fetchNotifications();
                 fetchUnreadCount();
               }}
-              className="p-2 rounded-full hover:bg-[var(--color-surface-50)] text-text-muted"
+              className="p-2 rounded-full hover:bg-[var(--color-surface-50)] text-gray-600"
               title="Làm mới"
             >
               <FiRefreshCw
@@ -180,8 +170,7 @@ export default function NotificationsPage({ onUpdateUnreadCount }) {
                 onClick={handleMarkAllAsRead}
                 className="text-sm text-brand hover:underline flex items-center gap-1"
               >
-                <FiCheckCircle size={14} />
-                Đánh dấu đã đọc
+                <FiCheckCircle size={14} /> Đánh dấu đã đọc
               </button>
             )}
             {notifications.length > 0 && (
@@ -189,13 +178,11 @@ export default function NotificationsPage({ onUpdateUnreadCount }) {
                 onClick={handleClearAll}
                 className="text-sm text-[var(--color-danger-500)] hover:underline flex items-center gap-1 ml-3"
               >
-                <FiTrash2 size={14} />
-                Xóa tất cả
+                <FiTrash2 size={14} /> Xóa tất cả
               </button>
             )}
           </div>
         </div>
-
         {/* Filter tabs */}
         <div className="flex gap-2">
           {[
@@ -208,7 +195,7 @@ export default function NotificationsPage({ onUpdateUnreadCount }) {
               className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${
                 filter === tab.key
                   ? "bg-brand text-white"
-                  : "bg-[var(--color-surface-50)] text-text-muted hover:bg-[var(--color-surface-100)]"
+                  : "bg-[var(--color-surface-50)] text-gray-600 hover:bg-[var(--color-surface-100)]"
               }`}
             >
               {tab.label}
@@ -216,7 +203,6 @@ export default function NotificationsPage({ onUpdateUnreadCount }) {
           ))}
         </div>
       </div>
-
       {/* Notification list */}
       <div className="flex-1 overflow-y-auto">
         {loading ? (
@@ -237,7 +223,7 @@ export default function NotificationsPage({ onUpdateUnreadCount }) {
             ))}
           </div>
         ) : error ? (
-          <div className="flex flex-col items-center justify-center h-full text-text-muted">
+          <div className="flex flex-col items-center justify-center h-full text-gray-600">
             <p className="text-lg font-medium text-[var(--color-danger-500)]">
               {error}
             </p>
@@ -249,7 +235,7 @@ export default function NotificationsPage({ onUpdateUnreadCount }) {
             </button>
           </div>
         ) : filteredNotifications.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-text-muted">
+          <div className="flex flex-col items-center justify-center h-full text-gray-600">
             <FiBell size={48} className="mb-4 opacity-30" />
             <p className="text-lg font-medium">Không có thông báo</p>
             <p className="text-sm mt-1">Thông báo mới sẽ hiển thị ở đây</p>
@@ -282,38 +268,36 @@ export default function NotificationsPage({ onUpdateUnreadCount }) {
                     )}
                   </div>
                 </div>
-
                 {/* Content */}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm">
                     {notification.user ? (
                       <>
-                        <span className="font-semibold text-text-strong">
+                        <span className="font-semibold text-gray-900">
                           {notification.user.name}
-                        </span>{" "}
-                        <span className="text-text-muted">
+                        </span>
+                        {""}
+                        <span className="text-gray-600">
                           {notification.content}
                         </span>
                       </>
                     ) : (
                       <>
-                        <span className="font-semibold text-text-strong">
+                        <span className="font-semibold text-gray-900">
                           {notification.title}
                         </span>
                         {notification.content && (
-                          <span className="text-text-muted">
-                            {" "}
-                            - {notification.content}
+                          <span className="text-gray-600">
+                            {""} - {notification.content}
                           </span>
                         )}
                       </>
                     )}
                   </p>
-                  <p className="text-xs text-text-muted mt-1">
+                  <p className="text-xs text-gray-600 mt-1">
                     {formatNotificationTime(new Date(notification.time))}
                   </p>
                 </div>
-
                 {/* Actions */}
                 <div className="flex items-center gap-2">
                   {!notification.read && (
@@ -324,7 +308,7 @@ export default function NotificationsPage({ onUpdateUnreadCount }) {
                       e.stopPropagation();
                       handleDelete(notification.id);
                     }}
-                    className="p-2 rounded-full hover:bg-[var(--color-surface-100)] text-text-muted hover:text-[var(--color-danger-500)] opacity-0 group-hover:opacity-100 transition"
+                    className="p-2 rounded-full hover:bg-[var(--color-surface-100)] text-gray-600 hover:text-[var(--color-danger-500)] opacity-0 group-hover:opacity-100 transition"
                     title="Xóa"
                   >
                     <FiTrash2 size={16} />

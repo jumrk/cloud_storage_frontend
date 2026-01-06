@@ -8,13 +8,11 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-
 const FILTERS = [
   { label: "Tuần", value: "week" },
   { label: "Tháng", value: "month" },
   { label: "Năm", value: "year" },
 ];
-
 export default function UserLineChart({
   data,
   filter,
@@ -47,8 +45,7 @@ export default function UserLineChart({
           <LineChart data={data}>
             <CartesianGrid stroke="#f1f3f4" strokeDasharray="3 3" />
             <XAxis dataKey="label" tick={{ fontSize: 13 }} />
-            <YAxis tick={{ fontSize: 13 }} />
-            <Tooltip />
+            <YAxis tick={{ fontSize: 13 }} /> <Tooltip />
             <Line
               type="monotone"
               dataKey="count"
@@ -62,4 +59,3 @@ export default function UserLineChart({
     </div>
   );
 }
-

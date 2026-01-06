@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-
 export default function FilePreviewModal({ file, fileUrl, onClose, onOpen }) {
   const t = useTranslations();
   const ext = file.name.split(".").pop().toLowerCase();
   const isText = ["txt", "md", "js", "json", "log", "csv"].includes(ext);
+
+  // Check if file is still uploading
+  const isUploading = file?.driveUploadStatus === "uploading" || 
+                      file?.driveUploadStatus === "pending" ||
+                      (!file?.driveFileId && (file?.tempDownloadUrl || file?.tempFilePath));
 
   // Close chat when modal opens
   useEffect(() => {
@@ -28,9 +32,8 @@ export default function FilePreviewModal({ file, fileUrl, onClose, onOpen }) {
       onClose();
     }
   };
-
   return (
-    <div 
+    <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
       onClick={handleOverlayClick}
     >
@@ -46,7 +49,17 @@ export default function FilePreviewModal({ file, fileUrl, onClose, onOpen }) {
           <div className="mb-4 font-semibold text-lg text-center break-all">
             {file.name}
           </div>
-          {fileUrl ? (
+          {isUploading && !fileUrl ? (
+            <div className="flex flex-col items-center justify-center gap-3 mt-6 flex-1">
+              <div className="flex items-center gap-2 text-blue-600">
+                <span className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></span>
+                <span className="font-medium">File đang được upload lên Google Drive</span>
+              </div>
+              <div className="text-gray-500 text-sm">
+                Vui lòng đợi upload hoàn thành để xem trước file
+              </div>
+            </div>
+          ) : fileUrl ? (
             <iframe
               src={getEmbedUrl(fileUrl)}
               title={file.name}

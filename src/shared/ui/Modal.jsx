@@ -1,12 +1,13 @@
 "use client";
+
 import { useEffect, useState } from "react";
 
-export default function Modal({ 
-  isOpen, 
-  onClose, 
-  children, 
+export default function Modal({
+  isOpen,
+  onClose,
+  children,
   className = "",
-  backdropClassName = "bg-black/50 backdrop-blur-sm"
+  backdropClassName = "bg-black/50 backdrop-blur-sm",
 }) {
   const [isVisible, setIsVisible] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
@@ -36,7 +37,7 @@ export default function Modal({
     >
       {/* Backdrop */}
       <div className={`absolute inset-0 ${backdropClassName}`} />
-      
+
       {/* Modal Content */}
       <div
         className={`relative transform transition-all duration-150 ease-out ${

@@ -35,7 +35,7 @@ export default function PlanList() {
   return (
     <>
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3  gap-6 mb-6 px-2 sm:px-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-6 px-2 sm:px-0">
           {Array.from({ length: 3 }).map((_, idx) => (
             <div
               key={idx}
@@ -82,12 +82,11 @@ export default function PlanList() {
             return (
               <div
                 key={plan._id || idx}
-                className={`relative bg-white rounded-2xl shadow p-7 flex flex-col w-[90%] md:max-w-xs min-h-[420px] mx-auto md:mx-0 transition group
-                  ${
-                    plan.featured
-                      ? "border-l-2 border-r-2 border-b-2 border-[#1cadd9] border-t-0 rounded-b-2xl"
-                      : "border-2 border-gray-200"
-                  }`}
+                className={`relative bg-white rounded-2xl shadow p-7 flex flex-col w-[90%] md:max-w-xs min-h-[420px] mx-auto md:mx-0 transition group ${
+                  plan.featured
+                    ? "border-l-2 border-r-2 border-b-2 border-[#1cadd9] border-t-0 rounded-b-2xl"
+                    : "border-2 border-gray-200"
+                }`}
                 style={{ boxShadow: `0 4px 24px 0 ${color}22` }}
               >
                 {/* Top border effect */}
@@ -107,7 +106,10 @@ export default function PlanList() {
                 <div className="flex flex-col items-center mb-4">
                   <div
                     className="w-14 h-14 rounded-full flex items-center justify-center mb-2 border-4"
-                    style={{ borderColor: color, background: `${color}10` }}
+                    style={{
+                      borderColor: color,
+                      background: `${color}10`,
+                    }}
                   >
                     <Icon className="w-8 h-8" style={{ color }} />
                   </div>
@@ -149,13 +151,15 @@ export default function PlanList() {
                 {/* Số user + dung lượng */}
                 <div className="flex justify-center gap-4 mb-2 text-xs text-gray-500">
                   <span className="flex items-center gap-1">
-                    <FaUser className="inline-block text-base align-middle" />{" "}
+                    <FaUser className="inline-block text-base align-middle" />
+                    {""}
                     {plan.isCustom
                       ? t("plans.custom")
                       : t("plans.users", { users: plan.users })}
                   </span>
                   <span className="flex items-center gap-1">
-                    <FaHdd className="inline-block text-base align-middle" />{" "}
+                    <FaHdd className="inline-block text-base align-middle" />
+                    {""}
                     {plan.isCustom
                       ? t("plans.custom")
                       : plan.storage

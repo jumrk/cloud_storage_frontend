@@ -1,11 +1,9 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
 import { FiMoreHorizontal } from "react-icons/fi";
-
 export default function RoleMenu({ user, onChangeRole }) {
   const [open, setOpen] = useState(false);
   const ref = useRef();
-
   useEffect(() => {
     function handleClick(e) {
       if (ref.current && !ref.current.contains(e.target)) setOpen(false);
@@ -13,7 +11,6 @@ export default function RoleMenu({ user, onChangeRole }) {
     if (open) document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, [open]);
-
   return (
     <div className="relative" ref={ref}>
       <button
@@ -52,4 +49,3 @@ export default function RoleMenu({ user, onChangeRole }) {
     </div>
   );
 }
-

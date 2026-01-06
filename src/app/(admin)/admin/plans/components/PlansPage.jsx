@@ -8,7 +8,6 @@ import PlanCard from "./PlanCard";
 import PlanModal from "./PlanModal";
 import ConfirmDialog from "@/shared/ui/ConfirmDialog";
 import { formatPrice, STATUS_FILTERS } from "../utils";
-
 export default function PlansPage() {
   const {
     loading,
@@ -36,7 +35,6 @@ export default function PlansPage() {
     handleCloseModal,
     handleSubmitPlan,
   } = usePlansPage();
-
   const stats = [
     {
       label: "Tổng gói dịch vụ",
@@ -63,7 +61,6 @@ export default function PlansPage() {
       accent: "text-indigo-600",
     },
   ];
-
   return (
     <div className="min-h-screen bg-slate-50/60 py-8">
       <div className="max-w-7xl mx-auto px-4 space-y-8">
@@ -88,7 +85,6 @@ export default function PlansPage() {
             </button>
           </div>
         </header>
-
         <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {loading
             ? Array.from({ length: 4 }).map((_, idx) => (
@@ -114,7 +110,6 @@ export default function PlansPage() {
                 </article>
               ))}
         </section>
-
         <section className="rounded-2xl border border-slate-200 bg-white p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex gap-2 flex-wrap">
             {STATUS_FILTERS.map((option) => (
@@ -141,7 +136,6 @@ export default function PlansPage() {
             />
           </div>
         </section>
-
         <section>
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -152,7 +146,12 @@ export default function PlansPage() {
                 >
                   <Skeleton height={18} width={160} />
                   <Skeleton height={28} width={180} className="mt-3" />
-                  <Skeleton height={16} width="100%" className="mt-4" count={3} />
+                  <Skeleton
+                    height={16}
+                    width="100%"
+                    className="mt-4"
+                    count={3}
+                  />
                 </div>
               ))}
             </div>
@@ -172,7 +171,6 @@ export default function PlansPage() {
             </div>
           )}
         </section>
-
         {totalPages > 1 && (
           <div className="flex justify-center">
             <nav className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-2 py-1">
@@ -192,7 +190,6 @@ export default function PlansPage() {
             </nav>
           </div>
         )}
-
         <PlanModal
           open={modalOpen}
           onClose={handleCloseModal}
@@ -200,7 +197,6 @@ export default function PlansPage() {
           onSubmit={handleSubmitPlan}
           loading={actionLoading}
         />
-
         <ConfirmDialog
           open={confirmOpen}
           onClose={() => setConfirmOpen(false)}
@@ -215,4 +211,3 @@ export default function PlansPage() {
     </div>
   );
 }
-

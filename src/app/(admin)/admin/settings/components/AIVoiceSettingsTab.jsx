@@ -1,16 +1,22 @@
 "use client";
-
 import React, { useState, useRef, useEffect } from "react";
-import { FiSave, FiLoader, FiChevronDown, FiUpload, FiPlus, FiTrash2 } from "react-icons/fi";
+import {
+  FiSave,
+  FiLoader,
+  FiChevronDown,
+  FiUpload,
+  FiPlus,
+  FiTrash2,
+} from "react-icons/fi";
 
 const DEFAULT_PROVIDERS = [
   {
     code: "elevenlabs",
     name: "ElevenLabs",
     models: [
-      { code: "turbo", name: "Turbo" },
-      { code: "standard", name: "Standard" },
-      { code: "multilingual", name: "Multilingual" },
+      { code: "eleven_turbo_v2_5", name: "Turbo" },
+      { code: "eleven_multilingual_v2", name: "Multilingual" },
+      { code: "eleven_monolingual_v1", name: "Monolingual" },
     ],
   },
   {
@@ -23,10 +29,12 @@ const DEFAULT_PROVIDERS = [
   },
   {
     code: "google",
-    name: "Google Cloud",
+    name: "Google (Gemini)",
     models: [
-      { code: "neural", name: "Neural" },
-      { code: "standard", name: "Standard" },
+      { code: "gemini-2.5-flash-preview-tts", name: "Gemini 2.5 Flash Preview" },
+      { code: "gemini-2.0-flash-exp", name: "Gemini 2.0 Flash" },
+      { code: "gemini-1.5-pro", name: "Gemini 1.5 Pro" },
+      { code: "gemini-1.5-flash", name: "Gemini 1.5 Flash" },
     ],
   },
   {
@@ -45,9 +53,23 @@ const DEFAULT_PROVIDERS = [
       { code: "standard", name: "Standard" },
     ],
   },
+  {
+    code: "google-gemini",
+    name: "Google Gemini",
+    models: [
+      { code: "gemini-2.0-flash-exp", name: "Gemini 2.0 Flash" },
+      { code: "gemini-1.5-pro", name: "Gemini 1.5 Pro" },
+      { code: "gemini-1.5-flash", name: "Gemini 1.5 Flash" },
+    ],
+  },
 ];
 
-export default function AIVoiceSettingsTab({ settings, setSettings, loading, onSave }) {
+export default function AIVoiceSettingsTab({
+  settings,
+  setSettings,
+  loading,
+  onSave,
+}) {
   const [expandedProviders, setExpandedProviders] = useState({});
   const [editingModel, setEditingModel] = useState(null); // { providerCode, modelCode }
   const [newModel, setNewModel] = useState({ code: "", name: "" });
@@ -95,7 +117,7 @@ export default function AIVoiceSettingsTab({ settings, setSettings, loading, onS
       alert("Vui lòng nhập đầy đủ code và name cho model");
       return;
     }
-    
+
     // Check if model code already exists
     const provider = settings.providers.find((p) => p.code === providerCode);
     if (provider?.models.find((m) => m.code === newModel.code)) {
@@ -111,7 +133,10 @@ export default function AIVoiceSettingsTab({ settings, setSettings, loading, onS
               ...p,
               models: [
                 ...(p.models || []),
-                { ...newModel, enabled: true },
+                {
+                  ...newModel,
+                  enabled: true,
+                },
               ],
             }
           : p
@@ -139,7 +164,7 @@ export default function AIVoiceSettingsTab({ settings, setSettings, loading, onS
 
   const handleDeleteModel = (providerCode, modelCode) => {
     if (!confirm("Bạn có chắc muốn xóa model này?")) return;
-    
+
     setSettings({
       ...settings,
       providers: settings.providers.map((p) =>
@@ -190,7 +215,10 @@ export default function AIVoiceSettingsTab({ settings, setSettings, loading, onS
         providers: DEFAULT_PROVIDERS.map((p) => ({
           ...p,
           enabled: false,
-          models: p.models.map((m) => ({ ...m, enabled: true })),
+          models: p.models.map((m) => ({
+            ...m,
+            enabled: true,
+          })),
           credentials: "",
           apiKey: "",
           region: "",
@@ -206,8 +234,9 @@ export default function AIVoiceSettingsTab({ settings, setSettings, loading, onS
           AI Lồng tiếng (Text-to-Speech)
         </h2>
         <p className="text-gray-500 text-xs">
-          Cấu hình công nghệ chuyển đổi văn bản thành giọng nói (TTS) để tạo lồng tiếng cho video.
-          Chỉ các nhà cung cấp được bật mới hiển thị cho người dùng.
+          Cấu hình công nghệ chuyển đổi văn bản thành giọng nói (TTS) để tạo
+          lồng tiếng cho video. Chỉ các nhà cung cấp được bật mới hiển thị cho
+          người dùng.
         </p>
       </div>
 
@@ -227,7 +256,10 @@ export default function AIVoiceSettingsTab({ settings, setSettings, loading, onS
               type="checkbox"
               checked={settings.enabled || false}
               onChange={(e) =>
-                setSettings({ ...settings, enabled: e.target.checked })
+                setSettings({
+                  ...settings,
+                  enabled: e.target.checked,
+                })
               }
               className="sr-only peer"
             />
@@ -302,7 +334,7 @@ export default function AIVoiceSettingsTab({ settings, setSettings, loading, onS
                                     })
                                   }
                                   className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary"
-                                  placeholder="Code"
+                                  placeholder="Model ID (e.g., eleven_turbo_v2_5)"
                                 />
                                 <input
                                   type="text"
@@ -374,7 +406,7 @@ export default function AIVoiceSettingsTab({ settings, setSettings, loading, onS
                             )}
                           </div>
                         ))}
-                        
+
                         {/* Add New Model */}
                         <div className="flex items-center gap-2 p-2 bg-gray-50 rounded border-2 border-dashed border-gray-300">
                           <input
@@ -383,7 +415,7 @@ export default function AIVoiceSettingsTab({ settings, setSettings, loading, onS
                             onChange={(e) =>
                               setNewModel({ ...newModel, code: e.target.value })
                             }
-                            placeholder="Model code"
+                            placeholder="Model ID (e.g., eleven_turbo_v2_5)"
                             className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary"
                           />
                           <input
@@ -408,7 +440,7 @@ export default function AIVoiceSettingsTab({ settings, setSettings, loading, onS
                     </div>
 
                     {/* Credentials */}
-                    {(provider.code === "google" || provider.code === "microsoft") && (
+                    {provider.code === "microsoft" && (
                       <div>
                         <label className="block text-xs font-medium text-gray-700 mb-2">
                           Service Account JSON
@@ -426,7 +458,9 @@ export default function AIVoiceSettingsTab({ settings, setSettings, loading, onS
                           </button>
                         </div>
                         <input
-                          ref={(el) => (fileInputRefs.current[provider.code] = el)}
+                          ref={(el) =>
+                            (fileInputRefs.current[provider.code] = el)
+                          }
                           type="file"
                           accept=".json"
                           onChange={(e) => handleFileUpload(provider.code, e)}
@@ -451,7 +485,9 @@ export default function AIVoiceSettingsTab({ settings, setSettings, loading, onS
                     {/* API Key */}
                     {(provider.code === "elevenlabs" ||
                       provider.code === "openai" ||
-                      provider.code === "amazon") && (
+                      provider.code === "amazon" ||
+                      provider.code === "google" ||
+                      provider.code === "google-gemini") && (
                       <div>
                         <label className="block text-xs font-medium text-gray-700 mb-2">
                           API Key

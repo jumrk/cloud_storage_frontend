@@ -2,10 +2,8 @@
 import { useRouter } from "next/navigation";
 import { FiHome, FiArrowLeft, FiSearch } from "react-icons/fi";
 import Link from "next/link";
-
 export default function NotFound() {
   const router = useRouter();
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center px-4">
       <div className="max-w-2xl w-full text-center">
@@ -15,7 +13,6 @@ export default function NotFound() {
             404
           </h1>
         </div>
-
         {/* Error Message */}
         <div className="mb-8">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
@@ -28,25 +25,21 @@ export default function NotFound() {
             Có thể URL đã thay đổi hoặc trang đã bị xóa.
           </p>
         </div>
-
         {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
           <button
             onClick={() => router.back()}
             className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-200 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors shadow-sm"
           >
-            <FiArrowLeft className="text-lg" />
-            Quay lại
+            <FiArrowLeft className="text-lg" /> Quay lại
           </button>
           <Link
             href="/"
             className="flex items-center gap-2 px-6 py-3 bg-black text-white rounded-lg font-semibold hover:bg-gray-800 transition-colors shadow-md"
           >
-            <FiHome className="text-lg" />
-            Về trang chủ
+            <FiHome className="text-lg" /> Về trang chủ
           </Link>
         </div>
-
         {/* Search Suggestion */}
         <div className="mt-12 p-6 bg-white rounded-xl shadow-sm border border-gray-200">
           <div className="flex items-center gap-2 mb-3">
@@ -61,7 +54,6 @@ export default function NotFound() {
             <li>• Quay về trang chủ và điều hướng từ menu</li>
           </ul>
         </div>
-
         {/* Logo/Brand */}
         <div className="mt-12">
           <Link href="/" className="inline-block">
@@ -76,4 +68,3 @@ export default function NotFound() {
     </div>
   );
 }
-

@@ -1,9 +1,10 @@
 "use client";
 import React, { useCallback, useRef, useState, useEffect } from "react";
-import { FiUploadCloud } from "react-icons/fi";
+import { FiUploadCloud, FiAlertTriangle } from "react-icons/fi";
 import { IoClose } from "react-icons/io5";
 import { v4 as uuidv4 } from "uuid";
 import { useTranslations } from "next-intl";
+import axiosClient from "@/shared/lib/axiosClient";
 
 const UploadModal = ({ isOpen, onClose, onStartUpload, parentId }) => {
   const t = useTranslations();
@@ -13,6 +14,50 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId }) => {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   const [emptyFolders, setEmptyFolders] = useState([]);
+  const [duplicateFiles, setDuplicateFiles] = useState(new Set());
+  const [checkingDuplicates, setCheckingDuplicates] = useState(false);
+
+  // Check for duplicate files - check all files in selectedFiles list
+  const checkDuplicates = useCallback(
+    async (selectedFilesList) => {
+      if (!selectedFilesList || selectedFilesList.length === 0) {
+        setDuplicateFiles(new Set());
+        return;
+      }
+
+      try {
+        setCheckingDuplicates(true);
+        // Extract filenames from selectedFiles items (which have path property)
+        const fileNames = selectedFilesList.map((item) => {
+          // Extract filename from path
+          const parts = item.path.replace(/\\/g, "/").split("/");
+          return parts[parts.length - 1]; // Get the last part (filename)
+        });
+
+        const response = await axiosClient.post(
+          "/api/upload/check-duplicates",
+          {
+            fileNames,
+            parentId: parentId || null,
+          }
+        );
+
+        if (response.data.success && response.data.duplicates) {
+          setDuplicateFiles(new Set(response.data.duplicates));
+        } else {
+          setDuplicateFiles(new Set());
+        }
+      } catch (error) {
+        console.error("Error checking duplicates:", error);
+        // Don't block upload if check fails
+        setDuplicateFiles(new Set());
+      } finally {
+        setCheckingDuplicates(false);
+      }
+    },
+    [parentId]
+  );
+
   // console.log(parentId); // Commented out to prevent console spam
   useEffect(() => {
     if (!isOpen) {
@@ -20,8 +65,19 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId }) => {
       setIsUploading(false);
       setDragActive(false);
       setEmptyFolders([]);
+      setDuplicateFiles(new Set());
+      setCheckingDuplicates(false);
     }
   }, [isOpen]);
+
+  // Auto-check duplicates whenever selectedFiles changes
+  useEffect(() => {
+    if (isOpen && selectedFiles.length > 0) {
+      checkDuplicates(selectedFiles);
+    } else if (selectedFiles.length === 0) {
+      setDuplicateFiles(new Set());
+    }
+  }, [selectedFiles, isOpen, checkDuplicates]);
 
   const traverseFileTree = async (item, path = "") => {
     if (item.isFile) {
@@ -79,10 +135,8 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId }) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-
     let filesToAdd = [];
     let emptyFoldersToAdd = [];
-
     let hasDirectory = false;
     if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
       for (let i = 0; i < e.dataTransfer.items.length; i++) {
@@ -93,7 +147,6 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId }) => {
         }
       }
     }
-
     if (hasDirectory) {
       const { fileEntries, emptyFolders } = await getAllFileEntries(
         e.dataTransfer.items
@@ -108,7 +161,6 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId }) => {
     } else if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       filesToAdd = Array.from(e.dataTransfer.files);
     }
-
     if (filesToAdd.length > 0) {
       handleFilesOrFolder(filesToAdd);
     }
@@ -128,16 +180,13 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId }) => {
       const seen = new Set(
         prev.map((p) => `${p.path}__${p.file.size}__${p.file.lastModified}`)
       );
-
       const toAdd = [];
       for (const file of files) {
         const relPathRaw =
           file._relativePath || file.webkitRelativePath || file.name;
         const relPath = relPathRaw.replace(/\\/g, "/").replace(/^\.?\/*/, "");
-
         const key = `${relPath}__${file.size}__${file.lastModified}`;
         if (seen.has(key)) continue;
-
         toAdd.push({
           name: file.name,
           file,
@@ -146,8 +195,9 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId }) => {
         });
         seen.add(key);
       }
-
-      return [...prev, ...toAdd];
+      const newFiles = [...prev, ...toAdd];
+      // Duplicates will be checked automatically by useEffect when selectedFiles updates
+      return newFiles;
     });
   };
 
@@ -159,7 +209,6 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId }) => {
   const handleFolderChange = async (e) => {
     const files = Array.from(e.target.files);
     handleFilesOrFolder(files);
-
     const folderSet = new Set();
     files.forEach((file) => {
       const relPath =
@@ -175,6 +224,7 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId }) => {
 
   const handleRemoveFile = (index) => {
     setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+    // Duplicates will be checked automatically by useEffect when selectedFiles updates
   };
 
   const handleUploadClick = () => {
@@ -236,7 +286,7 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div
-        className="relative w-[90%] max-w-2xl bg-white rounded-2xl p-6 shadow-card transition-all duration-300 max-h-[90vh] overflow-y-auto border border-border"
+        className="relative w-[90%] max-w-2xl bg-white rounded-2xl p-6 shadow-card transition-all duration-300 max-h-[90vh] overflow-y-auto border border-gray-200 main-content-scrollbar"
         onDragEnter={handleDrag}
         onDragOver={handleDrag}
         onDragLeave={() => setDragActive(false)}
@@ -244,21 +294,17 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId }) => {
       >
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-text-muted hover:text-danger transition-colors duration-200"
+          className="absolute top-4 right-4 text-gray-600 hover:text-danger transition-colors duration-200"
         >
           <IoClose size={24} />
         </button>
-
         <div className="flex flex-col items-center gap-4 text-center mb-6">
           <FiUploadCloud size={60} className="text-brand animate-pulse" />
-          <h2 className="text-2xl font-bold text-text-strong">
+          <h2 className="text-2xl font-bold text-gray-900">
             {t("upload_modal.title")}
           </h2>
-          <p className="text-sm text-text-muted">
-            {t("upload_modal.drag_drop")}
-          </p>
+          <p className="text-sm text-gray-600">{t("upload_modal.drag_drop")}</p>
         </div>
-
         {dragActive && (
           <div className="absolute inset-0 border-4 border-dashed border-brand rounded-2xl bg-brand-50/50 flex items-center justify-center pointer-events-none">
             <p className="text-lg font-semibold text-brand">
@@ -266,22 +312,62 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId }) => {
             </p>
           </div>
         )}
-
         {selectedFiles.length > 0 && (
-          <div className="mb-6 max-h-60 overflow-y-auto border border-border rounded-lg p-2">
-            <div className="text-sm font-medium text-text-strong mb-2 px-2">
+          <div className="mb-6 max-h-60 overflow-y-auto border border-gray-200 rounded-lg p-2 sidebar-scrollbar">
+            <div className="flex items-center justify-between mb-2 px-2">
+              <div className="text-sm font-medium text-gray-900">
               {t("upload_modal.file_list", { count: selectedFiles.length })}
+              </div>
+              {checkingDuplicates && (
+                <span className="text-xs text-gray-500">Đang kiểm tra...</span>
+              )}
             </div>
-            {selectedFiles.map((item, index) => (
+            {duplicateFiles.size > 0 && (
+              <div className="mb-2 px-2 py-2 bg-warning/10 border border-warning/30 rounded-md">
+                <div className="flex items-start gap-2">
+                  <FiAlertTriangle
+                    className="text-warning mt-0.5 flex-shrink-0"
+                    size={16}
+                  />
+                  <div className="flex-1">
+                    <p className="text-xs font-medium text-warning-800">
+                      Cảnh báo: {duplicateFiles.size} file đã tồn tại trong thư
+                      mục này
+                    </p>
+                    <p className="text-xs text-warning-700 mt-0.5">
+                      File sẽ được đổi tên tự động khi upload (ví dụ: "file
+                      (1).ext")
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            {selectedFiles.map((item, index) => {
+              // Extract filename from path for duplicate check
+              const fileName = item.path.split("/").pop();
+              const isDuplicate = duplicateFiles.has(fileName);
+
+              return (
               <div
                 key={index}
-                className="flex items-center justify-between p-3 bg-surface-50 rounded-md mb-2 last:mb-0 hover:bg-white transition-colors border border-border/60"
+                  className={`flex items-center justify-between p-3 rounded-md mb-2 last:mb-0 transition-colors border ${
+                    isDuplicate
+                      ? "bg-warning/5 border-warning/30"
+                      : "bg-white border-gray-200/60 hover:bg-white"
+                  }`}
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-text-strong truncate">
+                    <span className="text-sm text-gray-900 truncate">
                       📄 {item.path}
                     </span>
+                      {isDuplicate && (
+                        <FiAlertTriangle
+                          className="text-warning flex-shrink-0"
+                          size={14}
+                          title="File đã tồn tại"
+                        />
+                      )}
                   </div>
                 </div>
                 <button
@@ -292,10 +378,10 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId }) => {
                   <IoClose size={16} />
                 </button>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
-
         <div className="flex flex-col gap-4">
           <button
             onClick={() => fileInputRef.current.click()}
@@ -304,7 +390,7 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId }) => {
           >
             {isUploading ? (
               <>
-                <span className="animate-spin">⏳</span>{" "}
+                <span className="animate-spin">⏳</span>
                 {t("upload_modal.uploading")}
               </>
             ) : (
@@ -321,7 +407,6 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId }) => {
             multiple
             onChange={handleFileChange}
           />
-
           <button
             onClick={() => folderInputRef.current.click()}
             className="w-full px-6 py-3 bg-accent text-white rounded-lg hover:opacity-95 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50"
@@ -329,7 +414,7 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId }) => {
           >
             {isUploading ? (
               <>
-                <span className="animate-spin">⏳</span>{" "}
+                <span className="animate-spin">⏳</span>
                 {t("upload_modal.uploading")}
               </>
             ) : (
@@ -348,7 +433,6 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId }) => {
             className="hidden"
             onChange={handleFolderChange}
           />
-
           {selectedFiles.length > 0 && (
             <button
               onClick={handleUploadClick}
@@ -363,9 +447,8 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId }) => {
             </button>
           )}
         </div>
-
         {isUploading && (
-          <p className="mt-4 text-center text-sm text-text-muted">
+          <p className="mt-4 text-center text-sm text-gray-600">
             {t("upload_modal.processing")}
           </p>
         )}

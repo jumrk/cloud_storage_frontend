@@ -1,12 +1,10 @@
 "use client";
-
 import React, { useEffect, useState } from "react";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import EmptyState from "@/shared/ui/EmptyState";
 import paymentService from "../services/paymentService";
 import toast from "react-hot-toast";
-
 export default function DiscountCodeTab() {
   const [codes, setCodes] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -15,7 +13,6 @@ export default function DiscountCodeTab() {
   const [addPercent, setAddPercent] = useState("");
   const [addLoading, setAddLoading] = useState(false);
   const [error, setError] = useState("");
-
   const fetchCodes = () => {
     setLoading(true);
     paymentService
@@ -30,11 +27,9 @@ export default function DiscountCodeTab() {
       .catch(() => setCodes([]))
       .finally(() => setLoading(false));
   };
-
   useEffect(() => {
     fetchCodes();
   }, []);
-
   const handleAdd = async () => {
     setError("");
     if (!addCode.trim() || !addPercent) {
@@ -66,7 +61,6 @@ export default function DiscountCodeTab() {
       setAddLoading(false);
     }
   };
-
   const handleDelete = async (id) => {
     if (!window.confirm("Bạn chắc chắn muốn xóa mã này?")) return;
     setLoading(true);
@@ -84,7 +78,6 @@ export default function DiscountCodeTab() {
       setLoading(false);
     }
   };
-
   return (
     <div className="w-full py-6">
       <div className="flex items-center justify-between mb-4">
@@ -211,5 +204,3 @@ export default function DiscountCodeTab() {
     </div>
   );
 }
-
-

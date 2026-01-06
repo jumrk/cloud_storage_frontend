@@ -39,9 +39,7 @@ export default function ImageUpload({
         formData.append("image", file);
 
         const token =
-          typeof window !== "undefined"
-            ? localStorage.getItem("token")
-            : null;
+          typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
         const res = await axiosClient.post("/api/admin/upload-image", formData, {
           headers: {
@@ -105,6 +103,7 @@ export default function ImageUpload({
       if (files && files.length > 0) {
         handleFileUpload(files[0]);
       }
+
       // Reset input để có thể chọn lại file cùng tên
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -136,14 +135,17 @@ export default function ImageUpload({
 
   const getImageUrl = (url) => {
     if (!url) return "";
+
     // Nếu đã là full URL thì trả về luôn
     if (url.startsWith("http://") || url.startsWith("https://")) {
       return url;
     }
+
     // Nếu là relative path, giữ nguyên (browser sẽ tự resolve)
     if (url.startsWith("/")) {
       return url;
     }
+
     return url;
   };
 
@@ -168,15 +170,15 @@ export default function ImageUpload({
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`
-          relative border-2 border-dashed rounded-lg p-6 text-center transition-colors
-          ${
-            isDragging
-              ? "border-blue-500 bg-blue-50"
-              : "border-gray-300 bg-gray-50 hover:border-gray-400"
-          }
-          ${disabled || uploading ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
-        `}
+        className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+          isDragging
+            ? "border-blue-500 bg-blue-50"
+            : "border-gray-300 bg-gray-50 hover:border-gray-400"
+        } ${
+          disabled || uploading
+            ? "opacity-50 cursor-not-allowed"
+            : "cursor-pointer"
+        }`}
         onClick={() => {
           if (!disabled && !uploading) {
             fileInputRef.current?.click();
@@ -191,7 +193,6 @@ export default function ImageUpload({
           className="hidden"
           disabled={disabled || uploading}
         />
-
         {uploading ? (
           <div className="flex flex-col items-center gap-2">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
@@ -249,4 +250,3 @@ export default function ImageUpload({
     </div>
   );
 }
-

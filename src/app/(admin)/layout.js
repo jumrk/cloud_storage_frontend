@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { FaBars } from "react-icons/fa";
@@ -13,7 +12,7 @@ import {
   FiFolder,
   FiSettings,
 } from "react-icons/fi";
-import Sidebar from "@/shared/layout/Sidebar";
+import SidebarAdmin from "@/shared/layout/SidebarAdmin";
 import useSocket from "@/shared/lib/useSocket";
 import { decodeTokenGetUser } from "@/shared/lib/jwt";
 import axiosClient from "@/shared/lib/axiosClient";
@@ -22,22 +21,27 @@ import toast from "react-hot-toast";
 export default function AdminLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
-
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [myId, setMyId] = useState(null);
+  const [user, setUser] = useState(null);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
 
   useEffect(() => {
     const token =
       typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
     if (!token) {
+      setIsLoadingUser(false);
       router.replace("/login");
       toast.error("Vui lòng đăng nhập!");
       return;
     }
-    const user = decodeTokenGetUser(token);
-    setMyId(user?.id || user?._id || null);
-    
+
+    const userInfo = decodeTokenGetUser(token);
+    setMyId(userInfo?.id || userInfo?._id || null);
+    setUser(userInfo);
+
     // Check if user is admin
     try {
       const userData = token ? JSON.parse(token) : null;
@@ -47,11 +51,26 @@ export default function AdminLayout({ children }) {
       }
     } catch {
       // If token is not JSON, check from decoded token
-      if (!user || user.role !== "admin") {
+      if (!userInfo || userInfo.role !== "admin") {
         router.replace("/");
         toast.error("Bạn không có quyền truy cập trang admin!");
       }
     }
+
+    // Fetch full user data from API
+    axiosClient
+      .get("/api/user")
+      .then((res) => {
+        if (res?.data) {
+          setUser((prev) => ({ ...prev, ...res.data }));
+        }
+      })
+      .catch(() => {
+        /* ignore */
+      })
+      .finally(() => {
+        setIsLoadingUser(false);
+      });
   }, [router]);
 
   const updateUnreadCount = useCallback(async () => {
@@ -147,15 +166,18 @@ export default function AdminLayout({ children }) {
   return (
     <div className="flex h-screen">
       <div className="hidden md:block w-60 h-full bg-white border-r border-[var(--color-border)] z-10">
-        <Sidebar
+        <SidebarAdmin
           navItems={navItems}
           onLogout={handleLogout}
           logoutLabel="Đăng xuất"
           logoSrc="/images/Logo_2.png"
+          user={user}
+          router={router}
+          t={(key) => key}
+          isLoadingUser={isLoadingUser}
         />
       </div>
-
-      <Sidebar
+      <SidebarAdmin
         isMobile
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -163,8 +185,11 @@ export default function AdminLayout({ children }) {
         onLogout={handleLogout}
         logoutLabel="Đăng xuất"
         logoSrc="/images/Logo_2.png"
+        user={user}
+        router={router}
+        t={(key) => key}
+        isLoadingUser={isLoadingUser}
       />
-
       {!sidebarOpen && (
         <button
           className="fixed left-4 top-4 z-50 rounded-full border border-[var(--color-border)] bg-white p-2 shadow md:hidden hover:bg-[var(--color-surface-50)]"
@@ -174,9 +199,7 @@ export default function AdminLayout({ children }) {
           <FaBars className="text-xl text-[var(--color-text-muted)]" />
         </button>
       )}
-
       <main className="flex-1 overflow-auto bg-white">{children}</main>
     </div>
   );
 }
-

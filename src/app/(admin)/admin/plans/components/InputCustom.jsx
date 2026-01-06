@@ -1,5 +1,4 @@
 import React from "react";
-
 function InputCustom({
   id,
   label,
@@ -40,6 +39,4 @@ function InputCustom({
     </div>
   );
 }
-
 export default InputCustom;
-

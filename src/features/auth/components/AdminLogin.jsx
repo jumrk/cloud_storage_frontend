@@ -1,20 +1,20 @@
 "use client";
-
 import Image from "next/image";
 import Link from "next/link";
 import ScrollReveal from "@/shared/ui/ScrollReveal";
 import Input from "@/shared/ui/Input";
 import Button from "@/shared/ui/button";
 import useAdminLoginForm from "@/features/auth/hooks/useAdminLoginForm";
-
 export default function AdminLogin() {
   const { formData, errors, loading, handleSubmit, handleChange } =
     useAdminLoginForm();
-
   return (
     <div className="min-h-screen flex justify-center items-center bg-[var(--color-surface-50)]">
       <div className="w-[90%] grid grid-cols-1 lg:grid-cols-2 gap-6 lg:w-[70%] bg-white rounded-3xl shadow-2xl overflow-hidden">
-        <form className="p-8 flex flex-col justify-center" onSubmit={handleSubmit}>
+        <form
+          className="p-8 flex flex-col justify-center"
+          onSubmit={handleSubmit}
+        >
           <ScrollReveal direction="down">
             <p className="text-sm uppercase tracking-[0.3em] text-primary font-semibold">
               Admin Access
@@ -27,7 +27,6 @@ export default function AdminLogin() {
               thống.
             </p>
           </ScrollReveal>
-
           <div className="mt-6 space-y-4">
             <ScrollReveal direction="left">
               <Input
@@ -40,7 +39,6 @@ export default function AdminLogin() {
                 errors={errors.email}
               />
             </ScrollReveal>
-
             <ScrollReveal direction="right">
               <Input
                 label="Mật khẩu"
@@ -53,7 +51,6 @@ export default function AdminLogin() {
               />
             </ScrollReveal>
           </div>
-
           <div className="mt-6 flex flex-col gap-3">
             <Button
               type="submit"
@@ -66,12 +63,14 @@ export default function AdminLogin() {
             >
               Đăng nhập admin
             </Button>
-            <Link href="/login" className="text-center text-sm text-gray-500 hover:text-primary transition">
+            <Link
+              href="/login"
+              className="text-center text-sm text-gray-500 hover:text-primary transition"
+            >
               Quay lại đăng nhập người dùng
             </Link>
           </div>
         </form>
-
         <div className="relative hidden lg:flex items-center justify-center bg-gradient-to-br from-primary to-[#1cadd9]">
           <ScrollReveal direction="left">
             <Image
@@ -89,5 +88,3 @@ export default function AdminLogin() {
     </div>
   );
 }
-
-

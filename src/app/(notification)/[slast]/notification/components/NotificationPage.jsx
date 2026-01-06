@@ -2,7 +2,6 @@
 import React, { useEffect } from "react";
 import { FiBell, FiMoreHorizontal } from "react-icons/fi";
 import useNotification from "../hooks/useNotification";
-
 function NotificationPage() {
   const {
     ICON_MAP,
@@ -21,14 +20,12 @@ function NotificationPage() {
     markAllAsRead,
     loadMore,
   } = useNotification();
-
   useEffect(() => {
     if (!loadedRef.current) {
       fetchNotifications(1);
       loadedRef.current = true;
     }
   }, []);
-
   useEffect(() => {
     if (!socketRef.current) return;
     socketRef.current.on("connect", () => {
@@ -46,7 +43,6 @@ function NotificationPage() {
       socketRef.current.off("connect");
     };
   }, [socketRef.current, setNotifications, ICON_MAP]);
-
   const renderPagination = () => {
     if (totalPages <= 1) return null;
     const pages = [];
@@ -68,7 +64,6 @@ function NotificationPage() {
     }
     return <div className="flex justify-center mt-4">{pages}</div>;
   };
-
   return (
     <div className="w-full max-w-3xl mx-auto bg-white p-8 mt-8 border border-gray-100">
       <div className="mb-6 grid md:flex gap-3 items-center justify-between">
@@ -90,8 +85,7 @@ function NotificationPage() {
       <div className="divide-y divide-gray-100">
         {notifications.length === 0 ? (
           <div className="py-16 flex flex-col items-center text-gray-400">
-            <FiBell className="text-4xl mb-2" />
-            {t("notification.empty")}
+            <FiBell className="text-4xl mb-2" /> {t("notification.empty")}
           </div>
         ) : (
           notifications.map((item, index) => (
@@ -162,6 +156,4 @@ function NotificationPage() {
     </div>
   );
 }
-
 export default NotificationPage;
-

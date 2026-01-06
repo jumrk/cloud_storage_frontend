@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Modal from "@/shared/ui/Modal";
 import Input from "@/shared/ui/Input";
-
 const TYPE_OPTIONS = [
   { value: "bank", label: "Ngân hàng" },
   { value: "card", label: "Thẻ tín dụng" },
@@ -9,7 +8,6 @@ const TYPE_OPTIONS = [
   { value: "crypto", label: "Tiền điện tử" },
   { value: "other", label: "Khác" },
 ];
-
 export default function PaymentMethodModal({
   open,
   onClose,
@@ -29,9 +27,7 @@ export default function PaymentMethodModal({
     isActive: true,
   });
   const [errors, setErrors] = useState({});
-
   const isEdit = Boolean(method);
-
   useEffect(() => {
     if (method) {
       setForm({
@@ -60,7 +56,6 @@ export default function PaymentMethodModal({
     }
     setErrors({});
   }, [method, open]);
-
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setForm((prev) => ({
@@ -69,7 +64,6 @@ export default function PaymentMethodModal({
     }));
     setErrors((prev) => ({ ...prev, [name]: undefined }));
   };
-
   const validate = () => {
     const newErrors = {};
     if (!form.name.trim()) newErrors.name = "Vui lòng nhập tên phương thức";
@@ -80,20 +74,13 @@ export default function PaymentMethodModal({
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!validate() || loading) return;
-    onSubmit?.({
-      ...form,
-      _id: method?._id,
-    });
+    onSubmit?.({ ...form, _id: method?._id });
   };
-
-  if (!open) return null;
-
   return (
-    <Modal onClose={onClose}>
+    <Modal isOpen={open} onClose={onClose}>
       <div className="p-6 w-full max-w-[95vw] sm:max-w-[420px] md:max-w-[540px] lg:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <h2 className="text-xl font-bold mb-4 text-center text-slate-800">
           {isEdit
@@ -231,5 +218,3 @@ export default function PaymentMethodModal({
     </Modal>
   );
 }
-
-

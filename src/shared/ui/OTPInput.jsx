@@ -1,8 +1,7 @@
 "use client";
 import React, { useEffect, useMemo, useRef } from "react";
-
 function cx(...a) {
-  return a.filter(Boolean).join(" ");
+  return a.filter(Boolean).join("");
 }
 export default function OTPInput({
   length = 6,
@@ -13,23 +12,19 @@ export default function OTPInput({
   className,
 }) {
   const refs = useRef([...Array(length)].map(() => React.createRef()));
-
   useEffect(() => {
     const idx = value.findIndex((v) => !v);
     if (idx >= 0 && refs.current[idx]?.current) {
       refs.current[idx].current.focus();
     }
   }, []);
-
   const handleChange = (i, e) => {
     const char = e.target.value;
     if (char === "") {
       onChange?.(i, "");
       return;
     }
-
     if (!/^\d$/.test(char)) return;
-
     onChange?.(i, char);
     if (i < length - 1) {
       refs.current[i + 1]?.current?.focus();
@@ -37,7 +32,6 @@ export default function OTPInput({
       e.target.blur();
     }
   };
-
   const handleKeyDown = (i, e) => {
     if (e.key === "Backspace" && !value[i] && i > 0) {
       e.preventDefault();
@@ -54,7 +48,6 @@ export default function OTPInput({
       refs.current[i + 1]?.current?.focus();
     }
   };
-
   const handlePaste = (i, e) => {
     const text = (e.clipboardData || window.clipboardData).getData("text");
     if (!text) return;
@@ -71,7 +64,6 @@ export default function OTPInput({
     const last = Math.min(i + chars.length - 1, length - 1);
     refs.current[last]?.current?.focus();
   };
-
   const cellBase =
     "h-12 w-10 md:h-14 md:w-12 text-center text-lg md:text-xl font-semibold rounded-xl outline-none transition";
   const cellStyle = cx(
@@ -79,7 +71,6 @@ export default function OTPInput({
     error &&
       "border-[var(--color-danger-400)] focus:ring-[var(--color-danger-300)]"
   );
-
   return (
     <div
       className={cx(

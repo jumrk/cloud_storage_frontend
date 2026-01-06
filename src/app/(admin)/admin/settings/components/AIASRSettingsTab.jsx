@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useState, useRef, useEffect } from "react";
 import { FiSave, FiLoader, FiChevronDown, FiUpload } from "react-icons/fi";
 import Popover from "@/shared/ui/Popover";
@@ -10,7 +9,12 @@ const PROVIDERS = [
   { value: "aws", label: "AWS Transcribe" },
 ];
 
-export default function AIASRSettingsTab({ settings, setSettings, loading, onSave }) {
+export default function AIASRSettingsTab({
+  settings,
+  setSettings,
+  loading,
+  onSave,
+}) {
   const [providerDropdownOpen, setProviderDropdownOpen] = useState(false);
   const [showCredentials, setShowCredentials] = useState(false);
   const providerRef = useRef(null);
@@ -19,7 +23,10 @@ export default function AIASRSettingsTab({ settings, setSettings, loading, onSav
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (providerRef.current && !providerRef.current.contains(event.target)) {
+      if (
+        providerRef.current &&
+        !providerRef.current.contains(event.target)
+      ) {
         setProviderDropdownOpen(false);
       }
     };
@@ -60,7 +67,8 @@ export default function AIASRSettingsTab({ settings, setSettings, loading, onSav
     }
   };
 
-  const currentProviderLabel = PROVIDERS.find((p) => p.value === settings.provider)?.label || "";
+  const currentProviderLabel =
+    PROVIDERS.find((p) => p.value === settings.provider)?.label || "";
 
   return (
     <div>
@@ -69,7 +77,8 @@ export default function AIASRSettingsTab({ settings, setSettings, loading, onSav
           AI ASR (Speech-to-Text)
         </h2>
         <p className="text-gray-500 text-xs">
-          Cấu hình công nghệ nhận dạng giọng nói tự động (ASR) để chuyển đổi âm thanh thành văn bản.
+          Cấu hình công nghệ nhận dạng giọng nói tự động (ASR) để chuyển đổi
+          âm thanh thành văn bản.
         </p>
       </div>
 
@@ -89,7 +98,10 @@ export default function AIASRSettingsTab({ settings, setSettings, loading, onSav
               type="checkbox"
               checked={settings.enabled}
               onChange={(e) =>
-                setSettings({ ...settings, enabled: e.target.checked })
+                setSettings({
+                  ...settings,
+                  enabled: e.target.checked,
+                })
               }
               className="sr-only peer"
             />
@@ -107,7 +119,9 @@ export default function AIASRSettingsTab({ settings, setSettings, loading, onSav
               <div className="relative" ref={providerRef}>
                 <button
                   type="button"
-                  onClick={() => setProviderDropdownOpen(!providerDropdownOpen)}
+                  onClick={() =>
+                    setProviderDropdownOpen(!providerDropdownOpen)
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white flex items-center justify-between"
                 >
                   <span>{currentProviderLabel}</span>
@@ -118,7 +132,10 @@ export default function AIASRSettingsTab({ settings, setSettings, loading, onSav
                   />
                 </button>
                 {providerDropdownOpen && (
-                  <div className="fixed inset-0 z-40" onClick={() => setProviderDropdownOpen(false)} />
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setProviderDropdownOpen(false)}
+                  />
                 )}
                 <Popover
                   open={providerDropdownOpen}
@@ -143,9 +160,12 @@ export default function AIASRSettingsTab({ settings, setSettings, loading, onSav
                 </Popover>
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                {settings.provider === "whisper" && "Sử dụng mô hình Whisper chạy trên máy chủ (không cần API)"}
-                {settings.provider === "google" && "Google Cloud Speech-to-Text API - hỗ trợ 120+ ngôn ngữ"}
-                {settings.provider === "aws" && "AWS Transcribe - dịch vụ chuyển đổi giọng nói của Amazon"}
+                {settings.provider === "whisper" &&
+                  "Sử dụng mô hình Whisper chạy trên máy chủ (không cần API)"}
+                {settings.provider === "google" &&
+                  "Google Cloud Speech-to-Text API - hỗ trợ 120+ ngôn ngữ"}
+                {settings.provider === "aws" &&
+                  "AWS Transcribe - dịch vụ chuyển đổi giọng nói của Amazon"}
               </p>
             </div>
 
@@ -184,16 +204,20 @@ export default function AIASRSettingsTab({ settings, setSettings, loading, onSav
                     <textarea
                       value={settings.credentials || ""}
                       onChange={(e) =>
-                        setSettings({ ...settings, credentials: e.target.value })
+                        setSettings({
+                          ...settings,
+                          credentials: e.target.value,
+                        })
                       }
-                      placeholder='Paste Google Cloud Service Account JSON...'
+                      placeholder="Paste Google Cloud Service Account JSON..."
                       rows={8}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent font-mono text-xs"
                     />
                   )}
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
-                  Tải lên hoặc paste nội dung file JSON Service Account từ Google Cloud Console
+                  Tải lên hoặc paste nội dung file JSON Service Account từ
+                  Google Cloud Console
                 </p>
               </div>
             )}
@@ -209,7 +233,10 @@ export default function AIASRSettingsTab({ settings, setSettings, loading, onSav
                     type="password"
                     value={settings.awsAccessKeyId || ""}
                     onChange={(e) =>
-                      setSettings({ ...settings, awsAccessKeyId: e.target.value })
+                      setSettings({
+                        ...settings,
+                        awsAccessKeyId: e.target.value,
+                      })
                     }
                     placeholder="Nhập AWS Access Key ID..."
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
@@ -223,7 +250,10 @@ export default function AIASRSettingsTab({ settings, setSettings, loading, onSav
                     type="password"
                     value={settings.awsSecretAccessKey || ""}
                     onChange={(e) =>
-                      setSettings({ ...settings, awsSecretAccessKey: e.target.value })
+                      setSettings({
+                        ...settings,
+                        awsSecretAccessKey: e.target.value,
+                      })
                     }
                     placeholder="Nhập AWS Secret Access Key..."
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
@@ -237,7 +267,10 @@ export default function AIASRSettingsTab({ settings, setSettings, loading, onSav
                     type="text"
                     value={settings.awsRegion || "us-east-1"}
                     onChange={(e) =>
-                      setSettings({ ...settings, awsRegion: e.target.value })
+                      setSettings({
+                        ...settings,
+                        awsRegion: e.target.value,
+                      })
                     }
                     placeholder="us-east-1"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
@@ -255,7 +288,10 @@ export default function AIASRSettingsTab({ settings, setSettings, loading, onSav
                 <select
                   value={settings.whisperModel || "base"}
                   onChange={(e) =>
-                    setSettings({ ...settings, whisperModel: e.target.value })
+                    setSettings({
+                      ...settings,
+                      whisperModel: e.target.value,
+                    })
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white"
                 >
@@ -297,4 +333,3 @@ export default function AIASRSettingsTab({ settings, setSettings, loading, onSav
     </div>
   );
 }
-

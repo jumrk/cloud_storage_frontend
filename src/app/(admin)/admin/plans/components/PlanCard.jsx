@@ -13,13 +13,11 @@ import {
   formatDate,
   formatPrice,
 } from "../utils";
-
 const STATUS_BADGE = {
   active: "bg-emerald-100 text-emerald-700 border-emerald-200",
   inactive: "bg-rose-100 text-rose-700 border-rose-200",
   draft: "bg-slate-100 text-slate-600 border-slate-200",
 };
-
 export default function PlanCard({ plan, index, onEdit, onDelete }) {
   const accent = PLAN_COLORS[index % PLAN_COLORS.length];
   const monthlyPrice = plan.isCustom
@@ -28,9 +26,7 @@ export default function PlanCard({ plan, index, onEdit, onDelete }) {
     ? "Miễn phí"
     : formatPrice(plan.priceMonth);
   const creditsValue =
-    typeof plan.credis === "number"
-      ? plan.credis.toLocaleString("vi-VN")
-      : "0";
+    typeof plan.credis === "number" ? plan.credis.toLocaleString("vi-VN") : "0";
   const yearlyPrice = plan.isCustom
     ? "Tùy chọn"
     : plan.priceYear === 0
@@ -39,16 +35,12 @@ export default function PlanCard({ plan, index, onEdit, onDelete }) {
   const descriptions = Array.isArray(plan.description) ? plan.description : [];
   const previewDescriptions = descriptions.slice(0, 3);
   const remainingDesc = descriptions.length - previewDescriptions.length;
-
   return (
     <div className="h-full rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-lg transition p-6 flex flex-col">
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="inline-flex items-center gap-2 text-xs uppercase tracking-wide text-slate-400">
-            <span style={{ color: accent }}>
-              #
-              {plan.slug}
-            </span>
+            <span style={{ color: accent }}> # {plan.slug} </span>
             {plan.isCustom && (
               <span className="px-2 py-0.5 rounded-full border border-slate-200 text-slate-600">
                 Custom
@@ -60,7 +52,9 @@ export default function PlanCard({ plan, index, onEdit, onDelete }) {
           </h3>
           <div className="flex flex-wrap items-center gap-2 mt-2 text-xs">
             <span
-              className={`px-3 py-1 rounded-full border ${STATUS_BADGE[plan.status] || STATUS_BADGE.draft}`}
+              className={`px-3 py-1 rounded-full border ${
+                STATUS_BADGE[plan.status] || STATUS_BADGE.draft
+              }`}
             >
               {STATUS_LABEL[plan.status]}
             </span>
@@ -93,13 +87,8 @@ export default function PlanCard({ plan, index, onEdit, onDelete }) {
           </button>
         </div>
       </div>
-
-  <div className="mt-4 grid grid-cols-2 gap-4">
-        <PriceBadge
-          label="Theo tháng"
-          value={monthlyPrice}
-          accent={accent}
-        />
+      <div className="mt-4 grid grid-cols-2 gap-4">
+        <PriceBadge label="Theo tháng" value={monthlyPrice} accent={accent} />
         <PriceBadge
           label="Theo năm"
           value={yearlyPrice}
@@ -107,7 +96,6 @@ export default function PlanCard({ plan, index, onEdit, onDelete }) {
           secondary
         />
       </div>
-
       <div className="mt-4 grid grid-cols-2 gap-4 text-sm text-slate-600">
         <div className="flex items-center gap-2">
           <PiUsersThree className="text-slate-400 text-lg" />
@@ -132,7 +120,6 @@ export default function PlanCard({ plan, index, onEdit, onDelete }) {
           </div>
         </div>
       </div>
-
       <div className="mt-3 flex items-center gap-2 text-sm text-slate-600">
         <PiCoins className="text-slate-400 text-lg" />
         <div>
@@ -140,7 +127,6 @@ export default function PlanCard({ plan, index, onEdit, onDelete }) {
           <p className="font-semibold">{creditsValue} credis</p>
         </div>
       </div>
-
       <div className="mt-4 flex-1">
         <p className="text-xs uppercase tracking-wide text-slate-400 mb-2">
           Tính năng chính
@@ -166,7 +152,6 @@ export default function PlanCard({ plan, index, onEdit, onDelete }) {
           </p>
         )}
       </div>
-
       <div className="pt-4 mt-6 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
         <span>Ngày tạo: {formatDate(plan.createdAt)}</span>
         <span>ID: {plan._id}</span>
@@ -174,7 +159,6 @@ export default function PlanCard({ plan, index, onEdit, onDelete }) {
     </div>
   );
 }
-
 function PriceBadge({ label, value, accent, secondary }) {
   return (
     <div
@@ -194,4 +178,3 @@ function PriceBadge({ label, value, accent, secondary }) {
     </div>
   );
 }
-

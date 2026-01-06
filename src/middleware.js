@@ -5,48 +5,41 @@ import { decodeTokenGetUser } from "@/shared/lib/jwt";
 function addSecurityHeaders(response) {
   // Content Security Policy - Strict policy to prevent XSS and crypto mining
   // Allow Google Drive iframes for video/file preview
+  // Allow external media sources for audio/video playback (ElevenLabs, etc.)
   response.headers.set(
     "Content-Security-Policy",
     "default-src 'self'; " +
-    "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://fonts.googleapis.com; " +
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; " +
-    "font-src 'self' https://fonts.gstatic.com; " +
-    "img-src 'self' data: https: http:; " +
-    "connect-src 'self' https: http: ws: wss:; " +
-    "frame-src 'self' https://drive.google.com https://*.googleusercontent.com https://docs.google.com; " +
-    "object-src 'none'; " +
-    "base-uri 'self'; " +
-    "form-action 'self'; " +
-    "upgrade-insecure-requests;"
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://fonts.googleapis.com; " +
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; " +
+      "font-src 'self' https://fonts.gstatic.com; " +
+      "img-src 'self' data: https: http:; " +
+      "media-src 'self' https: http: data: blob:; " +
+      "connect-src 'self' https: http: ws: wss:; " +
+      "frame-src 'self' https://drive.google.com https://*.googleusercontent.com https://docs.google.com; " +
+      "object-src 'none'; " +
+      "base-uri 'self'; " +
+      "form-action 'self';"
   );
-  
+
   // Prevent MIME type sniffing
   response.headers.set("X-Content-Type-Options", "nosniff");
-  
+
   // Prevent clickjacking
   response.headers.set("X-Frame-Options", "DENY");
-  
+
   // Enable XSS protection
   response.headers.set("X-XSS-Protection", "1; mode=block");
-  
+
   // Referrer policy
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-  
+
   // Permissions policy - Block geolocation, microphone, camera
   response.headers.set(
     "Permissions-Policy",
     "geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()"
   );
-  
-  return response;
-}
 
-// Detect mobile from User-Agent
-function isMobileDevice(userAgent) {
-  if (!userAgent) return false;
-  const mobileRegex =
-    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile|CriOS/i;
-  return mobileRegex.test(userAgent);
+  return response;
 }
 
 const PUBLIC_PATHS = new Set([
@@ -120,37 +113,24 @@ export async function middleware(request) {
   let response = applyLocale(NextResponse.next());
   response = addSecurityHeaders(response);
 
-  let cachedProfile = null;
-  const loadProfile = async () => {
-    if (cachedProfile || !token) return cachedProfile;
-    try {
-      const apiBase =
-        process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000";
-      const profileRes = await fetch(`${apiBase}/api/user`, {
-        headers: {
-          cookie: request.headers.get("cookie") || "",
-        },
-      });
-      if (profileRes.ok) {
-        cachedProfile = await profileRes.json();
-      }
-    } catch {
-      cachedProfile = null;
-    }
-    return cachedProfile;
-  };
-
   const redirectWithLocale = (targetPath) => {
     const redirectUrl = new URL(targetPath, request.url);
     const redirectResponse = applyLocale(NextResponse.redirect(redirectUrl));
     return addSecurityHeaders(redirectResponse);
   };
 
-  const memberHomePath = "/member/file-management";
+  const memberHomePath = slast
+    ? `/${slast}/file-management`
+    : "/member/file-management";
   const leaderHomePath = slast ? `/${slast}/home` : "/";
 
   // Public routes
   if (isPublic(path)) {
+    // Block admin from accessing root path
+    if (token && role === "admin" && path === "/") {
+      return redirectWithLocale("/admin");
+    }
+
     const isPricingPath = path === "/pricing" || path.startsWith("/pricing/");
     if (token && role === "member" && isPricingPath) {
       return redirectWithLocale(memberHomePath);
@@ -183,12 +163,20 @@ export async function middleware(request) {
     return redirectWithLocale("/");
   }
 
-  // Block video-tools routes (under development)
+  // Allow video-tools routes
   if (path.startsWith("/video-tools")) {
-    return redirectWithLocale("/");
+    return response;
+  }
+
+  if (path.startsWith("/chat")) {
+    return response;
   }
 
   if (role === "admin") {
+    // Block admin from accessing root path
+    if (path === "/") {
+      return redirectWithLocale("/admin");
+    }
     if (!path.startsWith("/admin")) {
       return redirectWithLocale("/admin");
     }
@@ -196,22 +184,45 @@ export async function middleware(request) {
   }
 
   if (role === "member") {
+    // Member can now access leader routes (/{slast}/*)
+    if (slast) {
+      const memberBase = `/${slast}`.toLowerCase();
+      const pathLower = path.toLowerCase();
+
+      // Block pricing and account info paths for members
+      const isPricingPath = path.startsWith("/pricing");
+      const isAccountInfoPath =
+        path.includes("/infor-user") || path.endsWith("/infor-user");
+      if (isPricingPath || isAccountInfoPath) {
+        return redirectWithLocale(memberHomePath);
+      }
+
+      // Allow all paths that start with member's slast base (same as leader routes)
+      if (pathLower.startsWith(memberBase)) {
+        return response;
+      }
+
+      // Redirect to member's file-management if accessing root or other paths
+      return redirectWithLocale(memberHomePath);
+    }
+
+    // Fallback: if no slast, use old /member/* paths
     const isAccountInfoPath =
       path.includes("/infor-user") || path.endsWith("/infor-user");
     const isPricingPath = path === "/pricing" || path.startsWith("/pricing/");
     if (isPricingPath || isAccountInfoPath) {
-      return redirectWithLocale(memberHomePath);
+      return redirectWithLocale("/member/file-management");
     }
-    // Allow chat access for members (pattern: /{slast}/chat)
+    // Allow chat access for members
     const isChatPath = path.endsWith("/chat") || path.includes("/chat/");
     if (isChatPath) {
       return response;
     }
     if (path === "/member" || path === "/member/") {
-      return redirectWithLocale(memberHomePath);
+      return redirectWithLocale("/member/file-management");
     }
     if (!path.startsWith("/member")) {
-      return redirectWithLocale(memberHomePath);
+      return redirectWithLocale("/member/file-management");
     }
     return response;
   }

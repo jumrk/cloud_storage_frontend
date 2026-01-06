@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useState, useEffect } from "react";
 import Modal from "@/shared/ui/Modal";
 import pricingService from "@/shared/services/pricingService";
@@ -169,21 +170,18 @@ export default function CustomPlanModal({
   };
 
   const isValid =
-    Number(storage) >= 20 &&
-    Number(users) >= 20 &&
-    pricing &&
-    !error;
+    Number(storage) >= 20 && Number(users) >= 20 && pricing && !error;
 
   return (
     <Modal onClose={onClose}>
       <div className="p-6 max-w-md w-full">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-text-strong">
+          <h2 className="text-xl font-bold text-gray-900">
             Cấu hình gói {plan?.name}
           </h2>
           <button
             onClick={onClose}
-            className="text-text-muted hover:text-text-strong transition"
+            className="text-gray-600 hover:text-gray-900 transition"
           >
             <svg
               className="w-6 h-6"
@@ -203,7 +201,7 @@ export default function CustomPlanModal({
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-text-strong mb-1">
+            <label className="block text-sm font-medium text-gray-900 mb-1">
               Dung lượng (TB) <span className="text-danger">*</span>
             </label>
             <input
@@ -211,7 +209,7 @@ export default function CustomPlanModal({
               value={storage}
               onChange={handleStorageChange}
               placeholder="Tối thiểu 20 TB"
-              className="w-full px-4 py-2 rounded-lg border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-brand-200"
+              className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-200"
             />
             {storage !== "" && Number(storage) < 20 && (
               <p className="text-xs text-danger mt-1">
@@ -221,7 +219,7 @@ export default function CustomPlanModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-text-strong mb-1">
+            <label className="block text-sm font-medium text-gray-900 mb-1">
               Số người dùng <span className="text-danger">*</span>
             </label>
             <input
@@ -229,7 +227,7 @@ export default function CustomPlanModal({
               value={users}
               onChange={handleUsersChange}
               placeholder="Tối thiểu 20 người"
-              className="w-full px-4 py-2 rounded-lg border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-brand-200"
+              className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-200"
             />
             {users !== "" && Number(users) < 20 && (
               <p className="text-xs text-danger mt-1">
@@ -239,17 +237,17 @@ export default function CustomPlanModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-text-strong mb-1">
-              Credis <span className="text-text-muted">(100 VND/credis)</span>
+            <label className="block text-sm font-medium text-gray-900 mb-1">
+              Credis <span className="text-gray-600">(100 VND/credis)</span>
             </label>
             <input
               type="text"
               value={credis}
               onChange={handleCredisChange}
               placeholder="0"
-              className="w-full px-4 py-2 rounded-lg border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-brand-200"
+              className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-200"
             />
-            <p className="text-xs text-text-muted mt-1">
+            <p className="text-xs text-gray-600 mt-1">
               Số credis sẽ được cộng vào tài khoản (100 VND/credis)
             </p>
           </div>
@@ -261,16 +259,16 @@ export default function CustomPlanModal({
           )}
 
           {loading && (
-            <div className="p-4 rounded-lg bg-surface-soft text-center text-sm text-text-muted">
+            <div className="p-4 rounded-lg bg-gray-100 text-center text-sm text-gray-600">
               Đang tính toán giá...
             </div>
           )}
 
           {pricing && !loading && (
-            <div className="p-4 rounded-lg bg-surface-soft space-y-2">
+            <div className="p-4 rounded-lg bg-gray-100 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-text-muted">Giá/tháng:</span>
-                <span className="text-sm font-semibold text-text-strong">
+                <span className="text-sm text-gray-600">Giá/tháng:</span>
+                <span className="text-sm font-semibold text-gray-900">
                   {formatMoney(
                     cycle === "year"
                       ? pricing.pricing.finalAmount / 12
@@ -279,26 +277,26 @@ export default function CustomPlanModal({
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-text-muted">
+                <span className="text-sm text-gray-600">
                   Thanh toán {cycle === "year" ? "năm" : "tháng"}:
                 </span>
-                <span className="text-base font-bold text-text-strong">
+                <span className="text-base font-bold text-gray-900">
                   {formatMoney(pricing.pricing.finalAmount)}
                 </span>
               </div>
               {pricing.pricing.credisAmount > 0 && (
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-text-muted">
+                  <span className="text-sm text-gray-600">
                     Credis ({pricing.pricing.credis || 0}):
                   </span>
-                  <span className="text-sm font-semibold text-text-strong">
+                  <span className="text-sm font-semibold text-gray-900">
                     +{formatMoney(pricing.pricing.credisAmount)}
                   </span>
                 </div>
               )}
               {pricing.pricing.discountAmount > 0 && (
-                <div className="flex items-center justify-between pt-2 border-t border-[var(--color-border)]">
-                  <span className="text-sm text-text-muted">Đã giảm:</span>
+                <div className="flex items-center justify-between pt-2 border-t border-gray-200">
+                  <span className="text-sm text-gray-600">Đã giảm:</span>
                   <span className="text-sm font-semibold text-success">
                     -{formatMoney(pricing.pricing.discountAmount)}
                   </span>
@@ -310,7 +308,7 @@ export default function CustomPlanModal({
           <div className="flex gap-3 pt-2">
             <button
               onClick={onClose}
-              className="flex-1 px-4 py-2 rounded-lg border border-[var(--color-border)] text-text-strong hover:bg-surface-soft transition"
+              className="flex-1 px-4 py-2 rounded-lg border border-gray-200 text-gray-900 hover:bg-gray-100 transition"
             >
               Hủy
             </button>
@@ -319,8 +317,8 @@ export default function CustomPlanModal({
               disabled={!isValid || loading}
               className={`flex-1 px-4 py-2 rounded-lg font-semibold transition ${
                 isValid && !loading
-                  ? "bg-brand text-[var(--color-surface-50)] hover:opacity-90"
-                  : "bg-surface-soft text-text-muted cursor-not-allowed"
+                  ? "bg-brand text-white hover:opacity-90"
+                  : "bg-gray-100 text-gray-600 cursor-not-allowed"
               }`}
             >
               Tiếp tục
@@ -331,4 +329,3 @@ export default function CustomPlanModal({
     </Modal>
   );
 }
-

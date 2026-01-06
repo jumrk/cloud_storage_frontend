@@ -33,7 +33,12 @@ function CircularProgress({ percent = 0, size = 24, stroke = 3 }) {
   );
 }
 
-export default function DownloadStatus({ files = [], folderName, onComplete, onCancel }) {
+export default function DownloadStatus({
+  files = [],
+  folderName,
+  onComplete,
+  onCancel,
+}) {
   const [fileStates, setFileStates] = useState(() =>
     files.map((f) => ({
       ...f,
@@ -87,11 +92,9 @@ export default function DownloadStatus({ files = [], folderName, onComplete, onC
   // Calculate ETA based on current speed and remaining progress
   const calculateETA = (currentProgress, currentSpeed, totalSize) => {
     if (currentSpeed <= 0 || currentProgress >= 100 || !totalSize) return null;
-    
     const remainingProgress = 100 - currentProgress;
     const remainingBytes = (remainingProgress / 100) * totalSize;
     const estimatedSeconds = remainingBytes / currentSpeed;
-    
     return estimatedSeconds > 0 ? Math.round(estimatedSeconds) : null;
   };
 
@@ -100,32 +103,42 @@ export default function DownloadStatus({ files = [], folderName, onComplete, onC
       if (fileStates.length === 0) return 0;
       // Ensure completed files always count as 100%
       const sum = fileStates.reduce((acc, f) => {
-        const fileProgress = f.status === "success" ? 100 : (f.progress || 0);
+        const fileProgress = f.status === "success" ? 100 : f.progress || 0;
         return acc + fileProgress;
       }, 0);
       return Math.round(sum / fileStates.length);
     };
+
     const overallProgress = calculateProgress();
     setProgress(overallProgress);
 
     // Calculate download speed and ETA
-    const downloadingFile = fileStates.find(f => f.status === "downloading");
-    if (downloadingFile && downloadingFile.size && downloadingFile.progress > 0) {
+    const downloadingFile = fileStates.find((f) => f.status === "downloading");
+    if (
+      downloadingFile &&
+      downloadingFile.size &&
+      downloadingFile.progress > 0
+    ) {
       const now = Date.now();
-      const currentBytes = (downloadingFile.progress / 100) * downloadingFile.size;
-      
+      const currentBytes =
+        (downloadingFile.progress / 100) * downloadingFile.size;
       if (!downloadSpeedRef.current.bytes || !downloadSpeedRef.current.time) {
         downloadSpeedRef.current = { bytes: currentBytes, time: now };
       } else {
         const timeDiff = (now - downloadSpeedRef.current.time) / 1000; // seconds
-        if (timeDiff > 0.5) { // Update speed every 0.5 seconds
+        if (timeDiff > 0.5) {
+          // Update speed every 0.5 seconds
           const bytesDiff = currentBytes - downloadSpeedRef.current.bytes;
           const currentSpeed = bytesDiff / timeDiff;
           setSpeed(currentSpeed);
           downloadSpeedRef.current = { bytes: currentBytes, time: now };
-          
+
           // Calculate ETA
-          const etaSeconds = calculateETA(overallProgress, currentSpeed, downloadingFile.size);
+          const etaSeconds = calculateETA(
+            overallProgress,
+            currentSpeed,
+            downloadingFile.size
+          );
           setEta(etaSeconds);
         }
       }
@@ -137,7 +150,10 @@ export default function DownloadStatus({ files = [], folderName, onComplete, onC
 
   useEffect(() => {
     const allDone = fileStates.every(
-      (f) => f.status === "success" || f.status === "error" || f.status === "cancelled"
+      (f) =>
+        f.status === "success" ||
+        f.status === "error" ||
+        f.status === "cancelled"
     );
     if (allDone && fileStates.length > 0) {
       const timer = setTimeout(() => {
@@ -151,13 +167,14 @@ export default function DownloadStatus({ files = [], folderName, onComplete, onC
   if (!isVisible || !files || files.length === 0) return null;
 
   const allDone = fileStates.every(
-    (f) => f.status === "success" || f.status === "error" || f.status === "cancelled"
+    (f) =>
+      f.status === "success" || f.status === "error" || f.status === "cancelled"
   );
   const hasErrors = fileStates.some((f) => f.status === "error");
   const hasCancelled = fileStates.some((f) => f.status === "cancelled");
 
   return (
-    <div className="fixed bottom-6 right-6 bg-white rounded-lg shadow-card p-5 flex flex-col gap-4 max-w-[450px] w-full border border-border z-[9999]">
+    <div className="fixed bottom-6 right-6 bg-white rounded-lg shadow-card p-5 flex flex-col gap-4 max-w-[450px] w-full border border-gray-200 z-[9999]">
       <div className="flex items-center gap-2 mb-2">
         {progress < 100 ? (
           <FiDownload className="text-brand animate-pulse" size={20} />
@@ -166,7 +183,7 @@ export default function DownloadStatus({ files = [], folderName, onComplete, onC
         ) : (
           <FiCheck className="text-success" size={20} />
         )}
-        <span className="font-semibold text-base text-text-strong truncate">
+        <span className="font-semibold text-base text-gray-900 truncate">
           {progress < 100 && !hasCancelled
             ? `Đang tải xuống... ${progress}%`
             : hasCancelled
@@ -176,8 +193,7 @@ export default function DownloadStatus({ files = [], folderName, onComplete, onC
             : "Tải xuống hoàn tất"}
         </span>
       </div>
-
-      <div className="w-full bg-surface-soft rounded-full h-2.5">
+      <div className="w-full bg-gray-100 rounded-full h-2.5">
         <div
           className={`h-2.5 rounded-full transition-all duration-300 ${
             allDone && !hasErrors
@@ -189,15 +205,13 @@ export default function DownloadStatus({ files = [], folderName, onComplete, onC
           style={{ width: `${progress}%` }}
         />
       </div>
-
       {/* Progress info: speed and ETA */}
       {progress < 100 && (
-        <div className="flex items-center justify-between text-xs text-text-muted">
+        <div className="flex items-center justify-between text-xs text-gray-600">
           <span>{formatSpeed(speed)}</span>
           {eta && eta > 0 && <span>Còn lại: {formatETA(eta)}</span>}
         </div>
       )}
-
       {folderName && (
         <div className="flex items-center gap-2 text-xs">
           <Image
@@ -215,7 +229,6 @@ export default function DownloadStatus({ files = [], folderName, onComplete, onC
           </span>
         </div>
       )}
-
       <div className="flex flex-col gap-2 max-h-64 overflow-y-auto">
         {fileStates.map((f, idx) => (
           <div key={idx} className="flex flex-col gap-1 w-full">
@@ -238,32 +251,35 @@ export default function DownloadStatus({ files = [], folderName, onComplete, onC
                     : f.status === "error"
                     ? " text-danger-600"
                     : f.status === "cancelled"
-                    ? " text-text-muted"
+                    ? " text-gray-600"
                     : f.status === "downloading"
                     ? " text-brand-600"
-                    : " text-text-muted")
+                    : " text-gray-600")
                 }
                 title={f.name}
               >
                 {f.name}
               </span>
-
               <div className="flex-shrink-0 flex items-center gap-1">
                 {f.status === "downloading" && (
-                  <CircularProgress percent={f.progress || 0} size={18} stroke={3} />
+                  <CircularProgress
+                    percent={f.progress || 0}
+                    size={18}
+                    stroke={3}
+                  />
                 )}
                 {f.status === "success" ? (
                   <FiCheck className="text-success" size={14} />
                 ) : f.status === "error" ? (
                   <FiX className="text-danger" size={14} />
                 ) : f.status === "cancelled" ? (
-                  <FiX className="text-text-muted" size={14} />
+                  <FiX className="text-gray-600" size={14} />
                 ) : f.status === "downloading" ? (
                   <FiDownload className="text-brand animate-pulse" size={14} />
                 ) : (
-                  <FiClock className="text-text-muted" size={14} />
+                  <FiClock className="text-gray-600" size={14} />
                 )}
-                {(f.status === "downloading") && onCancel && (
+                {f.status === "downloading" && onCancel && (
                   <button
                     onClick={() => onCancel(f.id || f.name)}
                     className="text-danger hover:opacity-90"
@@ -283,4 +299,3 @@ export default function DownloadStatus({ files = [], folderName, onComplete, onC
     </div>
   );
 }
-

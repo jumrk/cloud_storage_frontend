@@ -1,9 +1,10 @@
 "use client";
+
 import React, { useMemo, useState } from "react";
 import PlanCard from "./PlanCard";
 import EmptyState from "@/shared/ui/EmptyState";
 import CustomPlanModal from "./CustomPlanModal";
-import { usePlans, usePlanSelection } from "../hooks";
+import { usePlans, usePlanSelection, usePendingOrder } from "../hooks";
 import { getFreePlan } from "../utils/getFreePlan";
 
 export default function PlanList({
@@ -17,11 +18,16 @@ export default function PlanList({
   userRole = null,
 }) {
   const [billing, setBilling] = useState(
-    defaultBilling === "monthly" ? "monthly" : "annual"
+    defaultBilling === "monthly" ? "monthly" : "annual",
   );
   const [selectedCustomPlan, setSelectedCustomPlan] = useState(null);
   const { plans, loading } = usePlans(initialPlans);
   const handleSelectBase = usePlanSelection(currentPlanSlug, onSelect);
+  const {
+    hasPendingOrder,
+    pendingOrder,
+    loading: pendingLoading,
+  } = usePendingOrder();
   const isMemberRole = userRole === "member";
   const selectionLockedReason = isMemberRole
     ? "Chỉ leader mới nâng cấp gói"
@@ -40,14 +46,14 @@ export default function PlanList({
   const visiblePlans = useMemo(() => {
     const activePlans = (plans || []).filter((p) => p.status === "active");
     const freePlan = getFreePlan();
-    
+
     // Thêm Free plan vào đầu danh sách (order: 0)
     // Kiểm tra xem đã có free plan trong danh sách chưa
     const hasFreePlan = activePlans.some((p) => p.slug === "free");
     if (!hasFreePlan) {
       return [freePlan, ...activePlans];
     }
-    
+
     // Nếu đã có free plan, đảm bảo nó ở đầu
     const otherPlans = activePlans.filter((p) => p.slug !== "free");
     const existingFreePlan = activePlans.find((p) => p.slug === "free");
@@ -56,36 +62,68 @@ export default function PlanList({
 
   return (
     <div className="w-full">
+      {hasPendingOrder && !pendingLoading && (
+        <div className="mb-4 rounded-lg border border-brand-300 bg-brand-50 px-4 py-3 text-sm text-brand-800">
+          <div className="flex items-start gap-3">
+            <div className="shrink-0 mt-0.5">
+              <svg
+                className="w-5 h-5 text-brand-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-brand-900 mb-1">
+                Đang có đơn hàng chờ duyệt
+              </h3>
+              <p className="text-brand-700">
+                Bạn đã gửi yêu cầu nâng cấp/gia hạn gói{" "}
+                <span className="font-medium">
+                  {pendingOrder?.plan?.name || ""}
+                </span>
+                . Vui lòng đợi admin duyệt đơn hàng trước khi thực hiện giao
+                dịch mới.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       {selectionLockedReason && (
         <div className="mb-4 rounded-lg border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning-800">
           Tài khoản member không thể nâng cấp gói. Vui lòng liên hệ leader để
           thay đổi gói dịch vụ.
         </div>
       )}
+
       <div className="flex items-center justify-center mb-6">
-        <div className="inline-flex rounded-full bg-[var(--color-surface-100)] p-1 ring-1 ring-[var(--color-border)] shadow-sm">
+        <div className="inline-flex rounded-full bg-gray-100 p-1 ring-1 ring-gray-200 shadow-sm">
           <button
             aria-pressed={billing === "monthly"}
             onClick={() => setBilling("monthly")}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition
-        ${
-          billing === "monthly"
-            ? "bg-white text-text-strong shadow"
-            : "text-text-muted hover:text-text-strong"
-        }`}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+              billing === "monthly"
+                ? "bg-white text-gray-900 shadow"
+                : "text-gray-600 hover:text-gray-900"
+            }`}
           >
             Theo tháng
           </button>
-
           <button
             aria-pressed={billing === "annual"}
             onClick={() => setBilling("annual")}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition
-        ${
-          billing === "annual"
-            ? "bg-white text-text-strong shadow"
-            : "text-text-muted hover:text-text-strong"
-        }`}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+              billing === "annual"
+                ? "bg-white text-gray-900 shadow"
+                : "text-gray-600 hover:text-gray-900"
+            }`}
           >
             Theo năm
           </button>
@@ -119,6 +157,7 @@ export default function PlanList({
                   daysUntilExpiry={daysUntilExpiry}
                   onSelect={handleSelect}
                   selectionLockedReason={selectionLockedReason}
+                  hasPendingOrder={hasPendingOrder}
                 />
               );
             })}

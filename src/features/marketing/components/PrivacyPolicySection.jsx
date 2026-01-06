@@ -1,43 +1,36 @@
 "use client";
 import { useRef } from "react";
 import { useTranslations } from "next-intl";
-
 export default function PrivacyPolicySection() {
   const t = useTranslations();
   const refs = useRef({});
-
   const sections = t.raw("pages.privacy.sections");
   const content = t.raw("pages.privacy.content");
-
   const scrollToSection = (id) => {
     refs.current[id]?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
-
   return (
-    <div className="w-full min-h-screen bg-surface-50 pb-16">
+    <div className="w-full min-h-screen bg-white pb-16">
       <div className="mx-auto flex max-w-5xl flex-col gap-10 px-4 pt-10 md:flex-row">
         <main className="min-w-0 flex-1">
-          <h1 className="mb-2 text-3xl font-bold text-text-strong md:text-4xl">
+          <h1 className="mb-2 text-3xl font-bold text-gray-900 md:text-4xl">
             {t("pages.privacy.title")}
           </h1>
-          <div className="mb-6 text-sm text-text-muted">
+          <div className="mb-6 text-sm text-gray-600">
             {t("pages.privacy.last_updated")}
           </div>
-
-          <div className="space-y-10 text-base leading-relaxed text-text-muted">
+          <div className="space-y-10 text-base leading-relaxed text-gray-600">
             <section
               ref={(el) => (refs.current["introduction"] = el)}
               id="introduction"
             >
-              <h2 className="mb-2 text-xl font-semibold text-text-strong">
+              <h2 className="mb-2 text-xl font-semibold text-gray-900">
                 {sections[0].label}
               </h2>
-              <p>{content.introduction.p1}</p>
-              <p>{content.introduction.p2}</p>
+              <p>{content.introduction.p1}</p> <p>{content.introduction.p2}</p>
             </section>
-
             <section ref={(el) => (refs.current["collect"] = el)} id="collect">
-              <h2 className="mb-2 text-xl font-semibold text-text-strong">
+              <h2 className="mb-2 text-xl font-semibold text-gray-900">
                 {sections[1].label}
               </h2>
               <p>{content.collect.p1}</p>
@@ -57,12 +50,11 @@ export default function PrivacyPolicySection() {
                 })}
               </ul>
             </section>
-
             <section
               ref={(el) => (refs.current["personal"] = el)}
               id="personal"
             >
-              <h3 className="mb-1 text-lg font-semibold text-text-strong">
+              <h3 className="mb-1 text-lg font-semibold text-gray-900">
                 {sections[2].label}
               </h3>
               <p>{content.personal.p1}</p>
@@ -72,16 +64,15 @@ export default function PrivacyPolicySection() {
                 ))}
               </ul>
               <p className="mt-2">
-                <b>{t("pages.privacy.labels.real_example")}:</b>{" "}
-                {content.personal.example}
+                <b>{t("pages.privacy.labels.real_example")}:</b>
+                {""} {content.personal.example}
               </p>
             </section>
-
             <section
               ref={(el) => (refs.current["nonpersonal"] = el)}
               id="nonpersonal"
             >
-              <h3 className="mb-1 text-lg font-semibold text-text-strong">
+              <h3 className="mb-1 text-lg font-semibold text-gray-900">
                 {sections[3].label}
               </h3>
               <p>{content.nonpersonal.p1}</p>
@@ -91,13 +82,12 @@ export default function PrivacyPolicySection() {
                 ))}
               </ul>
               <p className="mt-2">
-                <b>{t("pages.privacy.labels.note")}:</b>{" "}
-                {content.nonpersonal.note}
+                <b>{t("pages.privacy.labels.note")}:</b>
+                {""} {content.nonpersonal.note}
               </p>
             </section>
-
             <section ref={(el) => (refs.current["cookies"] = el)} id="cookies">
-              <h3 className="mb-1 text-lg font-semibold text-text-strong">
+              <h3 className="mb-1 text-lg font-semibold text-gray-900">
                 {sections[4].label}
               </h3>
               <p>{content.cookies.p1}</p>
@@ -108,12 +98,11 @@ export default function PrivacyPolicySection() {
               </ul>
               <p className="mt-2">{content.cookies.p2}</p>
             </section>
-
             <section
               ref={(el) => (refs.current["googleapi"] = el)}
               id="googleapi"
             >
-              <h3 className="mb-1 text-lg font-semibold text-text-strong">
+              <h3 className="mb-1 text-lg font-semibold text-gray-900">
                 {sections[5].label}
               </h3>
               <p>{content.googleapi.p1}</p>
@@ -141,9 +130,8 @@ export default function PrivacyPolicySection() {
                 </a>
               </p>
             </section>
-
             <section ref={(el) => (refs.current["use"] = el)} id="use">
-              <h2 className="mb-2 text-xl font-semibold text-text-strong">
+              <h2 className="mb-2 text-xl font-semibold text-gray-900">
                 {sections[6].label}
               </h2>
               <ul className="list-disc pl-6">
@@ -152,13 +140,12 @@ export default function PrivacyPolicySection() {
                 ))}
               </ul>
               <p className="mt-2">
-                <b>{t("pages.privacy.labels.example")}:</b>{" "}
-                {content.use.example}
+                <b>{t("pages.privacy.labels.example")}:</b>
+                {""} {content.use.example}
               </p>
             </section>
-
             <section ref={(el) => (refs.current["share"] = el)} id="share">
-              <h2 className="mb-2 text-xl font-semibold text-text-strong">
+              <h2 className="mb-2 text-xl font-semibold text-gray-900">
                 {sections[7].label}
               </h2>
               <ul className="list-disc pl-6">
@@ -167,13 +154,12 @@ export default function PrivacyPolicySection() {
                 ))}
               </ul>
               <p className="mt-2">
-                <b>{t("pages.privacy.labels.example")}:</b>{" "}
-                {content.share.example}
+                <b>{t("pages.privacy.labels.example")}:</b>
+                {""} {content.share.example}
               </p>
             </section>
-
             <section ref={(el) => (refs.current["rights"] = el)} id="rights">
-              <h2 className="mb-2 text-xl font-semibold text-text-strong">
+              <h2 className="mb-2 text-xl font-semibold text-gray-900">
                 {sections[8].label}
               </h2>
               <ul className="list-disc pl-6">
@@ -185,12 +171,11 @@ export default function PrivacyPolicySection() {
                 <b>{t("pages.privacy.labels.note")}:</b> {content.rights.note}
               </p>
             </section>
-
             <section
               ref={(el) => (refs.current["security"] = el)}
               id="security"
             >
-              <h2 className="mb-2 text-xl font-semibold text-text-strong">
+              <h2 className="mb-2 text-xl font-semibold text-gray-900">
                 {sections[9].label}
               </h2>
               <ul className="list-disc pl-6">
@@ -199,13 +184,12 @@ export default function PrivacyPolicySection() {
                 ))}
               </ul>
               <p className="mt-2">
-                <b>{t("pages.privacy.labels.data_breach")}:</b>{" "}
-                {content.security.breach}
+                <b>{t("pages.privacy.labels.data_breach")}:</b>
+                {""} {content.security.breach}
               </p>
             </section>
-
             <section ref={(el) => (refs.current["storage"] = el)} id="storage">
-              <h2 className="mb-2 text-xl font-semibold text-text-strong">
+              <h2 className="mb-2 text-xl font-semibold text-gray-900">
                 {sections[10].label}
               </h2>
               <ul className="list-disc pl-6">
@@ -214,20 +198,18 @@ export default function PrivacyPolicySection() {
                 ))}
               </ul>
               <p className="mt-2">
-                <b>{t("pages.privacy.labels.example")}:</b>{" "}
-                {content.storage.example}
+                <b>{t("pages.privacy.labels.example")}:</b>
+                {""} {content.storage.example}
               </p>
             </section>
-
             <section ref={(el) => (refs.current["changes"] = el)} id="changes">
-              <h2 className="mb-2 text-xl font-semibold text-text-strong">
+              <h2 className="mb-2 text-xl font-semibold text-gray-900">
                 {sections[11].label}
               </h2>
               <p>{content.changes.p1}</p>
             </section>
-
             <section ref={(el) => (refs.current["contact"] = el)} id="contact">
-              <h2 className="mb-2 text-xl font-semibold text-text-strong">
+              <h2 className="mb-2 text-xl font-semibold text-gray-900">
                 {sections[12].label}
               </h2>
               <p>{content.contact.p1}</p>
@@ -236,7 +218,7 @@ export default function PrivacyPolicySection() {
                   <li key={index}>
                     {item.includes("Email:") ? (
                       <>
-                        Email:{" "}
+                        Email:{""}
                         <a
                           href="mailto:contact-d2m@dammeviet.vn"
                           className="text-brand underline hover:text-brand-600"
@@ -246,7 +228,7 @@ export default function PrivacyPolicySection() {
                       </>
                     ) : item.includes("Hotline:") ? (
                       <>
-                        Hotline:{" "}
+                        Hotline:{""}
                         <a
                           href="tel:+84911930807"
                           className="text-brand underline hover:text-brand-600"
@@ -264,10 +246,9 @@ export default function PrivacyPolicySection() {
             </section>
           </div>
         </main>
-
         <aside className="hidden w-64 flex-shrink-0 pt-2 md:block">
-          <div className="sticky top-24 rounded-xl border border-border bg-white p-4 shadow">
-            <div className="mb-2 text-base font-bold text-text-strong">
+          <div className="sticky top-24 rounded-xl border border-gray-200 bg-white p-4 shadow">
+            <div className="mb-2 text-base font-bold text-gray-900">
               {t("pages.table_of_contents")}
             </div>
             <ul className="space-y-2 text-sm">

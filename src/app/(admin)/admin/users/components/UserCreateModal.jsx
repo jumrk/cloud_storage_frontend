@@ -2,7 +2,6 @@
 import { useEffect, useState, useRef } from "react";
 import { FiX } from "react-icons/fi";
 import userService from "../services/userService";
-
 export default function UserCreateModal({ open, onClose, onCreated }) {
   const api = userService();
   const [form, setForm] = useState({
@@ -20,7 +19,6 @@ export default function UserCreateModal({ open, onClose, onCreated }) {
   const [slastChecking, setSlastChecking] = useState(false);
   const [slastExists, setSlastExists] = useState(false);
   let slastCheckTimeout = useRef();
-
   useEffect(() => {
     if (open) {
       setForm({
@@ -36,7 +34,6 @@ export default function UserCreateModal({ open, onClose, onCreated }) {
       api.getPlans().then((res) => setPlans(res?.data || []));
     }
   }, [open]);
-
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
     if (e.target.name === "slast") {
@@ -58,7 +55,6 @@ export default function UserCreateModal({ open, onClose, onCreated }) {
       }, 500);
     }
   };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -97,9 +93,7 @@ export default function UserCreateModal({ open, onClose, onCreated }) {
     }
     setLoading(false);
   };
-
   if (!open) return null;
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-8 relative animate-fadeIn">
@@ -164,7 +158,7 @@ export default function UserCreateModal({ open, onClose, onCreated }) {
               <option value="">-- Chọn gói --</option>
               {plans.map((p) => (
                 <option key={p._id} value={p._id}>
-                  {p.name} ({(p.priceMonth || 0).toLocaleString()}₫/tháng,{" "}
+                  {p.name} ({(p.priceMonth || 0).toLocaleString()}₫/tháng,{""}
                   {(p.priceYear || 0).toLocaleString()}₫/năm)
                 </option>
               ))}
@@ -199,7 +193,7 @@ export default function UserCreateModal({ open, onClose, onCreated }) {
             />
             <div className="text-xs text-gray-500 mt-1">
               Định danh này sẽ xuất hiện trên đường dẫn truy cập cá nhân của
-              user (ví dụ:{" "}
+              user (ví dụ:{""}
               <b>
                 cloudstorage.com/leader/<i>slast</i>/home
               </b>
@@ -235,4 +229,3 @@ export default function UserCreateModal({ open, onClose, onCreated }) {
     </div>
   );
 }
-

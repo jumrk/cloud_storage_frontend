@@ -1,9 +1,5 @@
 "use client";
-import {
-  FiUserPlus,
-  FiFilter,
-  FiSearch,
-} from "react-icons/fi";
+import { FiUserPlus, FiFilter, FiSearch } from "react-icons/fi";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import toast, { Toaster } from "react-hot-toast";
@@ -11,7 +7,6 @@ import EmptyState from "@/shared/ui/EmptyState";
 import useUserManagerPage from "../hooks/useUserManagerPage";
 import UserCreateModal from "./UserCreateModal";
 import RoleMenu from "./RoleMenu";
-
 export default function UserManagerPage() {
   const {
     loading,
@@ -36,11 +31,9 @@ export default function UserManagerPage() {
     ROLE_LABEL,
     ROLE_FILTERS,
   } = useUserManagerPage();
-
   return (
     <div className="w-full max-w-6xl mx-auto px-2 py-4">
-      <Toaster position="top-right" />
-      {/* Header + mô tả */}
+      <Toaster position="top-right" /> {/* Header + mô tả */}
       <div className="mb-2">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1">
           Quản lý người dùng
@@ -273,4 +266,3 @@ export default function UserManagerPage() {
     </div>
   );
 }
-

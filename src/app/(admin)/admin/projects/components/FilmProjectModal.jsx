@@ -5,18 +5,9 @@ import toast from "react-hot-toast";
 import ImageUpload from "./ImageUpload";
 import ImageListUpload from "./ImageListUpload";
 
-const CATEGORIES = [
-  "Phim truyền hình",
-  "Phim điện ảnh",
-  "Web series",
-];
+const CATEGORIES = ["Phim truyền hình", "Phim điện ảnh", "Web series"];
 
-const SERVICES = [
-  "Chế tác phụ đề",
-  "Lồng tiếng",
-  "Biên dịch",
-  "Thuyết minh",
-];
+const SERVICES = ["Chế tác phụ đề", "Lồng tiếng", "Biên dịch", "Thuyết minh"];
 
 const slugify = (value = "") =>
   value
@@ -53,6 +44,7 @@ export default function FilmProjectModal({
 
   useEffect(() => {
     if (!open) return;
+
     if (project) {
       setForm({
         title: project.title || "",
@@ -80,6 +72,7 @@ export default function FilmProjectModal({
         services: [],
       });
     }
+
     setErrors({});
     setServiceInput("");
   }, [project, open]);
@@ -94,15 +87,23 @@ export default function FilmProjectModal({
       }
       return updated;
     });
-    setErrors((prev) => ({ ...prev, [name]: undefined }));
+    setErrors((prev) => ({
+      ...prev,
+      [name]: undefined,
+    }));
   };
 
   const handleSlugChange = (e) => {
     const value = e.target.value;
-    setForm((prev) => ({ ...prev, slug: slugify(value) }));
-    setErrors((prev) => ({ ...prev, slug: undefined }));
+    setForm((prev) => ({
+      ...prev,
+      slug: slugify(value),
+    }));
+    setErrors((prev) => ({
+      ...prev,
+      slug: undefined,
+    }));
   };
-
 
   const addService = () => {
     if (!serviceInput) return;
@@ -115,7 +116,10 @@ export default function FilmProjectModal({
       services: [...prev.services, serviceInput],
     }));
     setServiceInput("");
-    setErrors((prev) => ({ ...prev, services: undefined }));
+    setErrors((prev) => ({
+      ...prev,
+      services: undefined,
+    }));
   };
 
   const removeService = (index) => {
@@ -127,6 +131,7 @@ export default function FilmProjectModal({
 
   const validate = () => {
     const nextErrors = {};
+
     if (!form.title.trim()) nextErrors.title = "Vui lòng nhập tiêu đề";
     if (!form.slug.trim()) nextErrors.slug = "Vui lòng nhập slug";
     if (!form.description.trim())
@@ -203,7 +208,6 @@ export default function FilmProjectModal({
                   <p className="text-xs text-red-500 mt-1">{errors.title}</p>
                 )}
               </div>
-
               <div>
                 <label className="block text-sm font-medium mb-1">
                   Slug (URL) *
@@ -240,7 +244,9 @@ export default function FilmProjectModal({
                 disabled={loading}
               />
               {errors.description && (
-                <p className="text-xs text-red-500 mt-1">{errors.description}</p>
+                <p className="text-xs text-red-500 mt-1">
+                  {errors.description}
+                </p>
               )}
             </div>
 
@@ -285,10 +291,11 @@ export default function FilmProjectModal({
                   ))}
                 </select>
                 {errors.category && (
-                  <p className="text-xs text-red-500 mt-1">{errors.category}</p>
+                  <p className="text-xs text-red-500 mt-1">
+                    {errors.category}
+                  </p>
                 )}
               </div>
-
               <div>
                 <label className="block text-sm font-medium mb-1">Năm *</label>
                 <input
@@ -314,8 +321,14 @@ export default function FilmProjectModal({
               <ImageUpload
                 value={form.poster}
                 onChange={(url) => {
-                  setForm((prev) => ({ ...prev, poster: url }));
-                  setErrors((prev) => ({ ...prev, poster: undefined }));
+                  setForm((prev) => ({
+                    ...prev,
+                    poster: url,
+                  }));
+                  setErrors((prev) => ({
+                    ...prev,
+                    poster: undefined,
+                  }));
                 }}
                 placeholder="Nhập URL poster hoặc kéo thả ảnh vào đây"
                 disabled={loading}
@@ -347,8 +360,14 @@ export default function FilmProjectModal({
               <ImageListUpload
                 value={form.images}
                 onChange={(images) => {
-                  setForm((prev) => ({ ...prev, images }));
-                  setErrors((prev) => ({ ...prev, images: undefined }));
+                  setForm((prev) => ({
+                    ...prev,
+                    images,
+                  }));
+                  setErrors((prev) => ({
+                    ...prev,
+                    images: undefined,
+                  }));
                 }}
                 disabled={loading}
               />
@@ -425,11 +444,7 @@ export default function FilmProjectModal({
                 disabled={loading}
                 className="flex-1 px-4 py-2 bg-black hover:bg-gray-800 text-white rounded-lg font-semibold disabled:opacity-50"
               >
-                {loading
-                  ? "Đang lưu..."
-                  : isEdit
-                  ? "Cập nhật"
-                  : "Tạo dự án"}
+                {loading ? "Đang lưu..." : isEdit ? "Cập nhật" : "Tạo dự án"}
               </button>
             </div>
           </form>
@@ -438,4 +453,3 @@ export default function FilmProjectModal({
     </div>
   );
 }
-

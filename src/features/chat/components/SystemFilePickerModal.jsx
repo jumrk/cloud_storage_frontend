@@ -27,8 +27,7 @@ import { useTranslations } from "next-intl";
 // Get file icon based on mimeType
 function getFileIcon(mimeType) {
   if (!mimeType) return <FaFileAlt className="text-gray-500" />;
-  if (mimeType.includes("pdf"))
-    return <FaFilePdf className="text-red-500" />;
+  if (mimeType.includes("pdf")) return <FaFilePdf className="text-red-500" />;
   if (mimeType.includes("word") || mimeType.includes("document"))
     return <FaFileWord className="text-blue-600" />;
   if (mimeType.includes("excel") || mimeType.includes("spreadsheet"))
@@ -41,9 +40,18 @@ function getFileIcon(mimeType) {
     return <FaFileVideo className="text-pink-500" />;
   if (mimeType.startsWith("audio/"))
     return <FaFileAudio className="text-indigo-500" />;
-  if (mimeType.includes("zip") || mimeType.includes("rar") || mimeType.includes("archive"))
+  if (
+    mimeType.includes("zip") ||
+    mimeType.includes("rar") ||
+    mimeType.includes("archive")
+  )
     return <FaFileArchive className="text-yellow-600" />;
-  if (mimeType.includes("javascript") || mimeType.includes("json") || mimeType.includes("html") || mimeType.includes("css"))
+  if (
+    mimeType.includes("javascript") ||
+    mimeType.includes("json") ||
+    mimeType.includes("html") ||
+    mimeType.includes("css")
+  )
     return <FaFileCode className="text-cyan-500" />;
   return <FaFileAlt className="text-gray-500" />;
 }
@@ -80,7 +88,6 @@ export default function SystemFilePickerModal({
     try {
       const params = folderId ? { folderId } : {};
       const response = await axiosClient.get("/api/files/browse", { params });
-      
       if (response.data?.success) {
         setFolders(response.data.folders || []);
         setFiles(response.data.files || []);
@@ -154,7 +161,6 @@ export default function SystemFilePickerModal({
         f.originalName?.toLowerCase().includes(searchQuery.toLowerCase())
       )
     : files;
-
   const filteredFolders = searchQuery
     ? folders.filter((f) =>
         f.name?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -162,7 +168,10 @@ export default function SystemFilePickerModal({
     : folders;
 
   // Calculate total selected size
-  const totalSelectedSize = selectedFiles.reduce((sum, f) => sum + (f.size || 0), 0);
+  const totalSelectedSize = selectedFiles.reduce(
+    (sum, f) => sum + (f.size || 0),
+    0
+  );
 
   if (!isOpen) return null;
 
@@ -170,9 +179,9 @@ export default function SystemFilePickerModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <div className="flex items-center gap-3">
-            <h2 className="text-lg font-semibold text-text-strong">
+            <h2 className="text-lg font-semibold text-gray-900">
               Chọn file từ hệ thống
             </h2>
             {selectedFiles.length > 0 && (
@@ -183,14 +192,13 @@ export default function SystemFilePickerModal({
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-full hover:bg-surface-100 transition"
+            className="p-2 rounded-full hover:bg-white transition"
           >
             <FiX size={20} />
           </button>
         </div>
-
         {/* Breadcrumb */}
-        <div className="flex items-center gap-2 px-6 py-3 bg-surface-50 border-b border-border">
+        <div className="flex items-center gap-2 px-6 py-3 bg-white border-b border-gray-200">
           <button
             onClick={() => {
               setCurrentFolder(null);
@@ -203,7 +211,7 @@ export default function SystemFilePickerModal({
           </button>
           {folderPath.map((folder, index) => (
             <React.Fragment key={folder.id}>
-              <span className="text-text-muted">/</span>
+              <span className="text-gray-600">/</span>
               <button
                 onClick={() => {
                   const newPath = folderPath.slice(0, index + 1);
@@ -218,21 +226,19 @@ export default function SystemFilePickerModal({
             </React.Fragment>
           ))}
         </div>
-
         {/* Search */}
-        <div className="px-6 py-3 border-b border-border">
+        <div className="px-6 py-3 border-b border-gray-200">
           <div className="relative">
-            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" />
             <input
               type="text"
               placeholder="Tìm kiếm file..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-lg border border-border focus:outline-none focus:border-brand"
+              className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-brand"
             />
           </div>
         </div>
-
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4">
           {loading ? (
@@ -242,7 +248,7 @@ export default function SystemFilePickerModal({
           ) : error ? (
             <div className="text-center py-12 text-red-500">{error}</div>
           ) : filteredFolders.length === 0 && filteredFiles.length === 0 ? (
-            <div className="text-center py-12 text-text-muted">
+            <div className="text-center py-12 text-gray-600">
               {searchQuery ? "Không tìm thấy kết quả" : "Thư mục trống"}
             </div>
           ) : (
@@ -251,36 +257,36 @@ export default function SystemFilePickerModal({
               {folderPath.length > 0 && !searchQuery && (
                 <button
                   onClick={navigateBack}
-                  className="flex items-center gap-3 w-full p-3 rounded-xl hover:bg-surface-50 transition text-left"
+                  className="flex items-center gap-3 w-full p-3 rounded-xl hover:bg-white transition text-left"
                 >
-                  <div className="w-10 h-10 rounded-lg bg-surface-100 flex items-center justify-center">
-                    <FiChevronLeft size={20} className="text-text-muted" />
+                  <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center">
+                    <FiChevronLeft size={20} className="text-gray-600" />
                   </div>
-                  <span className="text-sm text-text-muted">Quay lại</span>
+                  <span className="text-sm text-gray-600">Quay lại</span>
                 </button>
               )}
-
               {/* Folders */}
               {filteredFolders.map((folder) => (
                 <button
                   key={folder._id}
                   onClick={() => navigateToFolder(folder)}
-                  className="flex items-center gap-3 w-full p-3 rounded-xl hover:bg-surface-50 transition text-left"
+                  className="flex items-center gap-3 w-full p-3 rounded-xl hover:bg-white transition text-left"
                 >
                   <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
                     <FiFolder size={20} className="text-amber-600" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-text-strong truncate">
+                    <p className="text-sm font-medium text-gray-900 truncate">
                       {folder.name}
                     </p>
                   </div>
                 </button>
               ))}
-
               {/* Files */}
               {filteredFiles.map((file) => {
-                const isSelected = selectedFiles.some((f) => f._id === file._id);
+                const isSelected = selectedFiles.some(
+                  (f) => f._id === file._id
+                );
                 return (
                   <button
                     key={file._id}
@@ -288,17 +294,17 @@ export default function SystemFilePickerModal({
                     className={`flex items-center gap-3 w-full p-3 rounded-xl transition text-left ${
                       isSelected
                         ? "bg-brand-50 border-2 border-brand"
-                        : "hover:bg-surface-50 border-2 border-transparent"
+                        : "hover:bg-white border-2 border-transparent"
                     }`}
                   >
-                    <div className="w-10 h-10 rounded-lg bg-surface-100 flex items-center justify-center text-xl">
+                    <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center text-xl">
                       {getFileIcon(file.mimeType)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-text-strong truncate">
+                      <p className="text-sm font-medium text-gray-900 truncate">
                         {file.originalName}
                       </p>
-                      <p className="text-xs text-text-muted">
+                      <p className="text-xs text-gray-600">
                         {formatBytes(file.size)}
                       </p>
                     </div>
@@ -306,7 +312,7 @@ export default function SystemFilePickerModal({
                       className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition ${
                         isSelected
                           ? "bg-brand border-brand text-white"
-                          : "border-border"
+                          : "border-gray-200"
                       }`}
                     >
                       {isSelected && <FiCheck size={14} />}
@@ -317,20 +323,20 @@ export default function SystemFilePickerModal({
             </div>
           )}
         </div>
-
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-surface-50">
-          <div className="text-sm text-text-muted">
+        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-white">
+          <div className="text-sm text-gray-600">
             {selectedFiles.length > 0 && (
               <>
-                Đã chọn: {selectedFiles.length} file ({formatBytes(totalSelectedSize)})
+                Đã chọn: {selectedFiles.length} file (
+                {formatBytes(totalSelectedSize)})
               </>
             )}
           </div>
           <div className="flex gap-3">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-text-muted hover:text-text-strong transition"
+              className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition"
             >
               Hủy
             </button>
@@ -340,7 +346,7 @@ export default function SystemFilePickerModal({
               className={`px-6 py-2 text-sm font-medium rounded-lg transition ${
                 selectedFiles.length > 0
                   ? "bg-brand text-white hover:bg-brand-600"
-                  : "bg-surface-200 text-text-muted cursor-not-allowed"
+                  : "bg-gray-50 text-gray-600 cursor-not-allowed"
               }`}
             >
               Gửi {selectedFiles.length > 0 && `(${selectedFiles.length})`}
@@ -351,4 +357,3 @@ export default function SystemFilePickerModal({
     </div>
   );
 }
-

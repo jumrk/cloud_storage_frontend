@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useState, useRef, useEffect } from "react";
 import { FiSave, FiLoader, FiChevronDown, FiUpload } from "react-icons/fi";
 import Popover from "@/shared/ui/Popover";
@@ -10,7 +9,12 @@ const PROVIDERS = [
   { value: "aws", label: "AWS Textract" },
 ];
 
-export default function AIOCRSettingsTab({ settings, setSettings, loading, onSave }) {
+export default function AIOCRSettingsTab({
+  settings,
+  setSettings,
+  loading,
+  onSave,
+}) {
   const [providerDropdownOpen, setProviderDropdownOpen] = useState(false);
   const [showCredentials, setShowCredentials] = useState(false);
   const providerRef = useRef(null);
@@ -19,7 +23,10 @@ export default function AIOCRSettingsTab({ settings, setSettings, loading, onSav
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (providerRef.current && !providerRef.current.contains(event.target)) {
+      if (
+        providerRef.current &&
+        !providerRef.current.contains(event.target)
+      ) {
         setProviderDropdownOpen(false);
       }
     };
@@ -60,16 +67,16 @@ export default function AIOCRSettingsTab({ settings, setSettings, loading, onSav
     }
   };
 
-  const currentProviderLabel = PROVIDERS.find((p) => p.value === settings.provider)?.label || "";
+  const currentProviderLabel =
+    PROVIDERS.find((p) => p.value === settings.provider)?.label || "";
 
   return (
     <div>
       <div className="mb-5">
-        <h2 className="text-lg font-semibold text-gray-900 mb-1.5">
-          AI OCR
-        </h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-1.5">AI OCR</h2>
         <p className="text-gray-500 text-xs">
-          Cấu hình công nghệ nhận dạng ký tự quang học (OCR) để trích xuất văn bản từ hình ảnh và video.
+          Cấu hình công nghệ nhận dạng ký tự quang học (OCR) để trích xuất văn
+          bản từ hình ảnh và video.
         </p>
       </div>
 
@@ -89,7 +96,10 @@ export default function AIOCRSettingsTab({ settings, setSettings, loading, onSav
               type="checkbox"
               checked={settings.enabled}
               onChange={(e) =>
-                setSettings({ ...settings, enabled: e.target.checked })
+                setSettings({
+                  ...settings,
+                  enabled: e.target.checked,
+                })
               }
               className="sr-only peer"
             />
@@ -107,7 +117,9 @@ export default function AIOCRSettingsTab({ settings, setSettings, loading, onSav
               <div className="relative" ref={providerRef}>
                 <button
                   type="button"
-                  onClick={() => setProviderDropdownOpen(!providerDropdownOpen)}
+                  onClick={() =>
+                    setProviderDropdownOpen(!providerDropdownOpen)
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white flex items-center justify-between"
                 >
                   <span>{currentProviderLabel}</span>
@@ -118,7 +130,10 @@ export default function AIOCRSettingsTab({ settings, setSettings, loading, onSav
                   />
                 </button>
                 {providerDropdownOpen && (
-                  <div className="fixed inset-0 z-40" onClick={() => setProviderDropdownOpen(false)} />
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setProviderDropdownOpen(false)}
+                  />
                 )}
                 <Popover
                   open={providerDropdownOpen}
@@ -179,16 +194,20 @@ export default function AIOCRSettingsTab({ settings, setSettings, loading, onSav
                     <textarea
                       value={settings.credentials || ""}
                       onChange={(e) =>
-                        setSettings({ ...settings, credentials: e.target.value })
+                        setSettings({
+                          ...settings,
+                          credentials: e.target.value,
+                        })
                       }
-                      placeholder='Paste Google Cloud Service Account JSON...'
+                      placeholder="Paste Google Cloud Service Account JSON..."
                       rows={8}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent font-mono text-xs"
                     />
                   )}
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
-                  Tải lên hoặc paste nội dung file JSON Service Account từ Google Cloud Console
+                  Tải lên hoặc paste nội dung file JSON Service Account từ
+                  Google Cloud Console
                 </p>
               </div>
             )}
@@ -204,7 +223,10 @@ export default function AIOCRSettingsTab({ settings, setSettings, loading, onSav
                     type="password"
                     value={settings.awsAccessKeyId || ""}
                     onChange={(e) =>
-                      setSettings({ ...settings, awsAccessKeyId: e.target.value })
+                      setSettings({
+                        ...settings,
+                        awsAccessKeyId: e.target.value,
+                      })
                     }
                     placeholder="Nhập AWS Access Key ID..."
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
@@ -218,7 +240,10 @@ export default function AIOCRSettingsTab({ settings, setSettings, loading, onSav
                     type="password"
                     value={settings.awsSecretAccessKey || ""}
                     onChange={(e) =>
-                      setSettings({ ...settings, awsSecretAccessKey: e.target.value })
+                      setSettings({
+                        ...settings,
+                        awsSecretAccessKey: e.target.value,
+                      })
                     }
                     placeholder="Nhập AWS Secret Access Key..."
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
@@ -232,7 +257,10 @@ export default function AIOCRSettingsTab({ settings, setSettings, loading, onSav
                     type="text"
                     value={settings.awsRegion || "us-east-1"}
                     onChange={(e) =>
-                      setSettings({ ...settings, awsRegion: e.target.value })
+                      setSettings({
+                        ...settings,
+                        awsRegion: e.target.value,
+                      })
                     }
                     placeholder="us-east-1"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
@@ -261,12 +289,15 @@ export default function AIOCRSettingsTab({ settings, setSettings, loading, onSav
                   }
                   className="w-full"
                   style={{
-                    "--range-progress": `${(((settings.accuracy || 0.8) - 0.5) / 0.5) * 100}%`,
+                    "--range-progress": `${
+                      (((settings.accuracy || 0.8) - 0.5) / 0.5) * 100
+                    }%`,
                   }}
                 />
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                Điều chỉnh độ chính xác của OCR (0.5 = nhanh, 1 = chính xác nhất)
+                Điều chỉnh độ chính xác của OCR (0.5 = nhanh, 1 = chính xác
+                nhất)
               </p>
             </div>
           </>
@@ -296,4 +327,3 @@ export default function AIOCRSettingsTab({ settings, setSettings, loading, onSav
     </div>
   );
 }
-

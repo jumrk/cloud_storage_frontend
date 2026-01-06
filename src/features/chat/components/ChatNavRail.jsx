@@ -7,14 +7,12 @@ import {
   FiSettings,
   FiPhoneCall,
 } from "react-icons/fi";
-
 const NAV_ITEMS = [
   { key: "chats", icon: <FiMessageSquare />, label: "Tin nhắn" },
   { key: "calls", icon: <FiPhoneCall />, label: "Cuộc gọi" },
   { key: "notifications", icon: <FiBell />, label: "Thông báo" },
   { key: "settings", icon: <FiSettings />, label: "Cài đặt" },
 ];
-
 export default function ChatNavRail({
   active = "chats",
   onNavigate,
@@ -44,7 +42,7 @@ export default function ChatNavRail({
                 className={`relative w-11 h-11 rounded-2xl flex items-center justify-center transition ${
                   isActive
                     ? "bg-brand text-white shadow-md"
-                    : "text-text-muted hover:bg-[var(--color-surface-50)]"
+                    : "text-gray-600 hover:bg-[var(--color-surface-50)]"
                 }`}
                 title={item.label}
               >
@@ -60,7 +58,6 @@ export default function ChatNavRail({
           })}
         </div>
       </nav>
-
       {/* Mobile: Bottom navigation bar */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-[var(--color-border)] shadow-[0_-4px_20px_rgba(0,0,0,0.08)] safe-area-bottom">
         <div className="flex items-center justify-around py-2 px-4">
@@ -71,7 +68,7 @@ export default function ChatNavRail({
                 key={item.key}
                 onClick={() => onNavigate?.(item.key)}
                 className={`relative flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition ${
-                  isActive ? "text-brand" : "text-text-muted"
+                  isActive ? "text-brand" : "text-gray-600"
                 }`}
               >
                 <span
@@ -103,7 +100,6 @@ export default function ChatNavRail({
           })}
         </div>
       </nav>
-
       {/* Spacer for mobile bottom nav to prevent content overlap */}
       <style jsx global>{`
         .safe-area-bottom {

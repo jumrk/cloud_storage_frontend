@@ -126,29 +126,23 @@ export default function GroupSettingsModal({
 
     setUploadingAvatar(true);
     setError("");
-
     try {
       // Use FormData to upload file
       const formData = new FormData();
       formData.append("avatar", file);
-
       const res = await axiosClient.post(
         `/api/message/group/${group.id}/avatar`,
         formData,
         {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
+          headers: { "Content-Type": "multipart/form-data" },
         }
       );
-
       if (res.data.group) {
         onGroupUpdated(res.data.group);
       }
     } catch (err) {
       setError(err?.response?.data?.error || "Không thể cập nhật ảnh nhóm");
     }
-
     setUploadingAvatar(false);
 
     // Reset input
@@ -164,9 +158,7 @@ export default function GroupSettingsModal({
     try {
       const res = await axiosClient.post(
         `/api/message/group/${group.id}/members`,
-        {
-          memberIds: selectedNewMembers,
-        }
+        { memberIds: selectedNewMembers }
       );
       if (res.data.group) {
         onGroupUpdated(res.data.group);
@@ -186,9 +178,7 @@ export default function GroupSettingsModal({
     try {
       const res = await axiosClient.delete(
         `/api/message/group/${group.id}/members`,
-        {
-          data: { memberIds: [memberId] },
-        }
+        { data: { memberIds: [memberId] } }
       );
       if (res.data.group) {
         onGroupUpdated(res.data.group);
@@ -262,9 +252,7 @@ export default function GroupSettingsModal({
       <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)]">
-          <h3 className="text-lg font-semibold text-text-strong">
-            Cài đặt nhóm
-          </h3>
+          <h3 className="text-lg font-semibold text-gray-900">Cài đặt nhóm</h3>
           <button
             type="button"
             className="p-2 rounded-full hover:bg-[var(--color-surface-50)] transition"
@@ -273,7 +261,6 @@ export default function GroupSettingsModal({
             <FiX size={20} />
           </button>
         </div>
-
         {/* Tabs */}
         <div className="flex border-b border-[var(--color-border)]">
           {[
@@ -289,7 +276,7 @@ export default function GroupSettingsModal({
               className={`flex-1 py-3 text-sm font-medium transition ${
                 activeTab === tab.key
                   ? "text-brand border-b-2 border-brand"
-                  : "text-text-muted hover:text-text-strong"
+                  : "text-gray-600 hover:text-gray-900"
               }`}
               onClick={() => setActiveTab(tab.key)}
             >
@@ -297,7 +284,6 @@ export default function GroupSettingsModal({
             </button>
           ))}
         </div>
-
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-5">
           {error && (
@@ -305,7 +291,6 @@ export default function GroupSettingsModal({
               {error}
             </div>
           )}
-
           {activeTab === "info" && (
             <div className="space-y-5">
               {/* Avatar */}
@@ -343,10 +328,9 @@ export default function GroupSettingsModal({
                   )}
                 </div>
               </div>
-
               {/* Name */}
               <div>
-                <label className="text-xs font-medium text-text-muted uppercase mb-1 block">
+                <label className="text-xs font-medium text-gray-600 uppercase mb-1 block">
                   Tên nhóm
                 </label>
                 {editingName ? (
@@ -379,11 +363,11 @@ export default function GroupSettingsModal({
                   </div>
                 ) : (
                   <div className="flex items-center justify-between">
-                    <p className="font-medium text-text-strong">{group.name}</p>
+                    <p className="font-medium text-gray-900">{group.name}</p>
                     {isAdmin && (
                       <button
                         type="button"
-                        className="p-2 rounded-xl hover:bg-[var(--color-surface-50)] text-text-muted"
+                        className="p-2 rounded-xl hover:bg-[var(--color-surface-50)] text-gray-600"
                         onClick={() => setEditingName(true)}
                       >
                         <FiEdit2 size={14} />
@@ -392,10 +376,9 @@ export default function GroupSettingsModal({
                   </div>
                 )}
               </div>
-
               {/* Description */}
               <div>
-                <label className="text-xs font-medium text-text-muted uppercase mb-1 block">
+                <label className="text-xs font-medium text-gray-600 uppercase mb-1 block">
                   Mô tả
                 </label>
                 {isAdmin ? (
@@ -407,12 +390,11 @@ export default function GroupSettingsModal({
                     placeholder="Thêm mô tả cho nhóm..."
                   />
                 ) : (
-                  <p className="text-text-muted">
+                  <p className="text-gray-600">
                     {group.description || "Chưa có mô tả"}
                   </p>
                 )}
               </div>
-
               {/* Actions */}
               <div className="pt-4 border-t border-[var(--color-border)] space-y-2">
                 {!isOwner && (
@@ -421,8 +403,7 @@ export default function GroupSettingsModal({
                     className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[var(--color-danger-500)] hover:bg-[var(--color-danger-50)] transition"
                     onClick={() => setConfirmLeave(true)}
                   >
-                    <FiLogOut size={18} />
-                    Rời khỏi nhóm
+                    <FiLogOut size={18} /> Rời khỏi nhóm
                   </button>
                 )}
                 {isOwner && (
@@ -431,21 +412,19 @@ export default function GroupSettingsModal({
                     className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[var(--color-danger-500)] hover:bg-[var(--color-danger-50)] transition"
                     onClick={() => setConfirmDelete(true)}
                   >
-                    <FiTrash2 size={18} />
-                    Xóa nhóm
+                    <FiTrash2 size={18} /> Xóa nhóm
                   </button>
                 )}
               </div>
             </div>
           )}
-
           {activeTab === "members" && (
             <div className="space-y-4">
               {/* Add members */}
               {isAdmin && (
                 <div className="space-y-3">
                   <div className="relative">
-                    <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+                    <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" />
                     <input
                       type="text"
                       className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-50)] focus:outline-none focus:ring-2 focus:ring-brand/30"
@@ -454,13 +433,11 @@ export default function GroupSettingsModal({
                       onChange={(e) => setSearchUsers(e.target.value)}
                     />
                   </div>
-
                   {loadingUsers && (
-                    <p className="text-sm text-text-muted text-center py-2">
+                    <p className="text-sm text-gray-600 text-center py-2">
                       Đang tìm kiếm...
                     </p>
                   )}
-
                   {availableUsers.length > 0 && (
                     <div className="space-y-2 max-h-40 overflow-y-auto">
                       {availableUsers.map((user) => (
@@ -488,10 +465,10 @@ export default function GroupSettingsModal({
                             height={40}
                           />
                           <div className="flex-1 min-w-0 text-left">
-                            <p className="font-medium text-text-strong truncate">
+                            <p className="font-medium text-gray-900 truncate">
                               {user.fullName || user.email}
                             </p>
-                            <p className="text-xs text-text-muted truncate">
+                            <p className="text-xs text-gray-600 truncate">
                               {user.email}
                             </p>
                           </div>
@@ -502,7 +479,6 @@ export default function GroupSettingsModal({
                       ))}
                     </div>
                   )}
-
                   {selectedNewMembers.length > 0 && (
                     <button
                       type="button"
@@ -510,20 +486,18 @@ export default function GroupSettingsModal({
                       onClick={handleAddMembers}
                       disabled={loading}
                     >
-                      <FiUserPlus size={16} />
-                      Thêm {selectedNewMembers.length} thành viên
+                      <FiUserPlus size={16} /> Thêm {selectedNewMembers.length}
+                      thành viên
                     </button>
                   )}
                 </div>
               )}
-
               {/* Member list */}
               <div className="space-y-2">
                 {group.members?.map((member) => {
                   const memberId = member.id || member._id;
                   const role = getMemberRole(memberId);
                   const isCurrentUser = String(memberId) === String(myId);
-
                   return (
                     <div
                       key={memberId}
@@ -538,13 +512,11 @@ export default function GroupSettingsModal({
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <p className="font-medium text-text-strong truncate">
+                          <p className="font-medium text-gray-900 truncate">
                             {member.fullName || member.name || member.email}
                           </p>
                           {isCurrentUser && (
-                            <span className="text-xs text-text-muted">
-                              (Bạn)
-                            </span>
+                            <span className="text-xs text-gray-600">(Bạn)</span>
                           )}
                         </div>
                         <div className="flex items-center gap-2">
@@ -565,13 +537,12 @@ export default function GroupSettingsModal({
                           </span>
                         </div>
                       </div>
-
                       {/* Actions */}
                       {isOwner && !isCurrentUser && role !== "owner" && (
                         <div className="flex items-center gap-1">
                           <button
                             type="button"
-                            className="p-2 rounded-lg hover:bg-white text-text-muted hover:text-text-strong transition"
+                            className="p-2 rounded-lg hover:bg-white text-gray-600 hover:text-gray-900 transition"
                             title={
                               role === "admin" ? "Hạ cấp" : "Thăng cấp Admin"
                             }
@@ -615,7 +586,6 @@ export default function GroupSettingsModal({
           )}
         </div>
       </div>
-
       {/* Confirm Leave Modal */}
       {confirmLeave && (
         <>
@@ -624,16 +594,16 @@ export default function GroupSettingsModal({
             onClick={() => setConfirmLeave(false)}
           />
           <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[60] bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm">
-            <h3 className="text-lg font-semibold text-text-strong mb-2">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
               Rời khỏi nhóm?
             </h3>
-            <p className="text-sm text-text-muted mb-6">
+            <p className="text-sm text-gray-600 mb-6">
               Bạn sẽ không còn nhận được tin nhắn từ nhóm này.
             </p>
             <div className="flex items-center justify-end gap-3">
               <button
                 type="button"
-                className="px-4 py-2 rounded-xl text-sm font-medium text-text-strong hover:bg-[var(--color-surface-50)] transition"
+                className="px-4 py-2 rounded-xl text-sm font-medium text-gray-900 hover:bg-[var(--color-surface-50)] transition"
                 onClick={() => setConfirmLeave(false)}
               >
                 Hủy
@@ -650,7 +620,6 @@ export default function GroupSettingsModal({
           </div>
         </>
       )}
-
       {/* Confirm Delete Modal */}
       {confirmDelete && (
         <>
@@ -659,17 +628,17 @@ export default function GroupSettingsModal({
             onClick={() => setConfirmDelete(false)}
           />
           <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[60] bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm">
-            <h3 className="text-lg font-semibold text-text-strong mb-2">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
               Xóa nhóm?
             </h3>
-            <p className="text-sm text-text-muted mb-6">
+            <p className="text-sm text-gray-600 mb-6">
               Tất cả tin nhắn và dữ liệu nhóm sẽ bị xóa vĩnh viễn. Hành động này
               không thể hoàn tác.
             </p>
             <div className="flex items-center justify-end gap-3">
               <button
                 type="button"
-                className="px-4 py-2 rounded-xl text-sm font-medium text-text-strong hover:bg-[var(--color-surface-50)] transition"
+                className="px-4 py-2 rounded-xl text-sm font-medium text-gray-900 hover:bg-[var(--color-surface-50)] transition"
                 onClick={() => setConfirmDelete(false)}
               >
                 Hủy
@@ -686,7 +655,6 @@ export default function GroupSettingsModal({
           </div>
         </>
       )}
-
       {/* Confirm Remove Member Modal */}
       {memberToRemove && (
         <>
@@ -695,19 +663,19 @@ export default function GroupSettingsModal({
             onClick={() => setMemberToRemove(null)}
           />
           <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[60] bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm">
-            <h3 className="text-lg font-semibold text-text-strong mb-2">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
               Xóa thành viên?
             </h3>
-            <p className="text-sm text-text-muted mb-6">
+            <p className="text-sm text-gray-600 mb-6">
               {memberToRemove.fullName ||
                 memberToRemove.name ||
-                memberToRemove.email}{" "}
-              sẽ bị xóa khỏi nhóm.
+                memberToRemove.email}
+              {""} sẽ bị xóa khỏi nhóm.
             </p>
             <div className="flex items-center justify-end gap-3">
               <button
                 type="button"
-                className="px-4 py-2 rounded-xl text-sm font-medium text-text-strong hover:bg-[var(--color-surface-50)] transition"
+                className="px-4 py-2 rounded-xl text-sm font-medium text-gray-900 hover:bg-[var(--color-surface-50)] transition"
                 onClick={() => setMemberToRemove(null)}
               >
                 Hủy

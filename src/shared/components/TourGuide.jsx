@@ -24,7 +24,6 @@ export default function TourGuide({ steps, onComplete, onSkip, storageKey }) {
 
   useEffect(() => {
     if (!isVisible || steps.length === 0) return;
-
     const current = steps[currentStep];
     if (!current) return;
 
@@ -39,12 +38,13 @@ export default function TourGuide({ steps, onComplete, onSkip, storageKey }) {
 
       if (tooltipRef.current) {
         const tooltip = tooltipRef.current;
+
         // Force reflow to get accurate dimensions
         tooltip.style.visibility = "hidden";
         tooltip.style.display = "block";
         const tooltipRect = tooltip.getBoundingClientRect();
         tooltip.style.visibility = "visible";
-        
+
         // Position tooltip
         let top = rect.bottom + scrollY + 12;
         let left = rect.left + scrollX + rect.width / 2;
@@ -72,7 +72,6 @@ export default function TourGuide({ steps, onComplete, onSkip, storageKey }) {
         // Keep tooltip within viewport
         const viewportWidth = window.innerWidth;
         const viewportHeight = window.innerHeight;
-        
         if (left < 12) left = 12;
         if (left + tooltipRect.width > viewportWidth - 12) {
           left = viewportWidth - tooltipRect.width - 12;
@@ -186,32 +185,35 @@ export default function TourGuide({ steps, onComplete, onSkip, storageKey }) {
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1">
             <div className="text-xs font-semibold text-brand-600 mb-1">
-              {t("tour.step", { current: currentStep + 1, total: steps.length })}
+              {t("tour.step", {
+                current: currentStep + 1,
+                total: steps.length,
+              })}
             </div>
-            <h3 className="text-base font-semibold text-text-strong mb-2">
+            <h3 className="text-base font-semibold text-gray-900 mb-2">
               {current.title}
             </h3>
-            <p className="text-sm text-text-muted leading-relaxed">
+            <p className="text-sm text-gray-600 leading-relaxed">
               {current.description}
             </p>
           </div>
           <button
             onClick={handleSkip}
-            className="ml-3 p-1 rounded-lg hover:bg-surface-50 text-text-muted hover:text-text-strong transition"
+            className="ml-3 p-1 rounded-lg hover:bg-white text-gray-600 hover:text-gray-900 transition"
             aria-label={t("tour.skip")}
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="flex items-center justify-between gap-2 pt-3 border-t border-border">
+        <div className="flex items-center justify-between gap-2 pt-3 border-t border-gray-200">
           <button
             onClick={handlePrevious}
             disabled={isFirst}
             className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition ${
               isFirst
-                ? "text-text-muted opacity-50 cursor-not-allowed"
-                : "text-text-strong hover:bg-surface-50"
+                ? "text-gray-600 opacity-50 cursor-not-allowed"
+                : "text-gray-900 hover:bg-white"
             }`}
           >
             <ChevronLeft className="w-4 h-4" />
@@ -223,9 +225,7 @@ export default function TourGuide({ steps, onComplete, onSkip, storageKey }) {
               <div
                 key={index}
                 className={`w-1.5 h-1.5 rounded-full transition ${
-                  index === currentStep
-                    ? "bg-brand-600 w-6"
-                    : "bg-border"
+                  index === currentStep ? "bg-brand-600 w-6" : "bg-border"
                 }`}
               />
             ))}
@@ -243,4 +243,3 @@ export default function TourGuide({ steps, onComplete, onSkip, storageKey }) {
     </>
   );
 }
-

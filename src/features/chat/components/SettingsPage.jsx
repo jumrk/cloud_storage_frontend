@@ -25,14 +25,12 @@ const applyTheme = (theme) => {
   if (typeof window === "undefined") return;
   const root = document.documentElement;
   root.classList.remove("theme-light", "theme-dark");
-
   let effectiveTheme = theme;
   if (theme === "system") {
     effectiveTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
       ? "dark"
       : "light";
   }
-
   root.classList.add(`theme-${effectiveTheme}`);
   root.setAttribute("data-theme", effectiveTheme);
 };
@@ -42,7 +40,6 @@ const applyFontSize = (fontSize) => {
   const root = document.documentElement;
   root.classList.remove("font-small", "font-medium", "font-large");
   root.classList.add(`font-${fontSize}`);
-
   const fontSizeMap = {
     small: "14px",
     medium: "16px",
@@ -50,7 +47,6 @@ const applyFontSize = (fontSize) => {
   };
   root.style.setProperty("--chat-font-size", fontSizeMap[fontSize] || "16px");
 };
-
 const SETTINGS_SECTIONS = [
   {
     id: "notifications",
@@ -159,7 +155,6 @@ const SETTINGS_SECTIONS = [
     ],
   },
 ];
-
 function SettingToggle({ value, onChange }) {
   return (
     <button
@@ -180,7 +175,6 @@ function SettingToggle({ value, onChange }) {
 
 function SettingSelect({ value, options, onChange }) {
   const [open, setOpen] = useState(false);
-
   return (
     <div className="relative">
       <button
@@ -206,7 +200,7 @@ function SettingSelect({ value, options, onChange }) {
                 className={`w-full px-3 py-2 text-left text-sm hover:bg-[var(--color-surface-50)] flex items-center justify-between ${
                   value === option.value
                     ? "text-brand font-medium"
-                    : "text-text-strong"
+                    : "text-gray-900"
                 }`}
               >
                 {option.label}
@@ -230,7 +224,6 @@ const buildDefaultSettings = () => {
   });
   return defaults;
 };
-
 export default function SettingsPage() {
   const [settings, setSettings] = useState(buildDefaultSettings());
   const [loading, setLoading] = useState(true);
@@ -245,7 +238,10 @@ export default function SettingsPage() {
       setError("");
       const res = await axiosClient.get("/api/settings");
       if (res.data?.success) {
-        const newSettings = { ...buildDefaultSettings(), ...res.data.settings };
+        const newSettings = {
+          ...buildDefaultSettings(),
+          ...res.data.settings,
+        };
         setSettings(newSettings);
         // Apply theme and font size immediately
         applyTheme(newSettings.theme);
@@ -266,10 +262,8 @@ export default function SettingsPage() {
   // Listen for system theme changes
   useEffect(() => {
     if (settings.theme !== "system") return;
-
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     const handleChange = () => applyTheme("system");
-
     mediaQuery.addEventListener("change", handleChange);
     return () => mediaQuery.removeEventListener("change", handleChange);
   }, [settings.theme]);
@@ -328,29 +322,27 @@ export default function SettingsPage() {
       <div className="px-4 lg:px-6 py-4 lg:py-5 border-b border-[var(--color-border)]">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-lg lg:text-xl font-bold text-text-strong">
+            <h1 className="text-lg lg:text-xl font-bold text-gray-900">
               Cài đặt
             </h1>
-            <p className="text-xs lg:text-sm text-text-muted mt-1">
+            <p className="text-xs lg:text-sm text-gray-600 mt-1">
               Tùy chỉnh trải nghiệm chat của bạn
             </p>
           </div>
           <div className="flex items-center gap-2">
             {saving && (
-              <span className="text-sm text-text-muted flex items-center gap-1">
-                <FiRefreshCw size={14} className="animate-spin" />
-                Đang lưu...
+              <span className="text-sm text-gray-600 flex items-center gap-1">
+                <FiRefreshCw size={14} className="animate-spin" /> Đang lưu...
               </span>
             )}
             {saveSuccess && (
               <span className="text-sm text-green-500 flex items-center gap-1">
-                <FiCheck size={14} />
-                Đã lưu
+                <FiCheck size={14} /> Đã lưu
               </span>
             )}
             <button
               onClick={fetchSettings}
-              className="p-2 rounded-full hover:bg-[var(--color-surface-50)] text-text-muted"
+              className="p-2 rounded-full hover:bg-[var(--color-surface-50)] text-gray-600"
               title="Làm mới"
             >
               <FiRefreshCw
@@ -361,7 +353,6 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
-
       {/* Settings list */}
       <div className="flex-1 overflow-y-auto">
         {loading ? (
@@ -393,7 +384,7 @@ export default function SettingsPage() {
             ))}
           </div>
         ) : error ? (
-          <div className="flex flex-col items-center justify-center h-full text-text-muted">
+          <div className="flex flex-col items-center justify-center h-full text-gray-600">
             <p className="text-lg font-medium text-[var(--color-danger-500)]">
               {error}
             </p>
@@ -413,7 +404,7 @@ export default function SettingsPage() {
                     <div className="w-8 h-8 rounded-lg bg-brand/10 text-brand flex items-center justify-center">
                       {section.icon}
                     </div>
-                    <h2 className="font-semibold text-text-strong">
+                    <h2 className="font-semibold text-gray-900">
                       {section.title}
                     </h2>
                   </div>
@@ -425,11 +416,11 @@ export default function SettingsPage() {
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
-                            <p className="text-sm font-medium text-text-strong">
+                            <p className="text-sm font-medium text-gray-900">
                               {item.label}
                             </p>
                             {item.description && (
-                              <p className="text-xs text-text-muted mt-0.5">
+                              <p className="text-xs text-gray-600 mt-0.5">
                                 {item.description}
                               </p>
                             )}
@@ -458,7 +449,6 @@ export default function SettingsPage() {
                 </div>
               ))}
             </div>
-
             {/* Reset button */}
             <div className="px-6 py-6 border-t border-[var(--color-border)]">
               <button
@@ -466,16 +456,13 @@ export default function SettingsPage() {
                 disabled={saving}
                 className="flex items-center gap-2 text-sm text-[var(--color-danger-500)] hover:underline disabled:opacity-50"
               >
-                <FiTrash2 size={14} />
-                Đặt lại cài đặt mặc định
+                <FiTrash2 size={14} /> Đặt lại cài đặt mặc định
               </button>
             </div>
-
             {/* Version info */}
             <div className="px-6 pb-6">
-              <div className="flex items-center gap-2 text-xs text-text-muted">
-                <FiInfo size={12} />
-                <span>D2MBox Chat v1.0.0</span>
+              <div className="flex items-center gap-2 text-xs text-gray-600">
+                <FiInfo size={12} /> <span>D2MBox Chat v1.0.0</span>
               </div>
             </div>
           </>

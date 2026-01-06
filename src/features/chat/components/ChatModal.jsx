@@ -3,7 +3,6 @@ import React from "react";
 import { FiUser, FiX } from "react-icons/fi";
 import "react-loading-skeleton/dist/skeleton.css";
 import { useTranslations } from "next-intl";
-
 const ICON_SIZE = 22;
 export default function ChatModal({ open, onClose, options, onSelect }) {
   const t = useTranslations();
@@ -12,7 +11,7 @@ export default function ChatModal({ open, onClose, options, onSelect }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
       <div className="bg-white rounded-2xl shadow-2xl p-6 min-w-[320px] max-w-xs relative border border-[var(--color-border)]">
         <button
-          className="absolute top-2 right-2 text-text-muted hover:text-danger"
+          className="absolute top-2 right-2 text-gray-600 hover:text-danger"
           onClick={onClose}
         >
           <FiX size={20} />

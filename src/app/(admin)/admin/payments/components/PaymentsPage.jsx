@@ -1,5 +1,4 @@
 "use client";
-
 import React from "react";
 import OverviewTab from "./OverviewTab";
 import OrderTab from "./OrderTab";
@@ -7,7 +6,6 @@ import HistoryTab from "./HistoryTab";
 import ConfigTab from "./ConfigTab";
 import DiscountCodeTab from "./DiscountCodeTab";
 import usePaymentsPage from "../hooks/usePaymentsPage";
-
 export default function PaymentsPage() {
   const {
     activeTab,
@@ -46,7 +44,6 @@ export default function PaymentsPage() {
     handleSubmitPaymentMethod,
     handleConfirmDelete,
   } = usePaymentsPage();
-
   return (
     <div className="w-full max-w-6xl mx-auto px-2 py-4">
       <div className="mb-6">
@@ -129,5 +126,3 @@ export default function PaymentsPage() {
     </div>
   );
 }
-
-

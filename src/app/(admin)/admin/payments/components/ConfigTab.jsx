@@ -6,13 +6,11 @@ import { FiPlus, FiEdit2, FiTrash2 } from "react-icons/fi";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import EmptyState from "@/shared/ui/EmptyState";
-
 function formatDate(dateStr) {
   if (!dateStr) return "";
   const d = new Date(dateStr);
   return d.toLocaleDateString("vi-VN");
 }
-
 export default function ConfigTab({
   paymentMethodsData = [],
   loading,
@@ -57,7 +55,10 @@ export default function ConfigTab({
         </div>
       ) : paymentMethodsData.length === 0 ? (
         <div className="flex flex-col items-center justify-center w-full py-12">
-          <EmptyState message="Chưa có phương thức thanh toán nào." height={180} />
+          <EmptyState
+            message="Chưa có phương thức thanh toán nào."
+            height={180}
+          />
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -137,5 +138,3 @@ export default function ConfigTab({
     </div>
   );
 }
-
-

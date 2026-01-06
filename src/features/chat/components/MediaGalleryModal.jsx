@@ -12,7 +12,6 @@ import {
 } from "react-icons/fi";
 import axiosClient from "@/shared/lib/axiosClient";
 import { formatBytes } from "@/features/chat/utils/messageUtils";
-
 const TABS = [
   { key: "all", label: "Tất cả", icon: FiGrid },
   { key: "image", label: "Ảnh", icon: FiImage },
@@ -20,7 +19,6 @@ const TABS = [
   { key: "audio", label: "Âm thanh", icon: FiMusic },
   { key: "file", label: "Tệp", icon: FiFile },
 ];
-
 export default function MediaGalleryModal({
   open,
   onClose,
@@ -32,13 +30,11 @@ export default function MediaGalleryModal({
   const [loading, setLoading] = useState(false);
   const [viewMode, setViewMode] = useState("grid");
   const [previewItem, setPreviewItem] = useState(null);
-
   useEffect(() => {
     if (!open || !chatId) {
       setMedia([]);
       return;
     }
-
     async function fetchMedia() {
       setLoading(true);
       try {
@@ -54,10 +50,8 @@ export default function MediaGalleryModal({
       }
       setLoading(false);
     }
-
     fetchMedia();
   }, [open, chatId, chatType, activeTab]);
-
   const base64ToBlob = (base64, mimeType = "application/octet-stream") => {
     const byteChars = atob(base64);
     const byteNumbers = new Array(byteChars.length);
@@ -67,7 +61,6 @@ export default function MediaGalleryModal({
     const byteArray = new Uint8Array(byteNumbers);
     return new Blob([byteArray], { type: mimeType });
   };
-
   const handleDownload = (item) => {
     if (!item?.data) return;
     const blob = base64ToBlob(item.data, item.mime);
@@ -80,31 +73,29 @@ export default function MediaGalleryModal({
     document.body.removeChild(link);
     setTimeout(() => URL.revokeObjectURL(url), 1500);
   };
-
   const getFileIcon = (mime) => {
     if (mime?.startsWith("image/")) return FiImage;
     if (mime?.startsWith("video/")) return FiVideo;
     if (mime?.startsWith("audio/")) return FiMusic;
     return FiFile;
   };
-
   const renderGridItem = (item) => {
     const isImage = item.mime?.startsWith("image/");
     const isVideo = item.mime?.startsWith("video/");
     const isAudio = item.mime?.startsWith("audio/");
     const hasData = Boolean(item.data);
     const isExpired = item.expired || !hasData;
-
     if (isExpired) {
       return (
-        <div className="aspect-square rounded-xl bg-[var(--color-surface-100)] flex flex-col items-center justify-center text-text-muted p-2">
+        <div className="aspect-square rounded-xl bg-[var(--color-surface-100)] flex flex-col items-center justify-center text-gray-600 p-2">
           <FiFile size={24} />
           <p className="text-xs mt-1 text-center line-clamp-2">{item.name}</p>
-          <p className="text-[10px] text-[var(--color-danger-500)]">Đã hết hạn</p>
+          <p className="text-[10px] text-[var(--color-danger-500)]">
+            Đã hết hạn
+          </p>
         </div>
       );
     }
-
     if (isImage) {
       const src = `data:${item.mime};base64,${item.data}`;
       return (
@@ -121,7 +112,6 @@ export default function MediaGalleryModal({
         </button>
       );
     }
-
     if (isVideo) {
       const src = `data:${item.mime};base64,${item.data}`;
       return (
@@ -137,7 +127,6 @@ export default function MediaGalleryModal({
         </button>
       );
     }
-
     if (isAudio) {
       return (
         <div className="aspect-square rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex flex-col items-center justify-center text-white p-2">
@@ -145,7 +134,7 @@ export default function MediaGalleryModal({
           <p className="text-xs mt-2 text-center line-clamp-2">{item.name}</p>
           <button
             type="button"
-            className="mt-2 p-1.5 rounded-full bg-white/20 hover:bg-white/30 transition"
+            className="mt-2 p-1.5 rounded-full bg-white hover:bg-white transition"
             onClick={() => handleDownload(item)}
           >
             <FiDownload size={14} />
@@ -153,10 +142,9 @@ export default function MediaGalleryModal({
         </div>
       );
     }
-
     const FileIcon = getFileIcon(item.mime);
     return (
-      <div className="aspect-square rounded-xl bg-[var(--color-surface-100)] flex flex-col items-center justify-center text-text-muted p-2">
+      <div className="aspect-square rounded-xl bg-[var(--color-surface-100)] flex flex-col items-center justify-center text-gray-600 p-2">
         <FileIcon size={32} />
         <p className="text-xs mt-2 text-center line-clamp-2">{item.name}</p>
         <p className="text-[10px]">{formatBytes(item.size)}</p>
@@ -170,11 +158,9 @@ export default function MediaGalleryModal({
       </div>
     );
   };
-
   const renderListItem = (item) => {
     const FileIcon = getFileIcon(item.mime);
     const isExpired = item.expired || !item.data;
-
     return (
       <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--color-surface-50)] hover:bg-[var(--color-surface-100)] transition">
         <div
@@ -191,9 +177,9 @@ export default function MediaGalleryModal({
           <FileIcon size={20} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-medium text-text-strong truncate">{item.name}</p>
-          <p className="text-xs text-text-muted">
-            {formatBytes(item.size)} •{" "}
+          <p className="font-medium text-gray-900 truncate">{item.name}</p>
+          <p className="text-xs text-gray-600">
+            {formatBytes(item.size)} •{""}
             {new Date(item.createdAt).toLocaleDateString()}
           </p>
           {isExpired && (
@@ -203,7 +189,7 @@ export default function MediaGalleryModal({
         {!isExpired && (
           <button
             type="button"
-            className="p-2 rounded-xl hover:bg-white text-text-muted hover:text-text-strong transition"
+            className="p-2 rounded-xl hover:bg-white text-gray-600 hover:text-gray-900 transition"
             onClick={() => handleDownload(item)}
           >
             <FiDownload size={18} />
@@ -212,16 +198,14 @@ export default function MediaGalleryModal({
       </div>
     );
   };
-
   if (!open) return null;
-
   return (
     <>
       <div className="fixed inset-0 bg-black/40 z-50" onClick={onClose} />
       <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden max-h-[85vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)]">
-          <h3 className="text-lg font-semibold text-text-strong">
+          <h3 className="text-lg font-semibold text-gray-900">
             Thư viện phương tiện
           </h3>
           <div className="flex items-center gap-2">
@@ -230,7 +214,7 @@ export default function MediaGalleryModal({
               className={`p-2 rounded-xl transition ${
                 viewMode === "grid"
                   ? "bg-brand/10 text-brand"
-                  : "text-text-muted hover:text-text-strong"
+                  : "text-gray-600 hover:text-gray-900"
               }`}
               onClick={() => setViewMode("grid")}
             >
@@ -241,7 +225,7 @@ export default function MediaGalleryModal({
               className={`p-2 rounded-xl transition ${
                 viewMode === "list"
                   ? "bg-brand/10 text-brand"
-                  : "text-text-muted hover:text-text-strong"
+                  : "text-gray-600 hover:text-gray-900"
               }`}
               onClick={() => setViewMode("list")}
             >
@@ -256,7 +240,6 @@ export default function MediaGalleryModal({
             </button>
           </div>
         </div>
-
         {/* Tabs */}
         <div className="flex gap-1 px-5 py-3 border-b border-[var(--color-border)] overflow-x-auto">
           {TABS.map((tab) => {
@@ -268,17 +251,15 @@ export default function MediaGalleryModal({
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition ${
                   activeTab === tab.key
                     ? "bg-brand text-white"
-                    : "bg-[var(--color-surface-50)] text-text-muted hover:text-text-strong"
+                    : "bg-[var(--color-surface-50)] text-gray-600 hover:text-gray-900"
                 }`}
                 onClick={() => setActiveTab(tab.key)}
               >
-                <Icon size={14} />
-                {tab.label}
+                <Icon size={14} /> {tab.label}
               </button>
             );
           })}
         </div>
-
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-5">
           {loading ? (
@@ -286,7 +267,7 @@ export default function MediaGalleryModal({
               <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
             </div>
           ) : media.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-text-muted">
+            <div className="flex flex-col items-center justify-center py-12 text-gray-600">
               <FiFile size={48} className="mb-3 opacity-50" />
               <p>Không có phương tiện nào</p>
             </div>
@@ -305,7 +286,6 @@ export default function MediaGalleryModal({
           )}
         </div>
       </div>
-
       {/* Preview Modal */}
       {previewItem && (
         <>
@@ -316,18 +296,17 @@ export default function MediaGalleryModal({
           <div className="fixed inset-4 z-[60] flex items-center justify-center">
             <button
               type="button"
-              className="absolute top-4 right-4 p-3 rounded-full bg-white/10 text-white hover:bg-white/20 transition"
+              className="absolute top-4 right-4 p-3 rounded-full bg-white text-white hover:bg-white transition"
               onClick={() => setPreviewItem(null)}
             >
               <FiX size={24} />
             </button>
             <button
               type="button"
-              className="absolute bottom-4 right-4 flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 text-white hover:bg-white/20 transition"
+              className="absolute bottom-4 right-4 flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-white hover:bg-white transition"
               onClick={() => handleDownload(previewItem)}
             >
-              <FiDownload size={18} />
-              Tải xuống
+              <FiDownload size={18} /> Tải xuống
             </button>
             {previewItem.mime?.startsWith("image/") && (
               <img
@@ -350,4 +329,3 @@ export default function MediaGalleryModal({
     </>
   );
 }
-

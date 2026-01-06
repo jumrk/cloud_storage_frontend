@@ -91,7 +91,26 @@
     "logout": "Đăng xuất",
     "login": "Đăng nhập",
     "logout_success": "Đăng xuất thành công!",
-    "notifications": "Thông báo"
+    "notifications": "Thông báo",
+    "account_info": "Thông tin tài khoản"
+  },
+  "user_menu": {
+    "total": "Tổng",
+    "remaining": "Còn lại",
+    "credits": "credits",
+    "workspace": "Không gian làm việc",
+    "my_workspace": "Không gian làm việc của tôi",
+    "account_info": "Thông tin tài khoản",
+    "member_management": "Quản lý thành viên",
+    "settings": "Cài đặt",
+    "subscription": "Gói dịch vụ",
+    "free": "Miễn phí",
+    "theme": "Giao diện",
+    "light": "Sáng",
+    "dark": "Tối",
+    "language": "Ngôn ngữ",
+    "vietnamese": "Tiếng Việt",
+    "english": "English"
   },
   "tour": {
     "step": "Bước {current} / {total}",
@@ -613,6 +632,62 @@
       "send_success": "Yêu cầu đã được gửi thành công!",
       "send_failed": "Gửi yêu cầu thất bại."
     },
+    "account_settings": {
+      "title": "Cài đặt",
+      "subtitle": "Quản lý hồ sơ và thành viên workspace của bạn.",
+      "tabs": {
+        "profile": "Hồ sơ",
+        "member_management": "Quản lý thành viên"
+      },
+      "profile": {
+        "email_address": "Địa chỉ E-Mail",
+        "change_password": "Đổi mật khẩu",
+        "given_name": "Tên",
+        "update_given_name": "Cập nhật tên",
+        "current_plan": "Gói hiện tại",
+        "manage_subscription": "Quản lý đăng ký",
+        "share_to_explore": "Chia sẻ để khám phá",
+        "share_to_explore_desc": "Tham gia để cho phép một số tạo phẩm được chia sẻ công khai.",
+        "manage_sharing": "Quản lý chia sẻ",
+        "default_sharing_preferences": "Tùy chọn chia sẻ mặc định",
+        "no_default_groups": "Chưa chọn nhóm mặc định",
+        "manage_default_sharing": "Quản lý chia sẻ mặc định",
+        "two_factor_auth": "Xác thực hai yếu tố",
+        "two_factor_disabled": "Đã tắt",
+        "add_two_factor": "Thêm xác thực hai yếu tố",
+        "comment_notifications": "Thông báo bình luận",
+        "comment_notifications_desc": "Quản lý tùy chọn thông báo email cho bình luận",
+        "manage_notifications": "Quản lý thông báo",
+        "application_language": "Ngôn ngữ ứng dụng",
+        "save": "Lưu",
+        "cancel": "Hủy",
+        "days_until_expiry": "Còn {days} ngày hết hạn",
+        "update_success": "Cập nhật thành công",
+        "update_failed": "Cập nhật thất bại",
+        "avatar_update_success": "Cập nhật avatar thành công",
+        "avatar_update_failed": "Cập nhật avatar thất bại",
+        "cannot_load_user": "Không thể tải thông tin người dùng",
+        "phone": "Số điện thoại",
+        "date_of_birth": "Ngày sinh",
+        "update": "Cập nhật",
+        "update_given_name_title": "Cập nhật tên",
+        "update_given_name_desc": "Cập nhật tên của bạn bằng cách nhập tên mới.",
+        "update_given_name_label": "Tên mới",
+        "update_phone_title": "Cập nhật số điện thoại",
+        "update_phone_desc": "Cập nhật số điện thoại của bạn bằng cách nhập số mới.",
+        "update_phone_label": "Số điện thoại mới",
+        "update_date_of_birth_title": "Cập nhật ngày sinh",
+        "update_date_of_birth_desc": "Cập nhật ngày sinh của bạn bằng cách chọn ngày mới.",
+        "update_date_of_birth_label": "Ngày sinh mới",
+        "update_avatar_title": "Cập nhật ảnh đại diện",
+        "update_avatar_desc": "Cập nhật ảnh đại diện của bạn bằng cách chọn ảnh mới.",
+        "update_avatar_label": "Chọn ảnh",
+        "profile_picture": "Ảnh đại diện",
+        "choose_image": "Chọn ảnh",
+        "change_image": "Đổi ảnh",
+        "no_value": "Chưa đặt"
+      }
+    },
     "terms": {
       "title": "Điều khoản Dịch vụ",
       "last_updated": "Cập nhật lần cuối: 22/07/2025",
@@ -1131,7 +1206,9 @@
   },
   "sidebar": {
     "logout_success": "Đăng xuất thành công!",
+    "dashboard": "Dashboard",
     "home": "Trang chủ",
+    "my_files": "Tệp của tôi",
     "tool": "Công cụ",
     "edit_video": "Chỉnh sửa video",
     "download_video": "Tải video",
@@ -1169,7 +1246,8 @@
       "root_folder": "Thư mục gốc",
       "loading": "Đang tải...",
       "no_folders": "Không có thư mục",
-      "load_folders_error": "Không thể tải danh sách thư mục"
+      "load_folders_error": "Không thể tải danh sách thư mục",
+      "upload_restriction": "Bạn cần vào trong một thư mục để tải lên"
     },
     "modal": {
       "create_folder_title": "Tạo thư mục mới",
@@ -1266,6 +1344,7 @@
   },
   "job_management": {
     "nav": {
+      "title": "Quản lý công việc",
       "workspace": "Không gian làm việc",
       "assigned": "Được giao cho tôi",
       "recent": "Gần đây",
@@ -1473,8 +1552,9 @@
   },
   "video_tools": {
     "nav": {
-      "extract_subtitle": "Tách phụ đề",
-      "hardsub": "Hardsub",
+      "title": "Công cụ video",
+      "extract_subtitle": "Trích xuất phụ đề",
+      "hardsub": "Hard sub",
       "voiceover": "Lồng tiếng"
     }
   },

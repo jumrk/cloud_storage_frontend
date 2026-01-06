@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useEffect, useState } from "react";
 import {
   BarChart,
@@ -13,23 +12,19 @@ import {
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import axiosClient from "@/shared/lib/axiosClient";
-
 function formatPrice(price) {
   if (!price) return "0₫";
   return price.toLocaleString("vi-VN") + "₫";
 }
-
 const FILTERS = [
   { label: "Tháng", value: "month" },
   { label: "Tuần", value: "week" },
   { label: "Năm", value: "year" },
 ];
-
 export default function OverviewTab({ stats = {}, loading }) {
   const [chartData, setChartData] = useState([]);
   const [chartLoading, setChartLoading] = useState(false);
   const [filter, setFilter] = useState("month");
-
   useEffect(() => {
     setChartLoading(true);
     axiosClient
@@ -45,7 +40,6 @@ export default function OverviewTab({ stats = {}, loading }) {
       .catch(() => setChartData([]))
       .finally(() => setChartLoading(false));
   }, [filter]);
-
   if (loading) {
     return (
       <div className="space-y-6">
@@ -72,7 +66,6 @@ export default function OverviewTab({ stats = {}, loading }) {
       </div>
     );
   }
-
   return (
     <div className="w-full space-y-6">
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -143,5 +136,3 @@ export default function OverviewTab({ stats = {}, loading }) {
     </div>
   );
 }
-
-

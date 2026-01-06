@@ -31,18 +31,17 @@ export default function SharePage() {
     handleDownloadUrl,
     clearDownloadBatch,
   } = useSharePage();
-
   const [showDownloadMenu, setShowDownloadMenu] = React.useState(null);
 
   // Close menu when clicking outside
   React.useEffect(() => {
     const handleClickOutside = (event) => {
-      if (showDownloadMenu && !event.target.closest('.relative')) {
+      if (showDownloadMenu && !event.target.closest(".relative")) {
         setShowDownloadMenu(null);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showDownloadMenu]);
 
   useEffect(() => {
@@ -135,6 +134,7 @@ export default function SharePage() {
         <div className="flex gap-4 text-gray-500 text-sm">
           <span>Kích thước: {formatSize(item.size)}</span>
           <span>
+            {" "}
             Loại: {item.type === "folder" ? "Thư mục" : item.mimeType || ext}
           </span>
         </div>
@@ -158,15 +158,18 @@ export default function SharePage() {
             <div className="relative inline-block">
               <button
                 className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-lg text-lg font-semibold hover:bg-blue-700 transition-all shadow"
-                onClick={() => setShowDownloadMenu(showDownloadMenu === item.id ? null : item.id)}
+                onClick={() =>
+                  setShowDownloadMenu(
+                    showDownloadMenu === item.id ? null : item.id
+                  )
+                }
                 disabled={downloadingId === item.id}
               >
                 {downloadingId === item.id ? (
                   "Đang tải..."
                 ) : (
                   <>
-                    Tải xuống
-                    <FiChevronDown className="text-sm" />
+                    Tải xuống <FiChevronDown className="text-sm" />
                   </>
                 )}
               </button>
@@ -265,15 +268,19 @@ export default function SharePage() {
                         <div className="relative ml-2">
                           <button
                             className="px-2 py-1 text-xs bg-primary text-white rounded hover:bg-blue-700 flex items-center gap-1"
-                            onClick={() => setShowDownloadMenu(showDownloadMenu === f.id ? null : f.id)}
+                            onClick={() =>
+                              setShowDownloadMenu(
+                                showDownloadMenu === f.id ? null : f.id
+                              )
+                            }
                             disabled={downloadingId === f.id}
                           >
                             {downloadingId === f.id ? (
                               "Đang tải..."
                             ) : (
                               <>
-                                <FiDownload /> Tải xuống
-                                <FiChevronDown className="text-xs" />
+                                <FiDownload />
+                                Tải xuống <FiChevronDown className="text-xs" />
                               </>
                             )}
                           </button>

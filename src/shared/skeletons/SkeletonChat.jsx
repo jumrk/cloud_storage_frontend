@@ -7,14 +7,23 @@ const MAIN_PX = "px-6 md:px-16";
 
 export default function SkeletonChat() {
   const skeletonWidths = [240, 260, 220, 280, 230, 250, 210, 270];
+
   return (
-    <div className="flex flex-col h-full w-full animate-fade-in" style={{ animation: "fadeIn 0.15s ease-out" }}>
+    <div
+      className="flex flex-col h-full w-full animate-fade-in"
+      style={{ animation: "fadeIn 0.15s ease-out" }}
+    >
       <style>{`
         @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
         }
       `}</style>
+
       {/* Header */}
       <div className="bg-white border-b border-[var(--color-border)] shadow-sm">
         <div
@@ -42,6 +51,7 @@ export default function SkeletonChat() {
           </div>
         </div>
       </div>
+
       {/* Messages */}
       <div
         className={`flex-1 overflow-y-hidden ${MAIN_PX} py-8`}
@@ -85,6 +95,7 @@ export default function SkeletonChat() {
           ))}
         </div>
       </div>
+
       {/* Input (ẩn khi loading) */}
       <div
         className={`${MAIN_PX} py-5 border-t border-[var(--color-border)] bg-white`}

@@ -3,34 +3,15 @@ import { getFileIcon } from "@/shared/utils/getFileIcon";
 import { FiEdit2, FiCheck, FiX, FiShare2, FiLock } from "react-icons/fi";
 import { FaStar, FaRegStar } from "react-icons/fa";
 import Image from "next/image";
-
 function renderDragPreviewHTML(draggedItems) {
   if (!draggedItems || draggedItems.length === 0) return "";
   const isMulti = draggedItems.length > 1;
   const first = draggedItems[0];
-  return `
-    <div style="
-      padding:10px 18px;
-      background:#2563eb;
-      color:white;
-      border-radius:12px;
-      font-weight:600;
-      font-size:16px;
-      box-shadow:0 4px 16px rgba(0,0,0,0.18);
-      display:flex;
-      align-items:center;
-      gap:10px;
-      min-width:120px;
-      pointer-events:none;
-    ">
-      <span style="font-size:22px;margin-right:8px;">
-        ${first.type === "folder" ? "📁" : "📄"}
-      </span>
-      <span>
-        ${isMulti ? `Kéo ${draggedItems.length} mục` : first.name}
-      </span>
-    </div>
-  `;
+  return ` <div style=" padding:10px 18px; background:#2563eb; color:white; border-radius:12px; font-weight:600; font-size:16px; box-shadow:0 4px 16px rgba(0,0,0,0.18); display:flex; align-items:center; gap:10px; min-width:120px; pointer-events:none;"> <span style="font-size:22px;margin-right:8px;"> ${
+    first.type === "folder" ? "📁" : "📄"
+  } </span> <span> ${
+    isMulti ? `Kéo ${draggedItems.length} mục` : first.name
+  } </span> </div> `;
 }
 
 // Tiện ích xóa drag preview
@@ -65,6 +46,7 @@ function Card_file({
   isFavorite = false,
   onToggleFavorite,
   favoriteLoading = false,
+  isFileUploading,
 }) {
   const isFolder = data.type === "folder";
   const icon = getFileIcon({ type: data.type, name: data.name });
@@ -75,9 +57,18 @@ function Card_file({
     typeof window !== "undefined" &&
     (window.innerWidth < 768 ||
       /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(
-        navigator.userAgent
+        navigator.userAgent,
       ));
   const [copied, setCopied] = React.useState(false);
+  
+  // Check if file is uploading
+  const uploading = isFileUploading ? isFileUploading(data) : (
+    !isFolder && (
+      data.driveUploadStatus === "uploading" || 
+      data.driveUploadStatus === "pending" ||
+      (!data.driveFileId && (data.tempDownloadUrl || data.tempFilePath))
+    )
+  );
 
   // Tách tên và đuôi file
   function splitFileName(name) {
@@ -92,6 +83,7 @@ function Card_file({
     setEditing(true);
     setNewName(isFile ? splitFileName(data.name).base : data.name);
   };
+
   // Xác nhận đổi tên
   const confirmEdit = () => {
     if (isFile) {
@@ -106,11 +98,13 @@ function Card_file({
     }
     setEditing(false);
   };
+
   // Huỷ đổi tên
   const cancelEdit = () => {
     setEditing(false);
     setNewName(isFile ? splitFileName(data.name).base : data.name);
   };
+
   const isFile = data.type === "file";
 
   // Custom drag preview
@@ -130,6 +124,7 @@ function Card_file({
     }
     window._customDragEl = dragEl;
   };
+
   const handleDragEnd = () => {
     if (onDragEnd) onDragEnd();
     if (window && window._customDragEl) {
@@ -148,6 +143,7 @@ function Card_file({
       }
     }
   };
+
   const handleDoubleClick = () => {
     if (!isMobile) {
       if (data.type === "folder") {
@@ -162,7 +158,7 @@ function Card_file({
     <div
       className={`group relative w-full max-w-[180px] flex-1 basis-1/2 sm:basis-auto overflow-hidden m-2 bg-white rounded-2xl p-4 h-[140px] transition-all duration-300 shadow hover:shadow-xl hover:-translate-y-1 flex flex-col justify-center items-center cursor-pointer border border-gray-100 ${
         isFolder ? "hover:bg-blue-50" : "hover:bg-gray-50"
-      }${data.locked ? " cursor-not-allowed opacity-60" : ""}`}
+      }${data.locked ? " cursor-not-allowed opacity-60" : ""}${uploading ? " opacity-90" : ""}`}
       onClick={handleCardClick}
       onDoubleClick={handleDoubleClick}
       tabIndex={isFolder ? 0 : -1}
@@ -202,7 +198,7 @@ function Card_file({
       {!isMobile && (
         <div className="absolute top-3 right-3 flex flex-col gap-2 z-30 opacity-0 translate-x-3 pointer-events-none transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0 group-hover:pointer-events-auto">
           <button
-            className="text-blue-500 hover:text-blue-700 bg-white/90 rounded-full p-1.5 shadow-sm transition-colors"
+            className="text-blue-500 hover:text-blue-700 bg-white rounded-full p-1.5 shadow-sm transition-colors"
             title="Chia sẻ file/thư mục"
             onClick={(e) => {
               e.stopPropagation();
@@ -222,7 +218,7 @@ function Card_file({
           </button>
           {!isFolder && (
             <button
-              className={`bg-white/90 rounded-full p-1.5 shadow-sm transition-colors ${
+              className={`bg-white rounded-full p-1.5 shadow-sm transition-colors ${
                 isFavorite
                   ? "text-amber-500"
                   : "text-gray-400 hover:text-amber-500"
@@ -265,6 +261,7 @@ function Card_file({
         style={{ zIndex: 10 }}
         onClick={(e) => e.stopPropagation()}
       ></label>
+      <div className="relative">
       <Image
         src={icon}
         alt="icon"
@@ -275,7 +272,16 @@ function Card_file({
         blurDataURL="data:image/png;base64,..."
         priority
       />
-      <div className="flex items-center w-full justify-center gap-1">
+        {uploading && (
+          <div className="absolute -top-1 -right-1">
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
+            </span>
+          </div>
+        )}
+      </div>
+      <div className="flex items-center w-full justify-center gap-1 flex-col">
         {editing ? (
           <>
             {isFile ? (
@@ -301,11 +307,10 @@ function Card_file({
                     e.preventDefault();
                     confirmEdit();
                   }}
-                  className="ml-1  text-green-600"
+                  className="ml-1 text-green-600"
                 >
                   <FiCheck size={16} />
                 </button>
-
                 <button
                   onMouseDown={(e) => {
                     e.preventDefault();
@@ -340,7 +345,6 @@ function Card_file({
                 >
                   <FiCheck size={16} />
                 </button>
-
                 <button
                   onMouseDown={(e) => {
                     e.preventDefault();
@@ -371,13 +375,22 @@ function Card_file({
                 </span>
               )}
             </p>
+            {uploading && (
+              <span className="mt-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                <span className="relative flex h-2 w-2 mr-1">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                </span>
+                Đang upload
+              </span>
+            )}
             {isMobile && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   startEdit(e);
                 }}
-                className="absolute top-2 right-2 text-gray-400 hover:text-primary bg-white/80 rounded-full p-1"
+                className="absolute top-2 right-2 text-gray-400 hover:text-primary bg-white rounded-full p-1"
                 title="Đổi tên"
                 style={{ zIndex: 20 }}
               >

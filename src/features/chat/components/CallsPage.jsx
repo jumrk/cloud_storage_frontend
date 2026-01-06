@@ -20,7 +20,6 @@ import "react-loading-skeleton/dist/skeleton.css";
 function formatCallTime(date) {
   const now = new Date();
   const diff = Math.floor((now - date) / 1000);
-
   if (diff < 60) return "Vừa xong";
   if (diff < 3600) return `${Math.floor(diff / 60)} phút trước`;
   if (diff < 86400) return `${Math.floor(diff / 3600)} giờ trước`;
@@ -101,10 +100,10 @@ export default function CallsPage({ onStartCall, userMap = {} }) {
       <div className="px-4 lg:px-6 py-4 lg:py-5 border-b border-[var(--color-border)]">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold text-text-strong">Cuộc gọi</h1>
+            <h1 className="text-xl font-bold text-gray-900">Cuộc gọi</h1>
             <button
               onClick={fetchCalls}
-              className="p-2 rounded-full hover:bg-[var(--color-surface-50)] text-text-muted"
+              className="p-2 rounded-full hover:bg-[var(--color-surface-50)] text-gray-600"
               title="Làm mới"
             >
               <FiRefreshCw
@@ -118,15 +117,13 @@ export default function CallsPage({ onStartCall, userMap = {} }) {
               onClick={handleClearAll}
               className="text-sm text-[var(--color-danger-500)] hover:underline flex items-center gap-1"
             >
-              <FiTrash2 size={14} />
-              Xóa tất cả
+              <FiTrash2 size={14} /> Xóa tất cả
             </button>
           )}
         </div>
-
         {/* Search */}
         <div className="relative mb-4">
-          <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+          <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" />
           <input
             type="text"
             placeholder="Tìm kiếm cuộc gọi..."
@@ -135,7 +132,6 @@ export default function CallsPage({ onStartCall, userMap = {} }) {
             className="w-full pl-10 pr-4 py-2.5 rounded-full bg-[var(--color-surface-50)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-brand/30 text-sm"
           />
         </div>
-
         {/* Filter tabs */}
         <div className="flex gap-2">
           {[
@@ -150,7 +146,7 @@ export default function CallsPage({ onStartCall, userMap = {} }) {
               className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${
                 filter === tab.key
                   ? "bg-brand text-white"
-                  : "bg-[var(--color-surface-50)] text-text-muted hover:bg-[var(--color-surface-100)]"
+                  : "bg-[var(--color-surface-50)] text-gray-600 hover:bg-[var(--color-surface-100)]"
               }`}
             >
               {tab.label}
@@ -158,7 +154,6 @@ export default function CallsPage({ onStartCall, userMap = {} }) {
           ))}
         </div>
       </div>
-
       {/* Call list */}
       <div className="flex-1 overflow-y-auto">
         {loading ? (
@@ -175,7 +170,7 @@ export default function CallsPage({ onStartCall, userMap = {} }) {
             ))}
           </div>
         ) : error ? (
-          <div className="flex flex-col items-center justify-center h-full text-text-muted">
+          <div className="flex flex-col items-center justify-center h-full text-gray-600">
             <p className="text-lg font-medium text-[var(--color-danger-500)]">
               {error}
             </p>
@@ -187,7 +182,7 @@ export default function CallsPage({ onStartCall, userMap = {} }) {
             </button>
           </div>
         ) : filteredCalls.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-text-muted">
+          <div className="flex flex-col items-center justify-center h-full text-gray-600">
             <FiPhone size={48} className="mb-4 opacity-30" />
             <p className="text-lg font-medium">Không có cuộc gọi nào</p>
             <p className="text-sm mt-1">Lịch sử cuộc gọi sẽ hiển thị ở đây</p>
@@ -211,19 +206,18 @@ export default function CallsPage({ onStartCall, userMap = {} }) {
                     />
                   </div>
                 </div>
-
                 {/* Info */}
                 <div className="flex-1 min-w-0">
                   <p
                     className={`font-semibold truncate ${
                       call.missed
                         ? "text-[var(--color-danger-500)]"
-                        : "text-text-strong"
+                        : "text-gray-900"
                     }`}
                   >
                     {call.user.name}
                   </p>
-                  <div className="flex items-center gap-2 text-sm text-text-muted">
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
                     {call.type === "incoming" ? (
                       call.missed ? (
                         <FiPhoneMissed className="text-[var(--color-danger-500)]" />
@@ -242,30 +236,29 @@ export default function CallsPage({ onStartCall, userMap = {} }) {
                     </span>
                   </div>
                 </div>
-
                 {/* Time & Actions */}
                 <div className="flex items-center gap-3">
-                  <span className="text-sm text-text-muted">
+                  <span className="text-sm text-gray-600">
                     {formatCallTime(new Date(call.time))}
                   </span>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
                     <button
                       onClick={() => onStartCall?.("voice", call.user?.id)}
-                      className="p-2 rounded-full hover:bg-[var(--color-surface-100)] text-text-muted hover:text-brand"
+                      className="p-2 rounded-full hover:bg-[var(--color-surface-100)] text-gray-600 hover:text-brand"
                       title="Gọi thoại"
                     >
                       <FiPhone size={18} />
                     </button>
                     <button
                       onClick={() => onStartCall?.("video", call.user?.id)}
-                      className="p-2 rounded-full hover:bg-[var(--color-surface-100)] text-text-muted hover:text-brand"
+                      className="p-2 rounded-full hover:bg-[var(--color-surface-100)] text-gray-600 hover:text-brand"
                       title="Gọi video"
                     >
                       <FiVideo size={18} />
                     </button>
                     <button
                       onClick={() => handleDeleteCall(call.callId)}
-                      className="p-2 rounded-full hover:bg-[var(--color-surface-100)] text-text-muted hover:text-[var(--color-danger-500)]"
+                      className="p-2 rounded-full hover:bg-[var(--color-surface-100)] text-gray-600 hover:text-[var(--color-danger-500)]"
                       title="Xóa"
                     >
                       <FiTrash2 size={18} />

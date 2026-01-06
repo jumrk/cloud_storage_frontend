@@ -36,11 +36,7 @@ export default function DashboardPage() {
     },
     {
       title: "Tổng dung lượng đã dùng",
-      value: loadingStats
-        ? "..."
-        : usedSize != null
-        ? formatSize(usedSize)
-        : "0 B",
+      value: loadingStats ? "..." : usedSize != null ? formatSize(usedSize) : "0 B",
     },
     {
       title: "Tổng số người đăng ký",
@@ -87,11 +83,13 @@ export default function DashboardPage() {
             />
           )}
         </div>
+
         <StorageDonutChart
           used={usedSize || 0}
           total={totalSize || 0}
           loading={loadingStats}
         />
+
         <div className="relative">
           {loadingUserChart ? (
             <div className="h-[320px] w-full bg-white rounded-xl flex items-center justify-center">
@@ -106,6 +104,7 @@ export default function DashboardPage() {
             />
           )}
         </div>
+
         <div className="relative">
           {loadingDrivePie ? (
             <div className="h-[320px] w-full bg-white rounded-xl flex items-center justify-center">
@@ -119,4 +118,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-

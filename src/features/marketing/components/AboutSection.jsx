@@ -17,19 +17,16 @@ import sumenhLottie from "@/assets/animation/sumenh.json";
 import targetLottie from "@/assets/animation/Target.json";
 import { useTranslations } from "next-intl";
 import ScrollReveal from "@/shared/ui/ScrollReveal";
-
 export default function AboutSection() {
   const t = useTranslations();
-
   return (
-    <div className="w-full min-h-screen bg-surface-50 pb-16">
+    <div className="w-full min-h-screen bg-white pb-16">
       <section className="mx-auto flex max-w-6xl flex-col items-center gap-8 px-4 pt-12 pb-8 md:flex-row">
         <ScrollReveal className="flex-1">
-          <h1 className="mb-6 text-4xl font-bold leading-tight text-text-strong md:text-6xl">
-            {t("about.hero.title")}
-            <span className="text-brand">D2MBox</span>
+          <h1 className="mb-6 text-4xl font-bold leading-tight text-gray-900 md:text-6xl">
+            {t("about.hero.title")} <span className="text-brand">D2MBox</span>
           </h1>
-          <p className="mb-8 max-w-xl text-lg text-text-muted">
+          <p className="mb-8 max-w-xl text-lg text-gray-600">
             {t("about.hero.subtitle")}
           </p>
           <a
@@ -39,14 +36,12 @@ export default function AboutSection() {
             {t("about.hero.cta")}
           </a>
         </ScrollReveal>
-
         <ScrollReveal className="flex flex-1 justify-center">
           <div className="flex w-full max-w-xl items-center justify-center">
             <Lottie animationData={sumenhLottie} loop />
           </div>
         </ScrollReveal>
       </section>
-
       {/* Giá trị & Sứ mệnh */}
       <section className="mx-auto flex max-w-6xl items-center gap-8 px-4 py-8 md:flex-row">
         <div className="grid flex-1 grid-cols-1 gap-6 md:grid-cols-2">
@@ -80,7 +75,6 @@ export default function AboutSection() {
           </ScrollReveal>
         </div>
       </section>
-
       {/* Hình ảnh/feature nổi bật */}
       <section className="mx-auto flex max-w-6xl items-center gap-8 px-4 py-8 md:flex-row">
         <ScrollReveal className="flex flex-1 justify-center">
@@ -92,12 +86,11 @@ export default function AboutSection() {
             />
           </div>
         </ScrollReveal>
-
         <ScrollReveal className="flex-1">
-          <h2 className="mb-4 text-2xl font-bold text-text-strong md:text-3xl">
+          <h2 className="mb-4 text-2xl font-bold text-gray-900 md:text-3xl">
             {t("about.partner.title")}
           </h2>
-          <ul className="space-y-3 text-base text-text-muted">
+          <ul className="space-y-3 text-base text-gray-600">
             <li className="flex items-center gap-2">
               <FolderOpenIcon className="h-6 w-6 text-brand" />
               {t("about.partner.feature_1")}
@@ -121,7 +114,6 @@ export default function AboutSection() {
           </ul>
         </ScrollReveal>
       </section>
-
       {/* Số liệu/statistics */}
       <section className="mx-auto max-w-6xl px-4 py-8">
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
@@ -145,16 +137,15 @@ export default function AboutSection() {
           </ScrollReveal>
         </div>
       </section>
-
       {/* Mục tiêu/cam kết */}
       <section className="mx-auto max-w-5xl px-4 py-8">
         <ScrollReveal>
           <div className="flex w-full flex-col items-center gap-8 rounded-2xl bg-white p-8 shadow-lg md:flex-row">
             <div className="flex-1">
-              <h3 className="mb-2 text-xl font-bold text-text-strong md:text-2xl">
+              <h3 className="mb-2 text-xl font-bold text-gray-900 md:text-2xl">
                 {t("about.goals.title")}
               </h3>
-              <ul className="mt-4 grid grid-cols-1 gap-3 text-base text-text-muted md:grid-cols-2">
+              <ul className="mt-4 grid grid-cols-1 gap-3 text-base text-gray-600 md:grid-cols-2">
                 <li>✔️ {t("about.goals.item_1")}</li>
                 <li>✔️ {t("about.goals.item_2")}</li>
                 <li>✔️ {t("about.goals.item_3")}</li>
@@ -170,11 +161,10 @@ export default function AboutSection() {
           </div>
         </ScrollReveal>
       </section>
-
       {/* Vision/định hướng */}
       <section className="mx-auto max-w-6xl px-4 py-8">
         <ScrollReveal>
-          <h2 className="mb-8 text-center text-2xl font-bold text-text-strong md:text-3xl">
+          <h2 className="mb-8 text-center text-2xl font-bold text-gray-900 md:text-3xl">
             {t("about.vision.title")}
           </h2>
         </ScrollReveal>
@@ -199,7 +189,6 @@ export default function AboutSection() {
           </ScrollReveal>
         </div>
       </section>
-
       {/* CTA cuối trang */}
       <section className="mx-auto max-w-4xl px-4 py-8">
         <ScrollReveal>
@@ -212,7 +201,7 @@ export default function AboutSection() {
             </p>
             <a
               href="/login"
-              className="rounded-lg bg-white px-8 py-3 text-lg font-bold text-brand shadow transition hover:bg-surface-50"
+              className="rounded-lg bg-white px-8 py-3 text-lg font-bold text-brand shadow transition hover:bg-white"
             >
               {t("about.cta.button")}
             </a>
@@ -222,39 +211,36 @@ export default function AboutSection() {
     </div>
   );
 }
-
 function ValueCard({ icon, title, desc }) {
   return (
     <div className="flex h-full flex-col items-center rounded-xl bg-white p-6 shadow">
       {icon}
-      <div className="mt-2 mb-1 text-center font-semibold text-text-strong">
+      <div className="mt-2 mb-1 text-center font-semibold text-gray-900">
         {title}
       </div>
-      <div className="text-center text-sm text-text-muted">{desc}</div>
+      <div className="text-center text-sm text-gray-600">{desc}</div>
     </div>
   );
 }
-
 function StatCard({ value, label }) {
   return (
     <div className="flex h-full flex-col items-center rounded-xl bg-white p-8 shadow">
       <div className="mb-2 text-3xl font-extrabold text-brand md:text-4xl">
         {value}
       </div>
-      <div className="text-center text-base font-semibold text-text-muted">
+      <div className="text-center text-base font-semibold text-gray-600">
         {label}
       </div>
     </div>
   );
 }
-
 function VisionCard({ title, desc }) {
   return (
     <div className="flex h-full flex-col items-center rounded-xl bg-white p-6 shadow">
       <div className="mb-2 text-center text-lg font-bold text-brand">
         {title}
       </div>
-      <div className="text-center text-sm text-text-muted">{desc}</div>
+      <div className="text-center text-sm text-gray-600">{desc}</div>
     </div>
   );
 }

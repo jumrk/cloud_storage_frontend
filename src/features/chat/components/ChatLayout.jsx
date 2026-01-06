@@ -1,13 +1,24 @@
 "use client";
 import React, { useCallback, useEffect, useState } from "react";
-import { FiArrowLeft } from "react-icons/fi";
+import {
+  FiArrowLeft,
+  FiMessageSquare,
+  FiBell,
+  FiSettings,
+  FiPhoneCall,
+  FiChevronRight,
+  FiUsers,
+  FiStar,
+  FiMoon,
+  FiSun,
+} from "react-icons/fi";
 import axiosClient from "@/shared/lib/axiosClient";
 import { decodeTokenGetUser } from "@/shared/lib/jwt";
 import "react-loading-skeleton/dist/skeleton.css";
+import "../styles/chat.css";
 import ChatSideBar from "./ChatSideBar";
 import ChatModal from "./ChatModal";
 import ChatConversation from "./ChatConversation";
-import ChatNavRail from "./ChatNavRail";
 import CreateGroupModal from "./CreateGroupModal";
 import ForwardModal from "./ForwardModal";
 import GroupSettingsModal from "./GroupSettingsModal";
@@ -19,6 +30,8 @@ import useChat from "../hooks/useChat";
 import useCallManager from "../hooks/useCallManager";
 import CallOverlay from "./CallOverlay";
 import AddFriendModal from "./AddFriendModal";
+import { useChatNav } from "@/app/(chat)/chat/ChatNavContext";
+import Image from "next/image";
 
 // Apply theme and font size from settings
 const applySettings = (settings) => {
@@ -116,11 +129,13 @@ export default function ChatLayout({ isAdmin = false, updateUnreadCount }) {
   const [groupSettingsOpen, setGroupSettingsOpen] = useState(false);
   const [mediaGalleryOpen, setMediaGalleryOpen] = useState(false);
   const [addFriendOpen, setAddFriendOpen] = useState(false);
-  const [activeNav, setActiveNav] = useState("chats"); // chats, calls, notifications, settings
-  const [notificationCount, setNotificationCount] = useState(0);
+  const { activeNav, setActiveNav, notificationCount, setNotificationCount } =
+    useChatNav();
 
   // Mobile: track if we're viewing a conversation
   const [mobileShowConversation, setMobileShowConversation] = useState(false);
+  // Desktop: track if sidebar is open/closed
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Fetch notification count and settings on mount
   useEffect(() => {
@@ -464,6 +479,21 @@ export default function ChatLayout({ isAdmin = false, updateUnreadCount }) {
         return <SettingsPage />;
       case "chats":
       default:
+        if (!selected || !userMap[selected]) {
+          return (
+            <div className="flex-1 flex items-center justify-center bg-[var(--chat-bg-primary)]">
+              <div className="text-center px-4">
+                <div className="text-6xl mb-4 opacity-30">💬</div>
+                <h2 className="text-xl font-semibold mb-2" style={{ color: "var(--chat-text-primary)" }}>
+                  Select a conversation
+                </h2>
+                <p className="text-sm" style={{ color: "var(--chat-text-secondary)" }}>
+                  Choose a chat from the sidebar to start messaging
+                </p>
+              </div>
+            </div>
+          );
+        }
         return (
           <ChatConversation
             chat={userMap[selected]}
@@ -516,69 +546,147 @@ export default function ChatLayout({ isAdmin = false, updateUnreadCount }) {
     }
   };
 
-  return (
-    <div className="w-full h-screen flex bg-[var(--color-surface-50)] relative overflow-hidden">
-      <ChatNavRail
-        active={activeNav}
-        onNavigate={(nav) => {
-          setActiveNav(nav);
-          // On mobile, when switching tabs, reset conversation view
-          if (nav !== "chats") {
-            setMobileShowConversation(false);
-          }
-        }}
-        notificationCount={notificationCount}
-      />
+  // Theme state
+  const [theme, setTheme] = useState("light");
 
-      {/* Sidebar - only show for chats tab */}
+  // Toggle theme
+  const toggleTheme = useCallback(() => {
+    const newTheme = theme === "light" ? "dark" : "light";
+    setTheme(newTheme);
+    document.documentElement.setAttribute("data-theme", newTheme);
+    // Save to settings
+    axiosClient
+      .put("/api/settings", { theme: newTheme })
+      .catch((err) => console.error("Failed to save theme:", err));
+  }, [theme]);
+
+  // Load theme from settings
+  useEffect(() => {
+    const loadTheme = async () => {
+      try {
+        const res = await axiosClient.get("/api/settings");
+        if (res.data?.settings?.theme) {
+          const userTheme = res.data.settings.theme;
+          setTheme(userTheme);
+          document.documentElement.setAttribute("data-theme", userTheme);
+        }
+      } catch (err) {
+        console.error("Failed to load theme:", err);
+      }
+    };
+    loadTheme();
+  }, []);
+
+  return (
+    <div className="chat-app-container">
+      {/* Vertical Navigation - Left Side */}
+      <div className="chat-vertical-nav">
+        {/* Logo */}
+        <div className="mb-8">
+          <Image
+            src="/images/Logo_1.png"
+            alt="Logo"
+            width={40}
+            height={40}
+            className="w-10 h-10"
+            priority
+          />
+        </div>
+
+        {/* Nav Icons */}
+        <div
+          className={`chat-nav-icon ${
+            activeNav === "chats" ? "active" : ""
+          }`}
+          onClick={() => {
+            setActiveNav("chats");
+            if (mobileShowConversation) setMobileShowConversation(false);
+          }}
+        >
+          <FiMessageSquare size={20} />
+          {chats.filter((c) => c.unreadCount > 0).length > 0 && (
+            <span className="badge">
+              {chats.filter((c) => c.unreadCount > 0).length}
+            </span>
+          )}
+        </div>
+
+        <div
+          className={`chat-nav-icon ${
+            activeNav === "calls" ? "active" : ""
+          }`}
+          onClick={() => {
+            setActiveNav("calls");
+            setMobileShowConversation(false);
+          }}
+        >
+          <FiPhoneCall size={20} />
+        </div>
+
+        <div
+          className={`chat-nav-icon ${
+            activeNav === "notifications" ? "active" : ""
+          }`}
+          onClick={() => {
+            setActiveNav("notifications");
+            setMobileShowConversation(false);
+          }}
+        >
+          <FiBell size={20} />
+          {notificationCount > 0 && (
+            <span className="badge">{notificationCount > 9 ? "9+" : notificationCount}</span>
+          )}
+        </div>
+
+        <div
+          className={`chat-nav-icon ${
+            activeNav === "settings" ? "active" : ""
+          }`}
+          onClick={() => {
+            setActiveNav("settings");
+            setMobileShowConversation(false);
+          }}
+        >
+          <FiSettings size={20} />
+        </div>
+
+        {/* Theme Toggle - Bottom */}
+        <button className="chat-theme-toggle" onClick={toggleTheme}>
+          {theme === "light" ? <FiMoon size={18} /> : <FiSun size={18} />}
+        </button>
+      </div>
+
+      {/* Chat Sidebar - Middle Column */}
       {activeNav === "chats" && (
-        <>
-          {/* Desktop: always show sidebar */}
-          {/* Mobile: show sidebar when not viewing a conversation */}
-          <div
-            className={`h-full bg-white border-r border-[var(--color-border)] transition-all duration-300
-              /* Desktop */
-              lg:relative lg:block lg:w-[360px] lg:max-w-[360px] lg:min-w-[320px]
-              /* Mobile */
-              ${mobileShowConversation ? "hidden" : "block"}
-              w-full max-w-full
-            `}
-          >
-            <ChatSideBar
-              chats={chats}
-              onSelect={(id) =>
-                handleChatSelect(
-                  id,
-                  chats.find((c) => c.id === id)
-                )
-              }
-              selectedId={selected}
-              search={search}
-              setSearch={setSearch}
-              onlineList={onlineList}
-              setChats={setChats}
-              loadingChats={loadingChats}
-              onOpenCreateGroup={() => setCreateGroupOpen(true)}
-              onOpenAddFriend={() => setAddFriendOpen(true)}
-            />
-          </div>
-        </>
+        <div
+          className={`chat-sidebar ${
+            mobileShowConversation ? "hidden md:flex" : "flex"
+          }`}
+        >
+          <ChatSideBar
+            chats={chats}
+            selected={selected}
+            onSelectChat={(chat) => {
+              handleSelectChat(chat.id, chat);
+              setMobileShowConversation(true);
+            }}
+            search={search}
+            setSearch={setSearch}
+            loading={loadingChats}
+            onlineList={onlineList}
+            userMap={userMap}
+            onCreateGroup={() => setCreateGroupOpen(true)}
+            onAddFriend={() => setAddFriendOpen(true)}
+          />
+        </div>
       )}
 
-      {/* Main content area */}
-      <div
-        className={`flex-1 h-full bg-white chat-layout-content
-          /* Mobile: hide when showing sidebar in chats tab */
-          ${
-            activeNav === "chats" && !mobileShowConversation
-              ? "hidden lg:block"
-              : "block"
-          }
-        `}
-      >
+      {/* Main Content Area - Right Column */}
+      <div className="chat-main-area flex-1">
         {renderMainContent()}
       </div>
 
+      {/* Modals */}
       <ChatModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
@@ -609,57 +717,16 @@ export default function ChatLayout({ isAdmin = false, updateUnreadCount }) {
       <GroupSettingsModal
         open={groupSettingsOpen}
         onClose={() => setGroupSettingsOpen(false)}
-        group={userMap[selected]}
-        myId={myId}
-        onGroupUpdated={(updatedGroup) => {
-          setUserMap((prev) => ({
-            ...prev,
-            [updatedGroup.id]: { ...prev[updatedGroup.id], ...updatedGroup },
-          }));
-          setChats((prev) =>
-            prev.map((c) =>
-              c.id === updatedGroup.id ? { ...c, ...updatedGroup } : c
-            )
-          );
-        }}
-        onLeaveGroup={(groupId) => {
-          setChats((prev) => prev.filter((c) => c.id !== groupId));
-          setUserMap((prev) => {
-            const next = { ...prev };
-            delete next[groupId];
-            return next;
-          });
-          if (selected === groupId) {
-            const remaining = chats.filter((c) => c.id !== groupId);
-            setSelected(remaining[0]?.id || null);
-          }
-          setMobileShowConversation(false);
-        }}
-        onDeleteGroup={(groupId) => {
-          setChats((prev) => prev.filter((c) => c.id !== groupId));
-          setUserMap((prev) => {
-            const next = { ...prev };
-            delete next[groupId];
-            return next;
-          });
-          if (selected === groupId) {
-            const remaining = chats.filter((c) => c.id !== groupId);
-            setSelected(remaining[0]?.id || null);
-          }
-          setMobileShowConversation(false);
-        }}
+        chat={selected ? chats.find((c) => c.id === selected) : null}
       />
       <MediaGalleryModal
         open={mediaGalleryOpen}
         onClose={() => setMediaGalleryOpen(false)}
         chatId={selected}
-        chatType={userMap[selected]?.type || "direct"}
       />
       <AddFriendModal
-        isOpen={addFriendOpen}
+        open={addFriendOpen}
         onClose={() => setAddFriendOpen(false)}
-        onStartChat={handleStartChatWithUser}
-        myId={myId}
       />
     </div>
   );

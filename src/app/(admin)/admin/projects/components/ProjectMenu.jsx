@@ -3,7 +3,12 @@ import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { FiMoreVertical, FiEdit, FiTrash2 } from "react-icons/fi";
 
-export default function ProjectMenu({ project, onEdit, onDelete, deleteLoading }) {
+export default function ProjectMenu({
+  project,
+  onEdit,
+  onDelete,
+  deleteLoading,
+}) {
   const [open, setOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
   const [mounted, setMounted] = useState(false);
@@ -23,8 +28,10 @@ export default function ProjectMenu({ project, onEdit, onDelete, deleteLoading }
         setOpen(false);
       }
     }
+
     if (open) {
       document.addEventListener("mousedown", handleClickOutside);
+
       // Tính toán vị trí menu
       if (buttonRef.current) {
         const rect = buttonRef.current.getBoundingClientRect();
@@ -34,6 +41,7 @@ export default function ProjectMenu({ project, onEdit, onDelete, deleteLoading }
         });
       }
     }
+
     return () => {
       if (typeof document !== "undefined") {
         document.removeEventListener("mousedown", handleClickOutside);
@@ -67,7 +75,9 @@ export default function ProjectMenu({ project, onEdit, onDelete, deleteLoading }
             setOpen(false);
             onDelete && onDelete(project.id || project._id);
           }}
-          disabled={deleteLoading === project.id || deleteLoading === project._id}
+          disabled={
+            deleteLoading === project.id || deleteLoading === project._id
+          }
         >
           <FiTrash2 className="text-base" />
           {deleteLoading === project.id || deleteLoading === project._id
@@ -88,7 +98,9 @@ export default function ProjectMenu({ project, onEdit, onDelete, deleteLoading }
         <button
           className="text-gray-400 hover:text-gray-600 p-1 rounded"
           onClick={() => setOpen(!open)}
-          disabled={deleteLoading === project.id || deleteLoading === project._id}
+          disabled={
+            deleteLoading === project.id || deleteLoading === project._id
+          }
         >
           <FiMoreVertical className="text-lg" />
         </button>
@@ -99,4 +111,3 @@ export default function ProjectMenu({ project, onEdit, onDelete, deleteLoading }
     </>
   );
 }
-

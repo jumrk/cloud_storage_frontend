@@ -3,19 +3,15 @@ import React, { useState, useEffect } from "react";
 import { FiCopy, FiCheck, FiX } from "react-icons/fi";
 import shareService from "../services/shareService";
 import toast from "react-hot-toast";
-
 export default function ShareModal({ isOpen, onClose, item, onSuccess }) {
   const [canView, setCanView] = useState(true);
   const [canDownload, setCanDownload] = useState(false);
   const [loading, setLoading] = useState(false);
   const [shareUrl, setShareUrl] = useState("");
   const [copied, setCopied] = useState(false);
-
   useEffect(() => {
     if (isOpen && item) {
-      setCanView(
-        typeof item.canView === "boolean" ? item.canView : true
-      );
+      setCanView(typeof item.canView === "boolean" ? item.canView : true);
       setCanDownload(
         typeof item.canDownload === "boolean" ? item.canDownload : false
       );
@@ -23,10 +19,8 @@ export default function ShareModal({ isOpen, onClose, item, onSuccess }) {
       setCopied(false);
     }
   }, [isOpen, item]);
-
   const handleCreateShare = async () => {
     if (!item) return;
-
     setLoading(true);
     try {
       const response = await shareService.createOrUpdateShare({
@@ -35,7 +29,6 @@ export default function ShareModal({ isOpen, onClose, item, onSuccess }) {
         canView,
         canDownload,
       });
-
       if (response.data?.success) {
         setShareUrl(response.data.share.shareUrl);
         toast.success("Tạo link chia sẻ thành công!");
@@ -53,7 +46,6 @@ export default function ShareModal({ isOpen, onClose, item, onSuccess }) {
       setLoading(false);
     }
   };
-
   const handleCopyLink = async () => {
     if (!shareUrl) return;
     try {
@@ -65,9 +57,7 @@ export default function ShareModal({ isOpen, onClose, item, onSuccess }) {
       toast.error("Không thể copy link");
     }
   };
-
   if (!isOpen || !item) return null;
-
   const permissionOptions = [
     {
       id: "view-only",
@@ -91,7 +81,6 @@ export default function ShareModal({ isOpen, onClose, item, onSuccess }) {
       canDownload: true,
     },
   ];
-
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
       <div className="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-200 relative animate-fade-in">
@@ -102,7 +91,6 @@ export default function ShareModal({ isOpen, onClose, item, onSuccess }) {
         >
           <FiX size={24} />
         </button>
-
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-gray-800 mb-2">
             Chia sẻ {item.type === "folder" ? "thư mục" : "file"}
@@ -111,7 +99,6 @@ export default function ShareModal({ isOpen, onClose, item, onSuccess }) {
             <span className="font-semibold">{item.name}</span>
           </p>
         </div>
-
         <div className="mb-6">
           <label className="block text-sm font-semibold text-gray-700 mb-3">
             Chọn quyền chia sẻ:
@@ -152,7 +139,6 @@ export default function ShareModal({ isOpen, onClose, item, onSuccess }) {
             ))}
           </div>
         </div>
-
         {!shareUrl ? (
           <button
             onClick={handleCreateShare}
@@ -193,7 +179,6 @@ export default function ShareModal({ isOpen, onClose, item, onSuccess }) {
                 </button>
               </div>
             </div>
-
             <div className="flex gap-3">
               <button
                 onClick={() => {
@@ -218,4 +203,3 @@ export default function ShareModal({ isOpen, onClose, item, onSuccess }) {
     </div>
   );
 }
-
