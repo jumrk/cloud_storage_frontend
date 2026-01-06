@@ -8,12 +8,10 @@ import {
   FiUsers,
   FiLayers,
   FiCreditCard,
-  FiMessageCircle,
   FiFolder,
   FiSettings,
 } from "react-icons/fi";
 import SidebarAdmin from "@/shared/layout/SidebarAdmin";
-import useSocket from "@/shared/lib/useSocket";
 import { decodeTokenGetUser } from "@/shared/lib/jwt";
 import axiosClient from "@/shared/lib/axiosClient";
 import toast from "react-hot-toast";
@@ -22,7 +20,6 @@ export default function AdminLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [myId, setMyId] = useState(null);
   const [user, setUser] = useState(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
@@ -73,30 +70,6 @@ export default function AdminLayout({ children }) {
       });
   }, [router]);
 
-  const updateUnreadCount = useCallback(async () => {
-    try {
-      const res = await axiosClient.get("/api/message/conversations");
-      const count =
-        res?.data?.conversations?.reduce(
-          (sum, c) => sum + (c.unread ? 1 : 0),
-          0
-        ) ?? 0;
-      setUnreadCount(count);
-    } catch {}
-  }, []);
-
-  useSocket(
-    typeof window !== "undefined" ? localStorage.getItem("token") : "",
-    (msg) => {
-      if (msg && msg.to && myId && msg.to === myId && msg.from !== myId) {
-        updateUnreadCount();
-      }
-    }
-  );
-
-  useEffect(() => {
-    updateUnreadCount();
-  }, [updateUnreadCount]);
 
   const navItems = useMemo(
     () => [
@@ -137,21 +110,13 @@ export default function AdminLayout({ children }) {
         href: "/admin/projects",
       },
       {
-        key: "chat",
-        label: "Nhắn tin",
-        icon: <FiMessageCircle className="text-2xl" />,
-        href: "/admin/chat",
-        badge: unreadCount,
-        playSound: true,
-      },
-      {
         key: "settings",
         label: "Cài đặt",
         icon: <FiSettings className="text-2xl" />,
         href: "/admin/settings",
       },
     ],
-    [unreadCount]
+    []
   );
 
   const handleLogout = async () => {
