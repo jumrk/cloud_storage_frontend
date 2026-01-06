@@ -351,6 +351,8 @@ const useFileManagementPage = ({
             driveUrl: f.driveUrl,
             tempDownloadUrl: f.tempDownloadUrl,
             tempFileStatus: f.tempFileStatus,
+            driveUploadStatus: f.driveUploadStatus,
+            driveFileId: f.driveFileId,
             _id: f._id,
             originalName: f.originalName,
           }));
@@ -417,6 +419,8 @@ const useFileManagementPage = ({
           driveUrl: f.driveUrl,
           tempDownloadUrl: f.tempDownloadUrl,
           tempFileStatus: f.tempFileStatus,
+          driveUploadStatus: f.driveUploadStatus,
+          driveFileId: f.driveFileId,
           _id: f._id,
           originalName: f.originalName,
         }));
@@ -595,6 +599,9 @@ const useFileManagementPage = ({
       }
     }
   }, [data, currentFolderId]);
+
+  // Track which folders we've already restored uploads for
+  const hasRestoredUploadsRef = useRef(new Set());
 
   // Real-time updates via WebSocket
   useEffect(() => {
@@ -1488,6 +1495,58 @@ const useFileManagementPage = ({
     },
     [currentFolderId]
   );
+
+  // Restore upload status for files that are still uploading to Drive
+  // This handles the case when user reloads page while files are uploading
+  // Run after data is loaded (either from API or cache)
+  useEffect(() => {
+    // Only restore when we have data and haven't restored for this folder yet
+    const folderKey = currentFolderId || "root";
+    if (
+      !loading &&
+      data &&
+      data.length > 0 &&
+      startPollingFileStatus &&
+      !hasRestoredUploadsRef.current.has(folderKey)
+    ) {
+      // Mark this folder as restored
+      hasRestoredUploadsRef.current.add(folderKey);
+
+      // Find all files that are still uploading to Drive
+      const uploadingFiles = data.filter(
+        (item) =>
+          item.type === "file" &&
+          (item.driveUploadStatus === "pending" ||
+            item.driveUploadStatus === "uploading") &&
+          item.tempDownloadUrl
+      );
+
+      // Start polling for each uploading file
+      uploadingFiles.forEach((file) => {
+        // Extract uploadId from tempDownloadUrl (format: /api/download/temp/${uploadId})
+        const uploadIdMatch = file.tempDownloadUrl.match(
+          /\/api\/download\/temp\/(.+)/
+        );
+        if (uploadIdMatch && uploadIdMatch[1]) {
+          const uploadId = uploadIdMatch[1];
+          const fileId = file.id || file._id;
+
+          // Check if polling is already active for this file
+          if (!fileStatusPollers.current.has(fileId)) {
+            console.log(
+              `[Upload Recovery] Starting polling for file ${fileId} (uploadId: ${uploadId}) in folder ${folderKey}`
+            );
+            startPollingFileStatus(fileId, uploadId);
+          }
+        }
+      });
+    }
+  }, [loading, data, currentFolderId, startPollingFileStatus]);
+
+  // Clear restored flags when folder changes
+  useEffect(() => {
+    hasRestoredUploadsRef.current.clear();
+  }, [currentFolderId]);
 
   // Batch function to add multiple uploaded files at once
   const addUploadedFilesBatch = useCallback(
