@@ -2313,9 +2313,11 @@ const useFileManagementPage = ({
       // Check for files that are not ready (no temp file and no Drive file)
       const notReadyFiles = items.filter((item) => {
         if (item.type !== "file") return false;
+        // Allow download from temp even if Drive upload is still in progress
         const hasTemp = item.tempDownloadUrl && item.tempFileStatus === "completed";
+        const hasTempUploading = item.tempDownloadUrl && item.driveUploadStatus === "uploading";
         const hasDrive = item.driveFileId || item.driveUrl || item.url;
-        return !hasTemp && !hasDrive;
+        return !hasTemp && !hasTempUploading && !hasDrive;
       });
       
       if (notReadyFiles.length > 0) {
@@ -2336,6 +2338,16 @@ const useFileManagementPage = ({
 
         if (isTempApi(rawUrl)) {
           try {
+            // Check if file is still uploading to Drive
+            const isUploadingToDrive = item.driveUploadStatus === "uploading" ||
+                                     item.driveUploadStatus === "pending";
+
+            if (isUploadingToDrive) {
+              toast.info(`Đang tải xuống file "${item.name || item.originalName}" từ bộ nhớ tạm. File vẫn đang được upload lên Google Drive.`, {
+                duration: 3000,
+              });
+            }
+
             const res = await api.downloadInternal(rawUrl, tokenRef.current);
             const cd = res.headers?.["content-disposition"] || "";
             const fileNameHeader = res.headers?.["x-file-name"] || "";
@@ -2345,6 +2357,15 @@ const useFileManagementPage = ({
             const headerName = decodeURIComponent(m?.[1] || m?.[2] || fileNameHeader || "");
             const fileName =
               headerName || item?.name || item?.originalName || "download";
+
+            // Check upload status from headers
+            const driveUploadStatus = res.headers?.["x-drive-upload-status"];
+            const allowTempDownload = res.headers?.["x-allow-temp-download"];
+
+            if (driveUploadStatus === "uploading" && allowTempDownload) {
+              console.log(`[Download] File "${fileName}" downloaded from temp while Drive upload in progress`);
+            }
+
             const objectUrl = URL.createObjectURL(res.data);
             const a = document.createElement("a");
             a.href = objectUrl;
@@ -2353,10 +2374,12 @@ const useFileManagementPage = ({
             a.click();
             a.remove();
             URL.revokeObjectURL(objectUrl);
+
+            toast.success(`Đã tải xuống "${fileName}" thành công!`);
           } catch (error) {
             // Handle error from download API
             const errorMessage = error?.response?.data?.error || error?.message || "Lỗi tải xuống file";
-            toast.error(errorMessage);
+            toast.error(`Tải xuống thất bại: ${errorMessage}`);
           }
           continue;
         }

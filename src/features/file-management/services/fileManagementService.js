@@ -115,6 +115,9 @@ const FileManagementService = () => {
         signal: finalSignal, // Primary method for cancellation
         cancelToken: source.token, // Fallback for compatibility
         headers: authHeaders(token),
+        timeout: 300000, // 5 minutes timeout for large files
+        maxContentLength: Infinity, // Allow large files
+        maxBodyLength: Infinity, // Allow large files
         onDownloadProgress: (progressEvent) => {
           // Check if aborted before processing progress
           if (finalSignal?.aborted || source.token.reason) {

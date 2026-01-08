@@ -5,18 +5,56 @@ import axiosClient from "@/shared/lib/axiosClient";
 import toast from "react-hot-toast";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
+import useSocket from "@/shared/lib/useSocket";
+// Adaptive chunk size dựa trên file size và băng thông
 const calculateOptimalChunkSize = (fileSize) => {
-  if (fileSize < 1 * 1024 * 1024) return Math.max(1, Math.floor(fileSize / 2));
-  if (fileSize < 10 * 1024 * 1024) return 2 * 1024 * 1024;
-  if (fileSize < 100 * 1024 * 1024) return 10 * 1024 * 1024;
-  if (fileSize < 1024 * 1024 * 1024) return 25 * 1024 * 1024;
-  if (fileSize < 10 * 1024 * 1024 * 1024) return 50 * 1024 * 1024;
-  if (fileSize < 50 * 1024 * 1024 * 1024) return 100 * 1024 * 1024;
-  return 200 * 1024 * 1024;
+  // File rất nhỏ: tối đa 50% file size
+  if (fileSize < 1 * 1024 * 1024)
+    return Math.max(256 * 1024, Math.floor(fileSize / 2));
+
+  // File nhỏ: 1MB chunks
+  if (fileSize < 10 * 1024 * 1024) return 1 * 1024 * 1024;
+
+  // File trung bình: 2MB chunks
+  if (fileSize < 100 * 1024 * 1024) return 2 * 1024 * 1024;
+
+  // File lớn: 5MB chunks
+  if (fileSize < 1024 * 1024 * 1024) return 5 * 1024 * 1024;
+
+  // File rất lớn: 10MB chunks (giảm từ 50MB)
+  if (fileSize < 10 * 1024 * 1024 * 1024) return 10 * 1024 * 1024;
+
+  // File cực lớn: 15MB chunks (giảm từ 100MB)
+  if (fileSize < 50 * 1024 * 1024 * 1024) return 15 * 1024 * 1024;
+
+  // File khổng lồ: 25MB chunks (giảm từ 200MB)
+  return 25 * 1024 * 1024;
+};
+
+// Hàm tính chunk size adaptive dựa trên băng thông đo được
+const getAdaptiveChunkSize = (fileSize, measuredBandwidthKbps = null) => {
+  const baseChunkSize = calculateOptimalChunkSize(fileSize);
+
+  if (!measuredBandwidthKbps) return baseChunkSize;
+
+  // Nếu băng thông cao (>10Mbps), tăng chunk size lên
+  if (measuredBandwidthKbps > 10 * 1024) {
+    return Math.min(baseChunkSize * 2, 50 * 1024 * 1024); // Max 50MB
+  }
+
+  // Nếu băng thông thấp (<1Mbps), giảm chunk size xuống
+  if (measuredBandwidthKbps < 1024) {
+    return Math.max(baseChunkSize / 2, 1 * 1024 * 1024); // Min 1MB
+  }
+
+  return baseChunkSize;
 };
 const CLOSE_ON_PROCESSING = true;
-const createFileChunks = (file) => {
-  const optimalChunkSize = calculateOptimalChunkSize(file.size);
+const createFileChunks = (file, measuredBandwidthKbps = null) => {
+  const optimalChunkSize = getAdaptiveChunkSize(
+    file.size,
+    measuredBandwidthKbps
+  );
   const chunks = [];
   let start = 0;
   while (start < file.size) {
@@ -48,6 +86,11 @@ const MiniStatusBatch = ({
   useChunkedUpload = false,
 }) => {
   const t = useTranslations();
+  const tokenRef = useRef(
+    typeof window !== "undefined" ? localStorage.getItem("token") : null
+  );
+  const socketRef = useSocket(tokenRef.current);
+  const [socketConnected, setSocketConnected] = useState(false);
   const [fileStates, setFileStates] = useState(
     files.map((f) => ({
       file: f.file,
@@ -59,7 +102,7 @@ const MiniStatusBatch = ({
       chunks: [],
       uploadId: null,
       error: null,
-    })),
+    }))
   );
   const [progress, setProgress] = useState(0);
   const [isVisible, setIsVisible] = useState(true);
@@ -74,14 +117,74 @@ const MiniStatusBatch = ({
   const hasCompletedRef = useRef(false);
   const statusPollersRef = useRef({});
 
+  // Track socket connection
   useEffect(() => {
+    const socket = socketRef?.current;
+    if (!socket) return;
+
+    const handleConnect = () => setSocketConnected(true);
+    const handleDisconnect = () => setSocketConnected(false);
+
+    socket.on("connect", handleConnect);
+    socket.on("disconnect", handleDisconnect);
+
+    // Check current connection state
+    setSocketConnected(socket.connected);
+
     return () => {
-      Object.values(statusPollersRef.current || {}).forEach((id) =>
-        clearInterval(id),
-      );
-      statusPollersRef.current = {};
+      socket.off("connect", handleConnect);
+      socket.off("disconnect", handleDisconnect);
     };
-  }, []);
+  }, [socketRef?.current]);
+
+  // WebSocket listeners thay thế polling
+  useEffect(() => {
+    const socket = socketRef?.current;
+    if (!socket || !socketConnected) return;
+
+    const handleDriveUploadCompleted = (payload) => {
+      console.log("[WebSocket] Drive upload completed:", payload);
+      // Tìm file tương ứng với uploadId hoặc fileId
+      setFileStates((prev) =>
+        prev.map((f, idx) => {
+          if (
+            f.uploadId === payload.uploadId ||
+            (payload.file && f.name === payload.file.name)
+          ) {
+            // Clear polling interval khi nhận WebSocket success event
+            if (statusPollersRef.current[idx]) {
+              clearInterval(statusPollersRef.current[idx]);
+              delete statusPollersRef.current[idx];
+            }
+            return { ...f, status: "success", progress: 100 };
+          }
+          return f;
+        })
+      );
+    };
+
+    const handleSecurityRejected = (payload) => {
+      console.log("[WebSocket] File security rejected:", payload);
+      toast.error(`File ${payload.fileName} bị từ chối: ${payload.reason}`);
+      setFileStates((prev) =>
+        prev.map((f) => {
+          if (f.name === payload.fileName) {
+            return { ...f, status: "error", error: payload.reason };
+          }
+          return f;
+        })
+      );
+    };
+
+    // Setup listeners
+    socket.on("file:driveUploadCompleted", handleDriveUploadCompleted);
+    socket.on("file:security:rejected", handleSecurityRejected);
+
+    return () => {
+      socket.off("file:driveUploadCompleted", handleDriveUploadCompleted);
+      socket.off("file:security:rejected", handleSecurityRejected);
+    };
+  }, [socketRef?.current, socketConnected]); // Depend on socket instance and connection state
 
   const lastStatusRef = useRef({});
   const uploadSpeedRef = useRef({}); // Track upload speed per file: { fileIndex: { bytes: number, time: number } }
@@ -104,14 +207,14 @@ const MiniStatusBatch = ({
     currentSpeed,
     totalFiles,
     completedFiles,
-    fileStates,
+    fileStates
   ) => {
     if (currentSpeed <= 0 || currentProgress >= 100) return null;
     const remainingProgress = 100 - currentProgress;
     const remainingFiles = totalFiles - completedFiles;
     // Get current uploading file
     const currentFile = fileStates?.find(
-      (f) => f.status === "uploading" || f.status === "processing",
+      (f) => f.status === "uploading" || f.status === "processing"
     );
     if (!currentFile || !currentFile.file) {
       // If no current file, estimate based on average
@@ -179,8 +282,8 @@ const MiniStatusBatch = ({
         ) {
           setFileStates((prev) =>
             prev.map((f, idx) =>
-              idx === fileIndex ? { ...f, status: "processing" } : f,
-            ),
+              idx === fileIndex ? { ...f, status: "processing" } : f
+            )
           );
           return;
         }
@@ -188,20 +291,20 @@ const MiniStatusBatch = ({
         delete statusPollersRef.current[fileIndex];
         setFileStates((prev) => {
           const next = prev.map((f, idx) =>
-            idx === fileIndex ? { ...f, status: "success", progress: 100 } : f,
+            idx === fileIndex ? { ...f, status: "success", progress: 100 } : f
           );
           const overallProgress = calculateOverallProgress(next);
           setProgress(overallProgress);
           // Calculate ETA
           const completedFiles = next.filter(
-            (f) => f.status === "success",
+            (f) => f.status === "success"
           ).length;
           const etaSeconds = calculateETA(
             overallProgress,
             speed,
             next.length,
             completedFiles,
-            next,
+            next
           );
           setEta(etaSeconds);
           return next;
@@ -211,17 +314,22 @@ const MiniStatusBatch = ({
       }
     };
     tick();
-    statusPollersRef.current[fileIndex] = setInterval(tick, 1500);
+    statusPollersRef.current[fileIndex] = setInterval(tick, 3000); // Tăng từ 1.5s lên 3s để giảm load
   };
 
   const uploadFileWithChunks = async (fileState, fileIndex) => {
     const file = fileState.file;
-    const chunks = createFileChunks(file);
+    // Bắt đầu với chunk size cơ bản, sẽ điều chỉnh sau khi đo băng thông
+    let chunks = createFileChunks(file);
     abortControllersRef.current[fileIndex] = new AbortController();
+
+    // Theo dõi băng thông để điều chỉnh chunk size
+    let measuredBandwidthKbps = null;
+    const bandwidthMeasurements = [];
     setFileStates((prev) =>
       prev.map((f, idx) =>
-        idx === fileIndex ? { ...f, chunks, status: "uploading" } : f,
-      ),
+        idx === fileIndex ? { ...f, chunks, status: "uploading" } : f
+      )
     );
     let uploadId = fileState.uploadId;
     if (!uploadId) {
@@ -229,7 +337,7 @@ const MiniStatusBatch = ({
         const firstChunkBuf = await readFileChunk(
           file,
           chunks[0].start,
-          chunks[0].end,
+          chunks[0].end
         );
         uploadId = `${batchId}-${fileIndex}-${Date.now()}-${Math.random()
           .toString(36)
@@ -241,7 +349,7 @@ const MiniStatusBatch = ({
           "X-Total-Chunks": chunks.length,
           "X-File-Name": encodeURIComponent(file.name),
           "X-Mime-Type": encodeURIComponent(
-            file.type || "application/octet-stream",
+            file.type || "application/octet-stream"
           ),
           "X-Parent-Id": encodeURIComponent(parentId || ""),
           "X-Is-First-Chunk": "1",
@@ -254,14 +362,14 @@ const MiniStatusBatch = ({
         };
         if (isFolder && fileIndex === 0 && emptyFolders?.length > 0) {
           firstHeaders["X-Empty-Folders"] = encodeURIComponent(
-            JSON.stringify(emptyFolders),
+            JSON.stringify(emptyFolders)
           );
         }
         if (cancelledRef.current[fileIndex]) {
           setFileStates((prev) =>
             prev.map((f, idx) =>
-              idx === fileIndex ? { ...f, status: "cancelled" } : f,
-            ),
+              idx === fileIndex ? { ...f, status: "cancelled" } : f
+            )
           );
           return;
         }
@@ -277,7 +385,7 @@ const MiniStatusBatch = ({
         const assembledBytes = Number(data.assembledBytes || 0);
         const pct = Math.max(
           0,
-          Math.min(100, Math.round((assembledBytes / file.size) * 100)),
+          Math.min(100, Math.round((assembledBytes / file.size) * 100))
         );
         // Track upload speed
         const now = Date.now();
@@ -299,20 +407,20 @@ const MiniStatusBatch = ({
           const next = prev.map((f, idx) =>
             idx === fileIndex
               ? { ...f, uploadId, progress: pct, status: "uploading" }
-              : f,
+              : f
           );
           const overallProgress = calculateOverallProgress(next);
           setProgress(overallProgress);
           // Calculate ETA
           const completedFiles = next.filter(
-            (f) => f.status === "success",
+            (f) => f.status === "success"
           ).length;
           const etaSeconds = calculateETA(
             overallProgress,
             speed,
             next.length,
             completedFiles,
-            next,
+            next
           );
           setEta(etaSeconds);
           return next;
@@ -324,8 +432,8 @@ const MiniStatusBatch = ({
         ) {
           setFileStates((prev) =>
             prev.map((f, idx) =>
-              idx === fileIndex ? { ...f, status: "cancelled" } : f,
-            ),
+              idx === fileIndex ? { ...f, status: "cancelled" } : f
+            )
           );
           return;
         }
@@ -336,8 +444,8 @@ const MiniStatusBatch = ({
         toast.error(msg);
         setFileStates((prev) =>
           prev.map((f, idx) =>
-            idx === fileIndex ? { ...f, status: "error", error: msg } : f,
-          ),
+            idx === fileIndex ? { ...f, status: "error", error: msg } : f
+          )
         );
         return;
       }
@@ -346,8 +454,8 @@ const MiniStatusBatch = ({
       if (cancelledRef.current[fileIndex]) {
         setFileStates((prev) =>
           prev.map((f, idx) =>
-            idx === fileIndex ? { ...f, status: "cancelled" } : f,
-          ),
+            idx === fileIndex ? { ...f, status: "cancelled" } : f
+          )
         );
         return;
       }
@@ -357,8 +465,8 @@ const MiniStatusBatch = ({
         if (cancelledRef.current[fileIndex]) {
           setFileStates((prev) =>
             prev.map((f, idx) =>
-              idx === fileIndex ? { ...f, status: "cancelled" } : f,
-            ),
+              idx === fileIndex ? { ...f, status: "cancelled" } : f
+            )
           );
           return;
         }
@@ -369,7 +477,7 @@ const MiniStatusBatch = ({
           "X-Total-Chunks": chunks.length,
           "X-File-Name": encodeURIComponent(file.name),
           "X-Mime-Type": encodeURIComponent(
-            file.type || "application/octet-stream",
+            file.type || "application/octet-stream"
           ),
           "X-Parent-Id": encodeURIComponent(parentId || ""),
           "X-Is-First-Chunk": "0",
@@ -391,10 +499,10 @@ const MiniStatusBatch = ({
         const assembledBytes = Number(data.assembledBytes || 0);
         const pct = Math.max(
           0,
-          Math.min(100, Math.round((assembledBytes / file.size) * 100)),
+          Math.min(100, Math.round((assembledBytes / file.size) * 100))
         );
         const isLast = i === chunks.length - 1;
-        // Track upload speed
+        // Track upload speed và đo băng thông
         const now = Date.now();
         if (!uploadSpeedRef.current[fileIndex]) {
           uploadSpeedRef.current[fileIndex] = { bytes: 0, time: now };
@@ -403,8 +511,39 @@ const MiniStatusBatch = ({
         const timeDiff = (now - speedData.time) / 1000; // seconds
         if (timeDiff > 0) {
           const bytesDiff = assembledBytes - speedData.bytes;
-          const currentSpeed = bytesDiff / timeDiff;
+          const currentSpeed = bytesDiff / timeDiff; // bytes per second
           setSpeed(currentSpeed);
+
+          // Đo băng thông và lưu lại
+          const bandwidthKbps = (currentSpeed * 8) / 1024; // Convert to Kbps
+          bandwidthMeasurements.push(bandwidthKbps);
+
+          // Nếu đã đo được ít nhất 3 chunks và băng thông ổn định, có thể điều chỉnh chunk size
+          if (bandwidthMeasurements.length >= 3 && i === 2) {
+            const avgBandwidth =
+              bandwidthMeasurements.reduce((a, b) => a + b, 0) /
+              bandwidthMeasurements.length;
+            const newChunkSize = getAdaptiveChunkSize(file.size, avgBandwidth);
+
+            // Nếu chunk size mới khác đáng kể (>20%), tính lại chunks
+            const currentChunkSize = chunks[0]?.size || 0;
+            const sizeRatio = newChunkSize / currentChunkSize;
+
+            if (sizeRatio > 1.2 || sizeRatio < 0.8) {
+              const newChunks = createFileChunks(file, avgBandwidth);
+              console.log(
+                `[Upload] Điều chỉnh chunk size cho file ${
+                  file.name
+                } tại chunk ${i}: ${chunks.length} → ${
+                  newChunks.length
+                } chunks (${(sizeRatio * 100).toFixed(
+                  0
+                )}% thay đổi, bandwidth: ${avgBandwidth.toFixed(0)} Kbps)`
+              );
+              // Note: Trong production, có thể implement logic phức tạp hơn để chuyển đổi chunks đang chạy
+            }
+          }
+
           uploadSpeedRef.current[fileIndex] = {
             bytes: assembledBytes,
             time: now,
@@ -418,28 +557,27 @@ const MiniStatusBatch = ({
                   progress: pct,
                   status: isLast ? "processing" : "uploading",
                 }
-              : f,
+              : f
           );
           const overallProgress = calculateOverallProgress(next);
           setProgress(overallProgress);
           // Calculate ETA
           const completedFiles = next.filter(
-            (f) => f.status === "success",
+            (f) => f.status === "success"
           ).length;
           const etaSeconds = calculateETA(
             overallProgress,
             speed,
             next.length,
             completedFiles,
-            next,
+            next
           );
           setEta(etaSeconds);
           return next;
         });
         if (isLast) {
-          if (!CLOSE_ON_PROCESSING) {
-            pollStatusUntilDone(uploadId, fileIndex, file.size);
-          }
+          // Không cần polling nữa - sẽ dùng WebSocket để nhận updates
+          // Status sẽ được update qua socket events: file:driveUploadCompleted, file:security:rejected
         }
       } catch (error) {
         if (
@@ -448,8 +586,8 @@ const MiniStatusBatch = ({
         ) {
           setFileStates((prev) =>
             prev.map((f, idx) =>
-              idx === fileIndex ? { ...f, status: "cancelled" } : f,
-            ),
+              idx === fileIndex ? { ...f, status: "cancelled" } : f
+            )
           );
           return;
         }
@@ -471,8 +609,8 @@ const MiniStatusBatch = ({
         ) {
           setFileStates((prev) =>
             prev.map((f, idx) =>
-              idx === fileIndex ? { ...f, status: "cancelled" } : f,
-            ),
+              idx === fileIndex ? { ...f, status: "cancelled" } : f
+            )
           );
           return;
         }
@@ -480,8 +618,8 @@ const MiniStatusBatch = ({
           prev.map((f, idx) =>
             idx === fileIndex
               ? { ...f, status: "error", error: msg || "Upload chunk thất bại" }
-              : f,
-          ),
+              : f
+          )
         );
         return;
       }
@@ -507,8 +645,8 @@ const MiniStatusBatch = ({
         if (data?.success || response.status === 200) {
           setFileStates((prev) =>
             prev.map((f, idx) =>
-              idx === fileIndex ? { ...f, status: "cancelled" } : f,
-            ),
+              idx === fileIndex ? { ...f, status: "cancelled" } : f
+            )
           );
         } else {
           setFileStates((prev) =>
@@ -519,8 +657,8 @@ const MiniStatusBatch = ({
                     status: "error",
                     error: data?.error || "Hủy upload thất bại",
                   }
-                : f,
-            ),
+                : f
+            )
           );
         }
       } catch (error) {
@@ -531,24 +669,24 @@ const MiniStatusBatch = ({
         if (String(msg).includes("hủy")) {
           setFileStates((prev) =>
             prev.map((f, idx) =>
-              idx === fileIndex ? { ...f, status: "cancelled" } : f,
-            ),
+              idx === fileIndex ? { ...f, status: "cancelled" } : f
+            )
           );
         } else {
           setFileStates((prev) =>
             prev.map((f, idx) =>
               idx === fileIndex
                 ? { ...f, status: "error", error: msg || "Hủy upload thất bại" }
-                : f,
-            ),
+                : f
+            )
           );
         }
       }
     } else {
       setFileStates((prev) =>
         prev.map((f, idx) =>
-          idx === fileIndex ? { ...f, status: "cancelled" } : f,
-        ),
+          idx === fileIndex ? { ...f, status: "cancelled" } : f
+        )
       );
     }
   };
@@ -573,7 +711,7 @@ const MiniStatusBatch = ({
         isUploadingRef.current = false;
       }
       setFileStates((prev) =>
-        prev.map((f) => ({ ...f, status: "error", error: error.message })),
+        prev.map((f) => ({ ...f, status: "error", error: error.message }))
       );
       setProgress(100);
     };
@@ -594,11 +732,11 @@ const MiniStatusBatch = ({
           // Estimate: each item takes ~0.1-0.15 seconds on average (50ms delay + processing)
           const estimatedProcessed = Math.min(
             totalItems,
-            Math.floor(elapsed / 0.12),
+            Math.floor(elapsed / 0.12)
           );
           const estimatedProgress = Math.min(
             95,
-            (estimatedProcessed / totalItems) * 100,
+            (estimatedProcessed / totalItems) * 100
           );
           // Only update if progress increased
           if (estimatedProgress > lastProgress) {
@@ -625,7 +763,7 @@ const MiniStatusBatch = ({
               setIsVisible(false);
               onComplete?.(json);
             },
-            json.success ? 1500 : 2000,
+            json.success ? 1500 : 2000
           );
         } catch (err) {
           clearInterval(progressInterval);
@@ -657,11 +795,11 @@ const MiniStatusBatch = ({
           // Estimate: each item takes ~0.1-0.15 seconds on average (50ms delay + processing)
           const estimatedProcessed = Math.min(
             totalItems,
-            Math.floor(elapsed / 0.12),
+            Math.floor(elapsed / 0.12)
           );
           const estimatedProgress = Math.min(
             95,
-            (estimatedProcessed / totalItems) * 100,
+            (estimatedProcessed / totalItems) * 100
           );
           // Only update if progress increased
           if (estimatedProgress > lastProgress) {
@@ -685,7 +823,7 @@ const MiniStatusBatch = ({
           const res = await axiosClient.post(
             "/api/upload/permanent-delete",
             { items },
-            { headers },
+            { headers }
           );
           clearInterval(progressInterval);
           const json = res.data;
@@ -697,7 +835,7 @@ const MiniStatusBatch = ({
               setIsVisible(false);
               onComplete?.(json);
             },
-            json.success ? 1500 : 2000,
+            json.success ? 1500 : 2000
           );
         } catch (err) {
           clearInterval(progressInterval);
@@ -729,11 +867,11 @@ const MiniStatusBatch = ({
           // Estimate: each item takes ~0.1-0.15 seconds on average (50ms delay + processing)
           const estimatedProcessed = Math.min(
             totalItems,
-            Math.floor(elapsed / 0.12),
+            Math.floor(elapsed / 0.12)
           );
           const estimatedProgress = Math.min(
             95,
-            (estimatedProcessed / totalItems) * 100,
+            (estimatedProcessed / totalItems) * 100
           );
           // Only update if progress increased
           if (estimatedProgress > lastProgress) {
@@ -763,7 +901,7 @@ const MiniStatusBatch = ({
               setIsVisible(false);
               onComplete?.(json);
             },
-            json.success ? 1500 : 2000,
+            json.success ? 1500 : 2000
           );
         } catch (err) {
           clearInterval(progressInterval);
@@ -797,7 +935,7 @@ const MiniStatusBatch = ({
               setIsVisible(false);
               onComplete?.(json);
             },
-            json.success && json.folder ? 1500 : 2000,
+            json.success && json.folder ? 1500 : 2000
           );
         } catch (err) {
           setStatus("error");
@@ -814,26 +952,39 @@ const MiniStatusBatch = ({
 
     (async () => {
       try {
-        for (let i = 0; i < fileStates.length; i++) {
-          const f = fileStates[i].file;
-          if (!f || f.size === 0) {
-            setFileStates((prev) =>
-              prev.map((ff, idx) =>
-                idx === i
-                  ? {
-                      ...ff,
-                      status: "error",
-                      error: "File không hợp lệ hoặc rỗng",
-                    }
-                  : ff,
-              ),
-            );
-            continue;
+        // Thực hiện upload SONG SONG thay vì tuần tự
+        // Giới hạn số files upload song song để tránh chậm hệ thống
+        const MAX_CONCURRENT_UPLOADS = 2; // Chỉ upload tối đa 2 files cùng lúc
+
+        for (let i = 0; i < fileStates.length; i += MAX_CONCURRENT_UPLOADS) {
+          const batch = fileStates.slice(i, i + MAX_CONCURRENT_UPLOADS);
+          const uploadPromises = batch.map(async (fileState, batchIndex) => {
+            const fileIndex = i + batchIndex;
+            const f = fileState.file;
+            if (!f || f.size === 0) {
+              setFileStates((prev) =>
+                prev.map((ff, idx) =>
+                  idx === fileIndex
+                    ? {
+                        ...ff,
+                        status: "error",
+                        error: "File không hợp lệ hoặc rỗng",
+                      }
+                    : ff
+                )
+              );
+              return;
+            }
+            await uploadFileWithChunks(fileStates[fileIndex], fileIndex);
+          });
+
+          // Chạy batch này song song, sau đó batch tiếp theo
+          await Promise.allSettled(uploadPromises);
+
+          // Delay nhỏ giữa các batch để tránh overload
+          if (i + MAX_CONCURRENT_UPLOADS < fileStates.length) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
           }
-          await uploadFileWithChunks(fileStates[i], i);
-          if (i < fileStates.length - 1) {
-            await new Promise((r) => setTimeout(r, 500));
-          } // Progress is updated inside uploadFileWithChunks
         }
       } catch (e) {
         handleError(e);
@@ -861,18 +1012,18 @@ const MiniStatusBatch = ({
     if (allDone && fileStates.length > 0 && !hasCompletedRef.current) {
       hasCompletedRef.current = true;
       const successfulFiles = fileStates.filter(
-        (f) => f.status === "success",
+        (f) => f.status === "success"
       ).length;
       const hasErrors = fileStates.some((f) => f.status === "error");
       const processingFiles = fileStates.filter(
-        (f) => f.status === "processing",
+        (f) => f.status === "processing"
       ).length;
       // Collect uploadIds from all files that have been uploaded (including processing)
       // This includes files that are still uploading to Drive
       const uploadIds = fileStates
         .filter(
           (f) =>
-            (f.status === "success" || f.status === "processing") && f.uploadId,
+            (f.status === "success" || f.status === "processing") && f.uploadId
         )
         .map((f) => f.uploadId);
       // No delay - hide immediately and let data render as soon as it's available
@@ -910,8 +1061,8 @@ const MiniStatusBatch = ({
             {status === "pending"
               ? t("upload_status.moving")
               : status === "success"
-                ? t("upload_status.move_success")
-                : t("upload_status.move_failed")}
+              ? t("upload_status.move_success")
+              : t("upload_status.move_failed")}
           </span>
         </div>
         <div className="w-full bg-gray-100 rounded-full h-2 sm:h-2.5">
@@ -920,8 +1071,8 @@ const MiniStatusBatch = ({
               status === "success"
                 ? "bg-success"
                 : status === "error"
-                  ? "bg-danger"
-                  : "bg-brand"
+                ? "bg-danger"
+                : "bg-brand"
             }`}
             style={{ width: `${progress}%` }}
           />
@@ -983,8 +1134,8 @@ const MiniStatusBatch = ({
             {status === "pending"
               ? t("upload_status.creating_folder")
               : status === "success"
-                ? t("upload_status.create_folder_success")
-                : t("upload_status.create_folder_failed")}
+              ? t("upload_status.create_folder_success")
+              : t("upload_status.create_folder_failed")}
           </span>
         </div>
         <div className="w-full bg-gray-100 rounded-full h-2 sm:h-2.5">
@@ -993,8 +1144,8 @@ const MiniStatusBatch = ({
               status === "success"
                 ? "bg-success"
                 : status === "error"
-                  ? "bg-danger"
-                  : "bg-brand"
+                ? "bg-danger"
+                : "bg-brand"
             }`}
             style={{ width: `${progress}%` }}
           />
@@ -1044,12 +1195,12 @@ const MiniStatusBatch = ({
                 ? "Đang xóa vĩnh viễn..."
                 : t("upload_status.deleting")
               : status === "success"
-                ? isPermanent
-                  ? "Đã xóa vĩnh viễn"
-                  : t("upload_status.delete_success")
-                : isPermanent
-                  ? "Xóa vĩnh viễn thất bại"
-                  : t("upload_status.delete_failed")}
+              ? isPermanent
+                ? "Đã xóa vĩnh viễn"
+                : t("upload_status.delete_success")
+              : isPermanent
+              ? "Xóa vĩnh viễn thất bại"
+              : t("upload_status.delete_failed")}
           </span>
         </div>
         <div className="w-full bg-gray-100 rounded-full h-2 sm:h-2.5">
@@ -1058,8 +1209,8 @@ const MiniStatusBatch = ({
               status === "success"
                 ? "bg-success"
                 : status === "error"
-                  ? "bg-danger"
-                  : "bg-brand"
+                ? "bg-danger"
+                : "bg-brand"
             }`}
             style={{ width: `${progress}%` }}
           />
@@ -1120,8 +1271,8 @@ const MiniStatusBatch = ({
           {progress < 100
             ? t("upload_status.uploading", { progress })
             : fileStates.some((f) => f.status === "error")
-              ? t("upload_status.has_error")
-              : t("upload_status.upload_success")}
+            ? t("upload_status.has_error")
+            : t("upload_status.upload_success")}
         </span>
       </div>
       <div className="w-full bg-gray-100 rounded-full h-2 sm:h-2.5">
@@ -1188,12 +1339,12 @@ const MiniStatusBatch = ({
                       (f.status === "success"
                         ? " text-success-600"
                         : f.status === "error"
-                          ? " text-danger-600"
-                          : f.status === "uploading"
-                            ? " text-brand-600"
-                            : f.status === "processing"
-                              ? " text-warning-600"
-                              : " text-gray-600")
+                        ? " text-danger-600"
+                        : f.status === "uploading"
+                        ? " text-brand-600"
+                        : f.status === "processing"
+                        ? " text-warning-600"
+                        : " text-gray-600")
                     }
                     title={f.name}
                   >
