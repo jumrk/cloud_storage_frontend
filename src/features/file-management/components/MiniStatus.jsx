@@ -39,7 +39,13 @@ const getAdaptiveChunkSize = (fileSize, measuredBandwidthKbps = null) => {
 
   // Nếu băng thông cao (>10Mbps), tăng chunk size lên
   if (measuredBandwidthKbps > 10 * 1024) {
-    return Math.min(baseChunkSize * 2, 50 * 1024 * 1024); // Max 50MB
+    // Tăng max chunk size lên 150MB để tận dụng băng thông cao
+    return Math.min(baseChunkSize * 2, 150 * 1024 * 1024); // Max 150MB (tăng từ 50MB)
+  }
+  
+  // Nếu băng thông rất cao (>50Mbps), tăng chunk size nhiều hơn
+  if (measuredBandwidthKbps > 50 * 1024) {
+    return Math.min(baseChunkSize * 3, 200 * 1024 * 1024); // Max 200MB cho băng thông rất cao
   }
 
   // Nếu băng thông thấp (<1Mbps), giảm chunk size xuống
@@ -953,37 +959,37 @@ const MiniStatusBatch = ({
     (async () => {
       try {
         // Thực hiện upload SONG SONG thay vì tuần tự
-        // Giới hạn số files upload song song để tránh chậm hệ thống
-        const MAX_CONCURRENT_UPLOADS = 2; // Chỉ upload tối đa 2 files cùng lúc
+        // Tăng concurrent uploads để tận dụng băng thông và tài nguyên dư thừa
+        const MAX_CONCURRENT_UPLOADS = 5; // Tăng từ 2 lên 5 files cùng lúc
 
         for (let i = 0; i < fileStates.length; i += MAX_CONCURRENT_UPLOADS) {
           const batch = fileStates.slice(i, i + MAX_CONCURRENT_UPLOADS);
           const uploadPromises = batch.map(async (fileState, batchIndex) => {
             const fileIndex = i + batchIndex;
             const f = fileState.file;
-            if (!f || f.size === 0) {
-              setFileStates((prev) =>
-                prev.map((ff, idx) =>
+          if (!f || f.size === 0) {
+            setFileStates((prev) =>
+              prev.map((ff, idx) =>
                   idx === fileIndex
-                    ? {
-                        ...ff,
-                        status: "error",
-                        error: "File không hợp lệ hoặc rỗng",
-                      }
+                  ? {
+                      ...ff,
+                      status: "error",
+                      error: "File không hợp lệ hoặc rỗng",
+                    }
                     : ff
                 )
-              );
+            );
               return;
-            }
+          }
             await uploadFileWithChunks(fileStates[fileIndex], fileIndex);
           });
 
           // Chạy batch này song song, sau đó batch tiếp theo
           await Promise.allSettled(uploadPromises);
 
-          // Delay nhỏ giữa các batch để tránh overload
+          // Giảm delay giữa các batch vì có nhiều tài nguyên dư thừa
           if (i + MAX_CONCURRENT_UPLOADS < fileStates.length) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await new Promise(resolve => setTimeout(resolve, 200)); // Giảm từ 1s xuống 200ms
           }
         }
       } catch (e) {
@@ -1061,8 +1067,8 @@ const MiniStatusBatch = ({
             {status === "pending"
               ? t("upload_status.moving")
               : status === "success"
-              ? t("upload_status.move_success")
-              : t("upload_status.move_failed")}
+                ? t("upload_status.move_success")
+                : t("upload_status.move_failed")}
           </span>
         </div>
         <div className="w-full bg-gray-100 rounded-full h-2 sm:h-2.5">
@@ -1071,8 +1077,8 @@ const MiniStatusBatch = ({
               status === "success"
                 ? "bg-success"
                 : status === "error"
-                ? "bg-danger"
-                : "bg-brand"
+                  ? "bg-danger"
+                  : "bg-brand"
             }`}
             style={{ width: `${progress}%` }}
           />
@@ -1134,8 +1140,8 @@ const MiniStatusBatch = ({
             {status === "pending"
               ? t("upload_status.creating_folder")
               : status === "success"
-              ? t("upload_status.create_folder_success")
-              : t("upload_status.create_folder_failed")}
+                ? t("upload_status.create_folder_success")
+                : t("upload_status.create_folder_failed")}
           </span>
         </div>
         <div className="w-full bg-gray-100 rounded-full h-2 sm:h-2.5">
@@ -1144,8 +1150,8 @@ const MiniStatusBatch = ({
               status === "success"
                 ? "bg-success"
                 : status === "error"
-                ? "bg-danger"
-                : "bg-brand"
+                  ? "bg-danger"
+                  : "bg-brand"
             }`}
             style={{ width: `${progress}%` }}
           />
@@ -1195,12 +1201,12 @@ const MiniStatusBatch = ({
                 ? "Đang xóa vĩnh viễn..."
                 : t("upload_status.deleting")
               : status === "success"
-              ? isPermanent
-                ? "Đã xóa vĩnh viễn"
-                : t("upload_status.delete_success")
-              : isPermanent
-              ? "Xóa vĩnh viễn thất bại"
-              : t("upload_status.delete_failed")}
+                ? isPermanent
+                  ? "Đã xóa vĩnh viễn"
+                  : t("upload_status.delete_success")
+                : isPermanent
+                  ? "Xóa vĩnh viễn thất bại"
+                  : t("upload_status.delete_failed")}
           </span>
         </div>
         <div className="w-full bg-gray-100 rounded-full h-2 sm:h-2.5">
@@ -1209,8 +1215,8 @@ const MiniStatusBatch = ({
               status === "success"
                 ? "bg-success"
                 : status === "error"
-                ? "bg-danger"
-                : "bg-brand"
+                  ? "bg-danger"
+                  : "bg-brand"
             }`}
             style={{ width: `${progress}%` }}
           />
@@ -1271,8 +1277,8 @@ const MiniStatusBatch = ({
           {progress < 100
             ? t("upload_status.uploading", { progress })
             : fileStates.some((f) => f.status === "error")
-            ? t("upload_status.has_error")
-            : t("upload_status.upload_success")}
+              ? t("upload_status.has_error")
+              : t("upload_status.upload_success")}
         </span>
       </div>
       <div className="w-full bg-gray-100 rounded-full h-2 sm:h-2.5">
@@ -1339,12 +1345,12 @@ const MiniStatusBatch = ({
                       (f.status === "success"
                         ? " text-success-600"
                         : f.status === "error"
-                        ? " text-danger-600"
-                        : f.status === "uploading"
-                        ? " text-brand-600"
-                        : f.status === "processing"
-                        ? " text-warning-600"
-                        : " text-gray-600")
+                          ? " text-danger-600"
+                          : f.status === "uploading"
+                            ? " text-brand-600"
+                            : f.status === "processing"
+                              ? " text-warning-600"
+                              : " text-gray-600")
                     }
                     title={f.name}
                   >
