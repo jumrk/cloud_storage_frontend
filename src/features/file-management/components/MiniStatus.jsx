@@ -626,20 +626,11 @@ const MiniStatusBatch = ({
           2000 // Base delay 2 giây (2s, 4s, 8s)
         );
         
-        // Thêm delay nhỏ giữa các chunks khi upload nhiều files để tránh quá tải network
-        // Tính số files đang upload từ fileStates hiện tại
-        const currentUploadingFiles = fileStates.filter(f => 
-          f.status === "uploading" || f.status === "processing" || f.status === "pending"
-        ).length;
-        // Delay tăng theo số files đang upload để đảm bảo chunks được gửi đều đặn:
-        // - 1 file: không delay (gửi nhanh nhất)
-        // - 2-3 files: delay 100ms (đảm bảo backend xử lý kịp)
-        // - 4+ files: delay 200ms (tránh quá tải)
-        if (i < chunks.length - 1 && currentUploadingFiles > 1) {
-          const chunkDelay = currentUploadingFiles > 3 ? 200 : currentUploadingFiles > 1 ? 100 : 0;
-          if (chunkDelay > 0) {
-            await new Promise(resolve => setTimeout(resolve, chunkDelay));
-          }
+        // Vì upload tuần tự (chỉ 1 file tại một thời điểm), chỉ cần delay nhỏ giữa các chunks
+        // để đảm bảo backend xử lý kịp và tránh quá tải
+        if (i < chunks.length - 1) {
+          // Delay 50ms giữa các chunks (đủ để backend xử lý, không quá chậm)
+          await new Promise(resolve => setTimeout(resolve, 50));
         }
         const data = resp.data;
         if (resp.status !== 200 || !data.success) {
@@ -1102,45 +1093,69 @@ const MiniStatusBatch = ({
 
     (async () => {
       try {
-        // Thực hiện upload SONG SONG nhưng giới hạn để tránh quá tải
-        // Đồng bộ với backend CONCURRENCY = 5: frontend upload 2-3 files cùng lúc
-        // để đảm bảo backend có đủ capacity xử lý
-        const totalFiles = fileStates.length;
-        // Backend xử lý 5 jobs cùng lúc, frontend nên upload 2-3 files để:
-        // - Mỗi file có nhiều chunks → backend có đủ jobs để xử lý
-        // - Không quá tải network và backend
-        const MAX_CONCURRENT_UPLOADS = totalFiles > 5 ? 2 : totalFiles > 3 ? 2 : Math.min(3, totalFiles);
-
-        for (let i = 0; i < fileStates.length; i += MAX_CONCURRENT_UPLOADS) {
-          const batch = fileStates.slice(i, i + MAX_CONCURRENT_UPLOADS);
-          const uploadPromises = batch.map(async (fileState, batchIndex) => {
-            const fileIndex = i + batchIndex;
-            const f = fileState.file;
+        // Upload TUẦN TỰ (sequential) - đợi file đầu xong rồi mới upload file tiếp theo
+        // Điều này giúp tránh chunks bị mất khi upload nhiều files cùng lúc
+        for (let i = 0; i < fileStates.length; i++) {
+          const fileIndex = i;
+          const fileState = fileStates[fileIndex];
+          const f = fileState.file;
+          
           if (!f || f.size === 0) {
             setFileStates((prev) =>
               prev.map((ff, idx) =>
-                  idx === fileIndex
+                idx === fileIndex
                   ? {
                       ...ff,
                       status: "error",
                       error: "File không hợp lệ hoặc rỗng",
                     }
-                    : ff
-                )
+                  : ff
+              )
             );
-              return;
+            continue; // Bỏ qua file này, tiếp tục file tiếp theo
           }
-            await uploadFileWithChunks(fileStates[fileIndex], fileIndex);
-          });
 
-          // Chạy batch này song song, sau đó batch tiếp theo
-          await Promise.allSettled(uploadPromises);
+          // Upload file này và đợi hoàn thành upload lên temp (không đợi upload lên Drive)
+          await uploadFileWithChunks(fileState, fileIndex);
 
-          // Tăng delay giữa các batch khi upload nhiều files để tránh quá tải
-          // Delay đủ để backend xử lý chunks từ batch trước
-          if (i + MAX_CONCURRENT_UPLOADS < fileStates.length) {
-            const delay = totalFiles > 5 ? 1000 : 500; // Delay lâu hơn để backend xử lý
-            await new Promise(resolve => setTimeout(resolve, delay));
+          // Đợi một chút để state được update (setFileStates là async)
+          await new Promise(resolve => setTimeout(resolve, 200));
+
+          // Đợi file này hoàn thành upload lên temp (status = "processing")
+          // Không cần đợi upload lên Drive xong, chỉ cần upload lên temp xong là được
+          let fileCompleted = false;
+          let waitCount = 0;
+          const maxWait = 100; // Tối đa 10 giây đợi file hoàn thành upload lên temp (giảm từ 30s vì chỉ cần đợi status update)
+          
+          while (!fileCompleted && waitCount < maxWait) {
+            await new Promise(resolve => setTimeout(resolve, 100)); // Check mỗi 100ms
+            
+            // Lấy state mới nhất từ fileStatesRef (được sync từ fileStates)
+            const currentState = fileStatesRef.current[fileIndex];
+            // File được coi là "hoàn thành upload lên temp" khi:
+            // - status = "processing" (đã upload xong lên temp, đang upload lên Drive) ← ĐÂY LÀ MỤC TIÊU
+            // - status = "success" (đã upload xong cả temp và Drive) - cũng OK nhưng không cần đợi
+            // - status = "error" hoặc "cancelled" (có lỗi, không cần đợi)
+            if (
+              currentState?.status === "processing" ||
+              currentState?.status === "success" ||
+              currentState?.status === "error" ||
+              currentState?.status === "cancelled"
+            ) {
+              fileCompleted = true;
+              console.log(`[Upload] File ${i + 1}/${fileStates.length} đã hoàn thành upload lên temp (status: ${currentState?.status}), bắt đầu file tiếp theo...`);
+            }
+            
+            waitCount++;
+          }
+
+          if (!fileCompleted) {
+            console.warn(`[Upload] File ${i + 1}/${fileStates.length} chưa hoàn thành upload lên temp sau ${maxWait * 100}ms, tiếp tục file tiếp theo...`);
+          }
+
+          // Delay nhỏ trước khi bắt đầu file tiếp theo để backend xử lý hoàn toàn
+          if (i < fileStates.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 500)); // Delay 500ms giữa các files
           }
         }
       } catch (e) {
