@@ -272,6 +272,7 @@ const MiniStatusBatch = ({
 
   // Track chunks đã retry để tránh retry vô hạn
   const retriedChunksRef = useRef({});
+  const failedChunksRef = useRef({}); // Track chunks bị fail trong vòng lặp: { fileIndex: [chunkIndex1, chunkIndex2, ...] }
 
   const pollStatusUntilDone = (uploadId, fileIndex, fileSize) => {
     if (statusPollersRef.current[fileIndex]) {
@@ -301,10 +302,10 @@ const MiniStatusBatch = ({
           if (currentFileState && currentFileState.chunks && currentFileState.chunks.length > 0) {
             const chunks = currentFileState.chunks;
             const missingChunks = data.missingChunks.filter(chunkIdx => {
-              // Chỉ retry chunks chưa retry quá 3 lần
+              // ✅ Tăng retries từ 3 lên 10 để đảm bảo chunks bị mất được retry đủ lần
               const retryKey = `${uploadId}-${chunkIdx}`;
               const retryCount = retriedChunksRef.current[retryKey] || 0;
-              return retryCount < 3 && chunkIdx < chunks.length;
+              return retryCount < 10 && chunkIdx < chunks.length;
             });
             
             if (missingChunks.length > 0) {
@@ -569,6 +570,12 @@ const MiniStatusBatch = ({
         return;
       }
     }
+    
+    // Khởi tạo failed chunks array cho file này
+    if (!failedChunksRef.current[fileIndex]) {
+      failedChunksRef.current[fileIndex] = [];
+    }
+    
     for (let i = 1; i < chunks.length; i++) {
       if (cancelledRef.current[fileIndex]) {
         setFileStates((prev) =>
@@ -756,14 +763,91 @@ const MiniStatusBatch = ({
           );
           return;
         }
-        setFileStates((prev) =>
-          prev.map((f, idx) =>
-            idx === fileIndex
-              ? { ...f, status: "error", error: msg || "Upload chunk thất bại" }
-              : f
-          )
-        );
-        return;
+        
+        // ✅ FIX: Không return, mà track failed chunk và continue
+        // Điều này đảm bảo các chunks sau vẫn được gửi ngay cả khi một chunk fail
+        console.warn(`[Upload] Chunk ${i} fail (${msg || error.message}), tiếp tục chunks khác...`);
+        
+        // Track failed chunk để retry sau
+        if (!failedChunksRef.current[fileIndex]) {
+          failedChunksRef.current[fileIndex] = [];
+        }
+        if (!failedChunksRef.current[fileIndex].includes(i)) {
+          failedChunksRef.current[fileIndex].push(i);
+        }
+        
+        // Không set status = "error" để upload tiếp tục
+        // Chỉ log warning và continue
+        continue; // ← Tiếp tục vòng lặp, không dừng!
+      }
+    }
+    
+    // ✅ FIX: Sau khi gửi xong tất cả chunks, retry failed chunks
+    if (failedChunksRef.current[fileIndex]?.length > 0) {
+      console.log(`[Upload] Đã gửi xong tất cả chunks. Retry ${failedChunksRef.current[fileIndex].length} chunks bị fail...`);
+      
+      // Retry failed chunks với delay và retry nhiều lần hơn
+      const failedChunks = [...failedChunksRef.current[fileIndex]];
+      for (const chunkIdx of failedChunks) {
+        if (cancelledRef.current[fileIndex]) break;
+        
+        let retrySuccess = false;
+        for (let retryAttempt = 0; retryAttempt < 5; retryAttempt++) { // Tăng retries lên 5
+          try {
+            const ch = chunks[chunkIdx];
+            if (!ch) break;
+            
+            const buf = await readFileChunk(file, ch.start, ch.end);
+            const headers = {
+              "Content-Type": "application/octet-stream",
+              "X-Upload-Id": uploadId,
+              "X-Chunk-Index": chunkIdx,
+              "X-Total-Chunks": chunks.length,
+              "X-File-Name": encodeURIComponent(file.name),
+              "X-Mime-Type": encodeURIComponent(file.type || "application/octet-stream"),
+              "X-Parent-Id": encodeURIComponent(parentId || ""),
+              "X-Is-First-Chunk": "0",
+              "X-Is-Last-Chunk": chunkIdx === chunks.length - 1 ? "1" : "0",
+              "X-File-Size": file.size,
+              "X-Relative-Path": encodeURIComponent(fileState.relativePath || ""),
+              "X-Batch-Id": encodeURIComponent(batchId || ""),
+              "X-Chunk-Start": ch.start,
+              "X-Chunk-End": ch.end,
+            };
+            
+            const resp = await axiosClient.post("/api/upload", buf, {
+              headers,
+              signal: abortControllersRef.current[fileIndex]?.signal,
+              timeout: 300000, // 5 phút
+            });
+            
+            if (resp.status === 200 && resp.data?.success) {
+              console.log(`[Upload] Đã retry chunk ${chunkIdx} thành công (attempt ${retryAttempt + 1})`);
+              retrySuccess = true;
+              // Remove khỏi failed list
+              failedChunksRef.current[fileIndex] = failedChunksRef.current[fileIndex].filter(idx => idx !== chunkIdx);
+              break;
+            }
+          } catch (retryError) {
+            if (retryAttempt < 4) { // Chưa phải lần cuối
+              const delay = 2000 * Math.pow(2, retryAttempt); // Exponential backoff: 2s, 4s, 8s, 16s
+              console.log(`[Upload] Retry chunk ${chunkIdx} attempt ${retryAttempt + 1}/5 fail, đợi ${delay}ms...`);
+              await new Promise(resolve => setTimeout(resolve, delay));
+            } else {
+              console.warn(`[Upload] Chunk ${chunkIdx} vẫn fail sau 5 retries, bỏ qua. Backend sẽ retry qua polling.`);
+            }
+          }
+        }
+        
+        // Delay nhỏ giữa các failed chunks
+        if (chunkIdx !== failedChunks[failedChunks.length - 1]) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+      
+      // Nếu vẫn còn failed chunks, log warning (backend sẽ retry qua polling)
+      if (failedChunksRef.current[fileIndex]?.length > 0) {
+        console.warn(`[Upload] Vẫn còn ${failedChunksRef.current[fileIndex].length} chunks fail sau retry. Backend sẽ retry qua polling.`);
       }
     }
   };
