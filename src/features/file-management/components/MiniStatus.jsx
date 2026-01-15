@@ -122,6 +122,13 @@ const MiniStatusBatch = ({
   const isUploadingRef = useRef(false);
   const hasCompletedRef = useRef(false);
   const statusPollersRef = useRef({});
+  // Store file states ref để có thể access trong pollStatusUntilDone
+  const fileStatesRef = useRef(fileStates);
+
+  // Sync fileStatesRef mỗi khi fileStates thay đổi
+  useEffect(() => {
+    fileStatesRef.current = fileStates;
+  }, [fileStates]);
 
   // Track socket connection
   useEffect(() => {
@@ -263,11 +270,15 @@ const MiniStatusBatch = ({
     return `${gb.toFixed(2)} GB/s`;
   };
 
+  // Track chunks đã retry để tránh retry vô hạn
+  const retriedChunksRef = useRef({});
+
   const pollStatusUntilDone = (uploadId, fileIndex, fileSize) => {
     if (statusPollersRef.current[fileIndex]) {
       clearInterval(statusPollersRef.current[fileIndex]);
       delete statusPollersRef.current[fileIndex];
     }
+    
     const tick = async () => {
       try {
         const res = await axiosClient.get("/api/upload/status", {
@@ -282,6 +293,80 @@ const MiniStatusBatch = ({
           drivePct: data.drivePct,
           state: data.state,
         };
+        
+        // Retry missing chunks nếu có
+        if (data.missingChunks && Array.isArray(data.missingChunks) && data.missingChunks.length > 0) {
+          // Lấy file state từ ref (được update mỗi khi fileStates thay đổi)
+          const currentFileState = fileStatesRef.current[fileIndex];
+          if (currentFileState && currentFileState.chunks && currentFileState.chunks.length > 0) {
+            const chunks = currentFileState.chunks;
+            const missingChunks = data.missingChunks.filter(chunkIdx => {
+              // Chỉ retry chunks chưa retry quá 3 lần
+              const retryKey = `${uploadId}-${chunkIdx}`;
+              const retryCount = retriedChunksRef.current[retryKey] || 0;
+              return retryCount < 3 && chunkIdx < chunks.length;
+            });
+            
+            if (missingChunks.length > 0) {
+              console.log(`[Upload] Phát hiện ${missingChunks.length} chunks bị mất, đang retry...`, missingChunks.slice(0, 10));
+              
+              // Retry missing chunks (song song nhưng có giới hạn)
+              const maxConcurrentRetries = 3; // Tối đa 3 chunks retry cùng lúc
+              (async () => {
+                for (let i = 0; i < missingChunks.length; i += maxConcurrentRetries) {
+                  const batch = missingChunks.slice(i, i + maxConcurrentRetries);
+                  await Promise.allSettled(
+                    batch.map(async (chunkIdx) => {
+                      const retryKey = `${uploadId}-${chunkIdx}`;
+                      retriedChunksRef.current[retryKey] = (retriedChunksRef.current[retryKey] || 0) + 1;
+                      
+                      try {
+                        const ch = chunks[chunkIdx];
+                        if (!ch) return;
+                        
+                        const buf = await readFileChunk(currentFileState.file, ch.start, ch.end);
+                        const headers = {
+                          "Content-Type": "application/octet-stream",
+                          "X-Upload-Id": uploadId,
+                          "X-Chunk-Index": chunkIdx,
+                          "X-Total-Chunks": chunks.length,
+                          "X-File-Name": encodeURIComponent(currentFileState.file.name),
+                          "X-Mime-Type": encodeURIComponent(
+                            currentFileState.file.type || "application/octet-stream"
+                          ),
+                          "X-Parent-Id": encodeURIComponent(parentId || ""),
+                          "X-Is-First-Chunk": "0",
+                          "X-Is-Last-Chunk": chunkIdx === chunks.length - 1 ? "1" : "0",
+                          "X-File-Size": currentFileState.file.size,
+                          "X-Relative-Path": encodeURIComponent(currentFileState.relativePath || ""),
+                          "X-Batch-Id": encodeURIComponent(batchId || ""),
+                          "X-Chunk-Start": ch.start,
+                          "X-Chunk-End": ch.end,
+                        };
+                        
+                        await axiosClient.post("/api/upload", buf, {
+                          headers,
+                          signal: abortControllersRef.current[fileIndex]?.signal,
+                          timeout: 300000, // 5 phút
+                        });
+                        
+                        console.log(`[Upload] Đã retry chunk ${chunkIdx} thành công`);
+                      } catch (error) {
+                        console.warn(`[Upload] Retry chunk ${chunkIdx} thất bại:`, error.message);
+                      }
+                    })
+                  );
+                  
+                  // Delay nhỏ giữa các batch retry
+                  if (i + maxConcurrentRetries < missingChunks.length) {
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                  }
+                }
+              })();
+            }
+          }
+        }
+        
         if (
           Number(data.nextDriveOffset) < Number(fileSize) &&
           data.state !== "COMPLETED"
