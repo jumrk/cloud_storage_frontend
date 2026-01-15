@@ -626,11 +626,12 @@ const MiniStatusBatch = ({
           2000 // Base delay 2 giây (2s, 4s, 8s)
         );
         
-        // Vì upload tuần tự (chỉ 1 file tại một thời điểm), chỉ cần delay nhỏ giữa các chunks
-        // để đảm bảo backend xử lý kịp và tránh quá tải
+        // Delay giữa các chunks để tránh conflict khi có nhiều tabs upload cùng lúc
+        // Tăng delay từ 50ms lên 100ms để backend xử lý tốt hơn khi có concurrent uploads
         if (i < chunks.length - 1) {
-          // Delay 50ms giữa các chunks (đủ để backend xử lý, không quá chậm)
-          await new Promise(resolve => setTimeout(resolve, 50));
+          // Delay 100ms giữa các chunks (tăng từ 50ms để tránh conflict khi có nhiều tabs)
+          // Điều này giúp backend xử lý chunks từ nhiều uploads cùng lúc tốt hơn
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
         const data = resp.data;
         if (resp.status !== 200 || !data.success) {
@@ -1153,9 +1154,10 @@ const MiniStatusBatch = ({
             console.warn(`[Upload] File ${i + 1}/${fileStates.length} chưa hoàn thành upload lên temp sau ${maxWait * 100}ms, tiếp tục file tiếp theo...`);
           }
 
-          // Delay nhỏ trước khi bắt đầu file tiếp theo để backend xử lý hoàn toàn
+          // Delay trước khi bắt đầu file tiếp theo để backend xử lý hoàn toàn
+          // Tăng delay từ 500ms lên 1000ms (1 giây) để tránh conflict khi có nhiều tabs upload cùng lúc
           if (i < fileStates.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 500)); // Delay 500ms giữa các files
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Delay 1 giây giữa các files
           }
         }
       } catch (e) {
