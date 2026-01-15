@@ -3,6 +3,7 @@ import { getFileIcon } from "@/shared/utils/getFileIcon";
 import { FiEdit2, FiCheck, FiX, FiShare2, FiLock } from "react-icons/fi";
 import { FaStar, FaRegStar } from "react-icons/fa";
 import Image from "next/image";
+import axiosClient from "@/shared/lib/axiosClient";
 function renderDragPreviewHTML(draggedItems) {
   if (!draggedItems || draggedItems.length === 0) return "";
   const isMulti = draggedItems.length > 1;
@@ -60,6 +61,8 @@ function Card_file({
         navigator.userAgent,
       ));
   const [copied, setCopied] = React.useState(false);
+  const [drivePct, setDrivePct] = React.useState(null);
+  const statusPollerRef = React.useRef(null);
   
   // Check if file is uploading
   const uploading = isFileUploading ? isFileUploading(data) : (
@@ -69,6 +72,66 @@ function Card_file({
       (!data.driveFileId && (data.tempDownloadUrl || data.tempFilePath))
     )
   );
+
+  // Extract uploadId from tempDownloadUrl if available
+  const extractUploadId = React.useCallback(() => {
+    if (data.tempDownloadUrl) {
+      // Format: /api/download/temp/{uploadId}
+      const match = data.tempDownloadUrl.match(/\/temp\/([^/?]+)/);
+      if (match) return match[1];
+    }
+    // Try to get from data.uploadId if available
+    if (data.uploadId) return data.uploadId;
+    return null;
+  }, [data.tempDownloadUrl, data.uploadId]);
+
+  // Poll upload status to get Drive progress
+  React.useEffect(() => {
+    if (!uploading || isFolder) {
+      if (statusPollerRef.current) {
+        clearInterval(statusPollerRef.current);
+        statusPollerRef.current = null;
+      }
+      setDrivePct(null);
+      return;
+    }
+
+    const uploadId = extractUploadId();
+    if (!uploadId) return;
+
+    const pollStatus = async () => {
+      try {
+        const res = await axiosClient.get("/api/upload/status", {
+          params: { uploadId },
+        });
+        const statusData = res.data;
+        if (statusData?.success && statusData.drivePct != null) {
+          setDrivePct(statusData.drivePct);
+          // Stop polling if completed
+          if (statusData.state === "COMPLETED" || statusData.drivePct >= 100) {
+            if (statusPollerRef.current) {
+              clearInterval(statusPollerRef.current);
+              statusPollerRef.current = null;
+            }
+          }
+        }
+      } catch (e) {
+        // Ignore errors, will retry next interval
+        console.log("[CardFile] Status poll error:", e?.message);
+      }
+    };
+
+    // Poll immediately, then every 3 seconds
+    pollStatus();
+    statusPollerRef.current = setInterval(pollStatus, 3000);
+
+    return () => {
+      if (statusPollerRef.current) {
+        clearInterval(statusPollerRef.current);
+        statusPollerRef.current = null;
+      }
+    };
+  }, [uploading, isFolder, extractUploadId]);
 
   // Tách tên và đuôi file
   function splitFileName(name) {
@@ -382,6 +445,11 @@ function Card_file({
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
                 </span>
                 Đang upload
+                {drivePct != null && (
+                  <span className="ml-1 text-gray-600">
+                    ({drivePct}%)
+                  </span>
+                )}
               </span>
             )}
             {isMobile && (

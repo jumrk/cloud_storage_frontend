@@ -11,6 +11,7 @@ import {
 import { FaStar, FaRegStar } from "react-icons/fa";
 import EmptyState from "@/shared/ui/EmptyState";
 import Image from "next/image";
+import axiosClient from "@/shared/lib/axiosClient";
 function renderDragPreviewHTML(draggedItems) {
   if (!draggedItems || draggedItems.length === 0) return "";
   const isMulti = draggedItems.length > 1;
@@ -75,6 +76,88 @@ const Table = ({
   const [resizingColumn, setResizingColumn] = useState(null);
   const [resizeStartX, setResizeStartX] = useState(0);
   const [resizeStartWidth, setResizeStartWidth] = useState(0);
+  
+  // Track Drive progress for each file
+  const [driveProgressMap, setDriveProgressMap] = useState({});
+  const statusPollersRef = useRef({});
+  
+  // Extract uploadId from tempDownloadUrl
+  const extractUploadId = (fileData) => {
+    if (fileData.tempDownloadUrl) {
+      const match = fileData.tempDownloadUrl.match(/\/temp\/([^/?]+)/);
+      if (match) return match[1];
+    }
+    if (fileData.uploadId) return fileData.uploadId;
+    return null;
+  };
+  
+  // Poll status for uploading files
+  useEffect(() => {
+    const uploadingFiles = sortedData.filter((item) => 
+      item.type === "file" && (
+        item.driveUploadStatus === "uploading" || 
+        item.driveUploadStatus === "pending" ||
+        (!item.driveFileId && (item.tempDownloadUrl || item.tempFilePath))
+      )
+    );
+    
+    uploadingFiles.forEach((file) => {
+      const fileId = file.id || file._id;
+      const uploadId = extractUploadId(file);
+      
+      if (!uploadId || statusPollersRef.current[fileId]) return;
+      
+      const pollStatus = async () => {
+        try {
+          const res = await axiosClient.get("/api/upload/status", {
+            params: { uploadId },
+          });
+          const statusData = res.data;
+          if (statusData?.success && statusData.drivePct != null) {
+            setDriveProgressMap((prev) => ({
+              ...prev,
+              [fileId]: statusData.drivePct,
+            }));
+            // Stop polling if completed
+            if (statusData.state === "COMPLETED" || statusData.drivePct >= 100) {
+              if (statusPollersRef.current[fileId]) {
+                clearInterval(statusPollersRef.current[fileId]);
+                delete statusPollersRef.current[fileId];
+              }
+            }
+          }
+        } catch (e) {
+          // Ignore errors
+        }
+      };
+      
+      // Poll immediately, then every 3 seconds
+      pollStatus();
+      statusPollersRef.current[fileId] = setInterval(pollStatus, 3000);
+    });
+    
+    // Cleanup: stop polling for files that are no longer uploading
+    Object.keys(statusPollersRef.current).forEach((fileId) => {
+      const stillUploading = uploadingFiles.find((f) => (f.id || f._id) === fileId);
+      if (!stillUploading) {
+        clearInterval(statusPollersRef.current[fileId]);
+        delete statusPollersRef.current[fileId];
+        setDriveProgressMap((prev) => {
+          const next = { ...prev };
+          delete next[fileId];
+          return next;
+        });
+      }
+    });
+    
+    return () => {
+      // Cleanup on unmount
+      Object.values(statusPollersRef.current).forEach((interval) => {
+        clearInterval(interval);
+      });
+      statusPollersRef.current = {};
+    };
+  }, [sortedData]);
 
   // Xóa state draggedItem local
   // const [draggedItem, setDraggedItem] = useState(null);
@@ -695,6 +778,11 @@ const Table = ({
                               <span className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full flex-shrink-0">
                                 <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
                                 Đang upload
+                                {driveProgressMap[value.id || value._id] != null && (
+                                  <span className="ml-1 text-gray-600">
+                                    ({driveProgressMap[value.id || value._id]}%)
+                                  </span>
+                                )}
                               </span>
                             )}
                           </div>

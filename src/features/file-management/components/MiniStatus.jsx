@@ -323,6 +323,25 @@ const MiniStatusBatch = ({
     statusPollersRef.current[fileIndex] = setInterval(tick, 3000); // Tăng từ 1.5s lên 3s để giảm load
   };
 
+  // Helper function để retry với exponential backoff
+  const retryWithBackoff = async (fn, maxRetries = 3, baseDelay = 1000) => {
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        return await fn();
+      } catch (error) {
+        const isLastAttempt = attempt === maxRetries - 1;
+        if (isLastAttempt) {
+          throw error; // Throw error ở lần retry cuối
+        }
+        
+        // Exponential backoff: 1s, 2s, 4s, ...
+        const delay = baseDelay * Math.pow(2, attempt);
+        console.log(`[Upload] Retry attempt ${attempt + 1}/${maxRetries} sau ${delay}ms...`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+  };
+
   const uploadFileWithChunks = async (fileState, fileIndex) => {
     const file = fileState.file;
     // Bắt đầu với chunk size cơ bản, sẽ điều chỉnh sau khi đo băng thông
@@ -379,10 +398,19 @@ const MiniStatusBatch = ({
           );
           return;
         }
-        const resp = await axiosClient.post("/api/upload", firstChunkBuf, {
-          headers: firstHeaders,
-          signal: abortControllersRef.current[fileIndex]?.signal,
-        });
+        // Tăng timeout lên 5 phút (300000ms) cho mạng chậm (77-242 KB/s)
+        // Retry với exponential backoff cho chunk đầu tiên
+        const resp = await retryWithBackoff(
+          async () => {
+            return await axiosClient.post("/api/upload", firstChunkBuf, {
+              headers: firstHeaders,
+              signal: abortControllersRef.current[fileIndex]?.signal,
+              timeout: 300000, // 5 phút timeout cho chunk đầu tiên
+            });
+          },
+          3, // Max 3 retries
+          2000 // Base delay 2 giây
+        );
         const data = resp.data;
         if (resp.status !== 200 || !data.success) {
           toast.error(data.error || "Lỗi upload");
@@ -494,10 +522,40 @@ const MiniStatusBatch = ({
           "X-Chunk-Start": ch.start,
           "X-Chunk-End": ch.end,
         };
-        const resp = await axiosClient.post("/api/upload", buf, {
-          headers,
-          signal: abortControllersRef.current[fileIndex]?.signal,
-        });
+        // Tăng timeout lên 5 phút (300000ms) cho mạng chậm (77-242 KB/s)
+        // Tính timeout dựa trên chunk size: ít nhất 5 phút, hoặc 2x thời gian ước tính
+        const chunkSizeMB = (ch.end - ch.start) / (1024 * 1024);
+        const estimatedTimeMs = (chunkSizeMB / 0.242) * 1000 * 2; // 2x thời gian ước tính với 242 KB/s
+        const chunkTimeout = Math.max(300000, estimatedTimeMs); // Tối thiểu 5 phút
+        
+        // Retry với exponential backoff cho chunks bị lỗi (network errors, timeouts)
+        const resp = await retryWithBackoff(
+          async () => {
+            return await axiosClient.post("/api/upload", buf, {
+              headers,
+              signal: abortControllersRef.current[fileIndex]?.signal,
+              timeout: chunkTimeout,
+            });
+          },
+          3, // Max 3 retries
+          2000 // Base delay 2 giây (2s, 4s, 8s)
+        );
+        
+        // Thêm delay nhỏ giữa các chunks khi upload nhiều files để tránh quá tải network
+        // Tính số files đang upload từ fileStates hiện tại
+        const currentUploadingFiles = fileStates.filter(f => 
+          f.status === "uploading" || f.status === "processing" || f.status === "pending"
+        ).length;
+        // Delay tăng theo số files đang upload để đảm bảo chunks được gửi đều đặn:
+        // - 1 file: không delay (gửi nhanh nhất)
+        // - 2-3 files: delay 100ms (đảm bảo backend xử lý kịp)
+        // - 4+ files: delay 200ms (tránh quá tải)
+        if (i < chunks.length - 1 && currentUploadingFiles > 1) {
+          const chunkDelay = currentUploadingFiles > 3 ? 200 : currentUploadingFiles > 1 ? 100 : 0;
+          if (chunkDelay > 0) {
+            await new Promise(resolve => setTimeout(resolve, chunkDelay));
+          }
+        }
         const data = resp.data;
         if (resp.status !== 200 || !data.success) {
           throw new Error(data.error || `Upload chunk ${i} thất bại`);
@@ -582,8 +640,9 @@ const MiniStatusBatch = ({
           return next;
         });
         if (isLast) {
-          // Không cần polling nữa - sẽ dùng WebSocket để nhận updates
-          // Status sẽ được update qua socket events: file:driveUploadCompleted, file:security:rejected
+          // Bắt đầu polling như fallback nếu WebSocket event không đến
+          // WebSocket event vẫn là primary method, nhưng polling đảm bảo không bị treo
+          pollStatusUntilDone(uploadId, fileIndex, file.size);
         }
       } catch (error) {
         if (
@@ -958,9 +1017,14 @@ const MiniStatusBatch = ({
 
     (async () => {
       try {
-        // Thực hiện upload SONG SONG thay vì tuần tự
-        // Tăng concurrent uploads để tận dụng băng thông và tài nguyên dư thừa
-        const MAX_CONCURRENT_UPLOADS = 5; // Tăng từ 2 lên 5 files cùng lúc
+        // Thực hiện upload SONG SONG nhưng giới hạn để tránh quá tải
+        // Đồng bộ với backend CONCURRENCY = 5: frontend upload 2-3 files cùng lúc
+        // để đảm bảo backend có đủ capacity xử lý
+        const totalFiles = fileStates.length;
+        // Backend xử lý 5 jobs cùng lúc, frontend nên upload 2-3 files để:
+        // - Mỗi file có nhiều chunks → backend có đủ jobs để xử lý
+        // - Không quá tải network và backend
+        const MAX_CONCURRENT_UPLOADS = totalFiles > 5 ? 2 : totalFiles > 3 ? 2 : Math.min(3, totalFiles);
 
         for (let i = 0; i < fileStates.length; i += MAX_CONCURRENT_UPLOADS) {
           const batch = fileStates.slice(i, i + MAX_CONCURRENT_UPLOADS);
@@ -987,9 +1051,11 @@ const MiniStatusBatch = ({
           // Chạy batch này song song, sau đó batch tiếp theo
           await Promise.allSettled(uploadPromises);
 
-          // Giảm delay giữa các batch vì có nhiều tài nguyên dư thừa
+          // Tăng delay giữa các batch khi upload nhiều files để tránh quá tải
+          // Delay đủ để backend xử lý chunks từ batch trước
           if (i + MAX_CONCURRENT_UPLOADS < fileStates.length) {
-            await new Promise(resolve => setTimeout(resolve, 200)); // Giảm từ 1s xuống 200ms
+            const delay = totalFiles > 5 ? 1000 : 500; // Delay lâu hơn để backend xử lý
+            await new Promise(resolve => setTimeout(resolve, delay));
           }
         }
       } catch (e) {
