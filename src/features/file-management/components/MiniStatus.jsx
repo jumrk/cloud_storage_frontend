@@ -489,10 +489,10 @@ const MiniStatusBatch = ({
         const resp = await retryWithBackoff(
           async () => {
             return await axiosClient.post("/api/upload", firstChunkBuf, {
-              headers: firstHeaders,
-              signal: abortControllersRef.current[fileIndex]?.signal,
+          headers: firstHeaders,
+          signal: abortControllersRef.current[fileIndex]?.signal,
               timeout: 300000, // 5 phút timeout cho chunk đầu tiên
-            });
+        });
           },
           3, // Max 3 retries
           2000 // Base delay 2 giây
@@ -624,10 +624,10 @@ const MiniStatusBatch = ({
         const resp = await retryWithBackoff(
           async () => {
             return await axiosClient.post("/api/upload", buf, {
-              headers,
-              signal: abortControllersRef.current[fileIndex]?.signal,
+          headers,
+          signal: abortControllersRef.current[fileIndex]?.signal,
               timeout: chunkTimeout,
-            });
+        });
           },
           3, // Max 3 retries
           2000 // Base delay 2 giây (2s, 4s, 8s)
@@ -726,7 +726,7 @@ const MiniStatusBatch = ({
         if (isLast) {
           // Bắt đầu polling như fallback nếu WebSocket event không đến
           // WebSocket event vẫn là primary method, nhưng polling đảm bảo không bị treo
-          pollStatusUntilDone(uploadId, fileIndex, file.size);
+            pollStatusUntilDone(uploadId, fileIndex, file.size);
         }
       } catch (error) {
         if (

@@ -81,6 +81,39 @@ const Table = ({
   const [driveProgressMap, setDriveProgressMap] = useState({});
   const statusPollersRef = useRef({});
   
+  // Sort data dựa trên sortColumn và sortDirection
+  const sortedData = useMemo(() => {
+    if (!sortColumn) return data;
+    const sorted = [...data];
+    const direction = sortDirection === "asc" ? 1 : -1;
+    sorted.sort((a, b) => {
+      switch (sortColumn) {
+        case "name":
+          const nameA = (a.name || "").toLowerCase();
+          const nameB = (b.name || "").toLowerCase();
+          return (
+            nameA.localeCompare(nameB, undefined, { sensitivity: "base" }) *
+            direction
+          );
+        case "size":
+          const sizeA = a.size || 0;
+          const sizeB = b.size || 0;
+          return (sizeA - sizeB) * direction;
+        case "date":
+          const dateA = new Date(a.date || a.createdAt || 0).getTime();
+          const dateB = new Date(b.date || b.createdAt || 0).getTime();
+          return (dateA - dateB) * direction;
+        case "fileCount":
+          const countA = a.fileCount || 0;
+          const countB = b.fileCount || 0;
+          return (countA - countB) * direction;
+        default:
+          return 0;
+      }
+    });
+    return sorted;
+  }, [data, sortColumn, sortDirection]);
+  
   // Extract uploadId from tempDownloadUrl
   const extractUploadId = (fileData) => {
     if (fileData.tempDownloadUrl) {
@@ -370,39 +403,6 @@ const Table = ({
       clearTimeout(timeoutId);
     };
   }, [data, columnWidths]);
-
-  // Sort data dựa trên sortColumn và sortDirection
-  const sortedData = useMemo(() => {
-    if (!sortColumn) return data;
-    const sorted = [...data];
-    const direction = sortDirection === "asc" ? 1 : -1;
-    sorted.sort((a, b) => {
-      switch (sortColumn) {
-        case "name":
-          const nameA = (a.name || "").toLowerCase();
-          const nameB = (b.name || "").toLowerCase();
-          return (
-            nameA.localeCompare(nameB, undefined, { sensitivity: "base" }) *
-            direction
-          );
-        case "size":
-          const sizeA = a.size || 0;
-          const sizeB = b.size || 0;
-          return (sizeA - sizeB) * direction;
-        case "date":
-          const dateA = new Date(a.date || a.createdAt || 0).getTime();
-          const dateB = new Date(b.date || b.createdAt || 0).getTime();
-          return (dateA - dateB) * direction;
-        case "fileCount":
-          const countA = a.fileCount || 0;
-          const countB = b.fileCount || 0;
-          return (countA - countB) * direction;
-        default:
-          return 0;
-      }
-    });
-    return sorted;
-  }, [data, sortColumn, sortDirection]);
 
   return (
     <div className="w-full">
