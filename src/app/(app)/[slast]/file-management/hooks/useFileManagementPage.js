@@ -13,6 +13,12 @@ import {
   removeFavorite as apiRemoveFavorite,
 } from "@/features/file-management/services/favoriteService";
 import useSocket from "@/shared/lib/useSocket";
+import {
+  loadUploadFile,
+  getPendingUploads,
+  removePendingUpload,
+  deleteUploadFile,
+} from "@/shared/utils/uploadResumeStorage";
 
 const useFileManagementPage = ({
   userRole = null,
@@ -130,6 +136,94 @@ const useFileManagementPage = ({
     loadFavorites();
     return () => favoriteAbortRef.current?.abort?.();
   }, [loadFavorites]);
+
+  useEffect(() => {
+    if (hasResumedPendingRef.current) return;
+    if (typeof window === "undefined") return;
+    hasResumedPendingRef.current = true;
+
+    const pending = getPendingUploads();
+    const entries = Object.values(pending || {});
+    if (!entries.length) return;
+
+    (async () => {
+      const batches = [];
+      for (const entry of entries) {
+        const uploadId = entry?.uploadId;
+        if (!uploadId) continue;
+        let statusData = null;
+        try {
+          const statusRes = await axiosClient.get("/api/upload/status", {
+            params: { uploadId },
+          });
+          statusData = statusRes?.data || null;
+        } catch (error) {
+          statusData = null;
+        }
+
+        if (!statusData?.success) {
+          removePendingUpload(uploadId);
+          await deleteUploadFile(uploadId);
+          continue;
+        }
+
+        if (statusData.state !== "ASSEMBLING") {
+          removePendingUpload(uploadId);
+          await deleteUploadFile(uploadId);
+          continue;
+        }
+
+        if (
+          Number(statusData.contiguousWatermark || 0) >=
+          Number(statusData.fileSize || 0)
+        ) {
+          removePendingUpload(uploadId);
+          await deleteUploadFile(uploadId);
+          continue;
+        }
+
+        const record = await loadUploadFile(uploadId);
+        if (!record?.file) {
+          removePendingUpload(uploadId);
+          await deleteUploadFile(uploadId);
+          continue;
+        }
+
+        const meta = record.meta || entry || {};
+        const blob = record.file;
+        const file =
+          blob instanceof File
+            ? blob
+            : new File([blob], meta.fileName || "upload", {
+                type: meta.type || "application/octet-stream",
+                lastModified: meta.lastModified || Date.now(),
+              });
+
+        const batchId = meta.batchId || uuidv4();
+        const fileItem = {
+          file,
+          name: meta.fileName || file.name,
+          relativePath: meta.relativePath || file.name,
+          batchId,
+          uploadId,
+          resumeUpload: true,
+          chunkSize: meta.chunkSize || null,
+        };
+
+        batches.push({
+          id: uuidv4(),
+          type: "file",
+          files: [fileItem],
+          batchId,
+          parentId: meta.parentId || null,
+        });
+      }
+
+      if (batches.length > 0) {
+        setUploadBatches((prev) => [...batches, ...prev]);
+      }
+    })();
+  }, []);
 
   const isItemFavorite = useCallback(
     (item) => {
@@ -602,6 +696,7 @@ const useFileManagementPage = ({
 
   // Track which folders we've already restored uploads for
   const hasRestoredUploadsRef = useRef(new Set());
+  const hasResumedPendingRef = useRef(false);
 
   // Real-time updates via WebSocket
   useEffect(() => {

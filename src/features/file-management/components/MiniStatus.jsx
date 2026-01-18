@@ -2,6 +2,12 @@ import React, { useEffect, useState, useRef } from "react";
 import Loader from "@/shared/ui/Loader";
 import { FiCheck, FiX, FiUpload, FiClock } from "react-icons/fi";
 import axiosClient from "@/shared/lib/axiosClient";
+import {
+  addPendingUpload,
+  removePendingUpload,
+  saveUploadFile,
+  deleteUploadFile,
+} from "@/shared/utils/uploadResumeStorage";
 import toast from "react-hot-toast";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
@@ -56,6 +62,9 @@ const getAdaptiveChunkSize = (fileSize, measuredBandwidthKbps = null) => {
   return baseChunkSize;
 };
 const CLOSE_ON_PROCESSING = true;
+const MIN_CHUNK_SIZE = 512 * 1024; // 512KB
+const MAX_TOTAL_RETRIES = 30;
+const CHECKSUM_MISMATCH_THRESHOLD = 3;
 const createFileChunks = (file, measuredBandwidthKbps = null) => {
   const optimalChunkSize = getAdaptiveChunkSize(
     file.size,
@@ -65,6 +74,17 @@ const createFileChunks = (file, measuredBandwidthKbps = null) => {
   let start = 0;
   while (start < file.size) {
     const end = Math.min(start + optimalChunkSize, file.size);
+    chunks.push({ start, end, size: end - start });
+    start = end;
+  }
+  return chunks;
+};
+const createFileChunksWithSize = (file, chunkSize) => {
+  const size = Math.max(Number(chunkSize) || 0, MIN_CHUNK_SIZE);
+  const chunks = [];
+  let start = 0;
+  while (start < file.size) {
+    const end = Math.min(start + size, file.size);
     chunks.push({ start, end, size: end - start });
     start = end;
   }
@@ -106,7 +126,9 @@ const MiniStatusBatch = ({
       status: "pending",
       progress: 0,
       chunks: [],
-      uploadId: null,
+      uploadId: f.uploadId || null,
+      resumeUpload: Boolean(f.resumeUpload),
+      chunkSize: f.chunkSize || null,
       error: null,
     }))
   );
@@ -128,6 +150,20 @@ const MiniStatusBatch = ({
   // Sync fileStatesRef mỗi khi fileStates thay đổi
   useEffect(() => {
     fileStatesRef.current = fileStates;
+  }, [fileStates]);
+
+  useEffect(() => {
+    fileStates.forEach((f) => {
+      if (
+        f.uploadId &&
+        (f.status === "success" ||
+          f.status === "cancelled" ||
+          f.status === "processing")
+      ) {
+        removePendingUpload(f.uploadId);
+        deleteUploadFile(f.uploadId);
+      }
+    });
   }, [fileStates]);
 
   // Track socket connection
@@ -273,6 +309,11 @@ const MiniStatusBatch = ({
   // Track chunks đã retry để tránh retry vô hạn
   const retriedChunksRef = useRef({});
   const failedChunksRef = useRef({}); // Track chunks bị fail trong vòng lặp: { fileIndex: [chunkIndex1, chunkIndex2, ...] }
+  const totalRetryRef = useRef({});
+  const warnedNetworkRef = useRef({});
+  const checksumMismatchRef = useRef({});
+  const restartAttemptedRef = useRef({});
+  const forcedChunkSizeRef = useRef({});
 
   const pollStatusUntilDone = (uploadId, fileIndex, fileSize) => {
     if (statusPollersRef.current[fileIndex]) {
@@ -309,60 +350,24 @@ const MiniStatusBatch = ({
             });
             
             if (missingChunks.length > 0) {
-              console.log(`[Upload] Phát hiện ${missingChunks.length} chunks bị mất, đang retry...`, missingChunks.slice(0, 10));
-              
-              // Retry missing chunks (song song nhưng có giới hạn)
-              const maxConcurrentRetries = 3; // Tối đa 3 chunks retry cùng lúc
+              console.log(
+                `[Upload] Phát hiện ${missingChunks.length} chunks bị mất, đang retry...`,
+                missingChunks.slice(0, 10)
+              );
+
               (async () => {
-                for (let i = 0; i < missingChunks.length; i += maxConcurrentRetries) {
-                  const batch = missingChunks.slice(i, i + maxConcurrentRetries);
-                  await Promise.allSettled(
-                    batch.map(async (chunkIdx) => {
-                      const retryKey = `${uploadId}-${chunkIdx}`;
-                      retriedChunksRef.current[retryKey] = (retriedChunksRef.current[retryKey] || 0) + 1;
-                      
-                      try {
-                        const ch = chunks[chunkIdx];
-                        if (!ch) return;
-                        
-                        const buf = await readFileChunk(currentFileState.file, ch.start, ch.end);
-                        const headers = {
-                          "Content-Type": "application/octet-stream",
-                          "X-Upload-Id": uploadId,
-                          "X-Chunk-Index": chunkIdx,
-                          "X-Total-Chunks": chunks.length,
-                          "X-File-Name": encodeURIComponent(currentFileState.file.name),
-                          "X-Mime-Type": encodeURIComponent(
-                            currentFileState.file.type || "application/octet-stream"
-                          ),
-                          "X-Parent-Id": encodeURIComponent(parentId || ""),
-                          "X-Is-First-Chunk": "0",
-                          "X-Is-Last-Chunk": chunkIdx === chunks.length - 1 ? "1" : "0",
-                          "X-File-Size": currentFileState.file.size,
-                          "X-Relative-Path": encodeURIComponent(currentFileState.relativePath || ""),
-                          "X-Batch-Id": encodeURIComponent(batchId || ""),
-                          "X-Chunk-Start": ch.start,
-                          "X-Chunk-End": ch.end,
-                        };
-                        
-                        await axiosClient.post("/api/upload", buf, {
-                          headers,
-                          signal: abortControllersRef.current[fileIndex]?.signal,
-                          timeout: 300000, // 5 phút
-                        });
-                        
-                        console.log(`[Upload] Đã retry chunk ${chunkIdx} thành công`);
-                      } catch (error) {
-                        console.warn(`[Upload] Retry chunk ${chunkIdx} thất bại:`, error.message);
-                      }
-                    })
-                  );
-                  
-                  // Delay nhỏ giữa các batch retry
-                  if (i + maxConcurrentRetries < missingChunks.length) {
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                  }
+                for (const chunkIdx of missingChunks) {
+                  const retryKey = `${uploadId}-${chunkIdx}`;
+                  retriedChunksRef.current[retryKey] =
+                    (retriedChunksRef.current[retryKey] || 0) + 1;
                 }
+                await resendMissingChunks({
+                  fileState: currentFileState,
+                  fileIndex,
+                  uploadId,
+                  chunks,
+                  missingChunks,
+                });
               })();
             }
           }
@@ -372,9 +377,13 @@ const MiniStatusBatch = ({
           Number(data.nextDriveOffset) < Number(fileSize) &&
           data.state !== "COMPLETED"
         ) {
+          const isAssembled =
+            Number(data.contiguousWatermark || 0) >= Number(fileSize);
           setFileStates((prev) =>
             prev.map((f, idx) =>
-              idx === fileIndex ? { ...f, status: "processing" } : f
+              idx === fileIndex
+                ? { ...f, status: isAssembled ? "processing" : "uploading" }
+                : f
             )
           );
           return;
@@ -428,10 +437,264 @@ const MiniStatusBatch = ({
     }
   };
 
+  const bufferToHex = (buffer) =>
+    Array.from(new Uint8Array(buffer))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+
+  const getChunkChecksum = async (buf) => {
+    try {
+      if (typeof window === "undefined") return null;
+      const subtle = window.crypto?.subtle;
+      if (!subtle) return null;
+      const digest = await subtle.digest("SHA-256", buf);
+      return bufferToHex(digest);
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const isChecksumMismatch = (error) =>
+    error?.response?.data?.code === "CHECKSUM_MISMATCH" ||
+    String(error?.response?.data?.error || "").includes("Checksum mismatch");
+
+  const recordRetryAttempt = (fileIndex) => {
+    totalRetryRef.current[fileIndex] =
+      (totalRetryRef.current[fileIndex] || 0) + 1;
+    if (
+      totalRetryRef.current[fileIndex] >= MAX_TOTAL_RETRIES &&
+      !warnedNetworkRef.current[fileIndex]
+    ) {
+      warnedNetworkRef.current[fileIndex] = true;
+      toast.error("Mạng không ổn định, vui lòng thử lại sau");
+      const err = new Error("NETWORK_UNSTABLE");
+      err.code = "NETWORK_UNSTABLE";
+      throw err;
+    }
+  };
+
+  const requestRestartWithSmallerChunks = async (
+    fileState,
+    fileIndex,
+    uploadId,
+    currentChunkSize
+  ) => {
+    if (restartAttemptedRef.current[fileIndex]) {
+      return false;
+    }
+    const newChunkSize = Math.max(
+      Math.floor(currentChunkSize / 2),
+      MIN_CHUNK_SIZE
+    );
+    if (newChunkSize >= currentChunkSize) {
+      return false;
+    }
+
+    restartAttemptedRef.current[fileIndex] = true;
+    forcedChunkSizeRef.current[fileIndex] = newChunkSize;
+    totalRetryRef.current[fileIndex] = 0;
+    checksumMismatchRef.current[fileIndex] = 0;
+    warnedNetworkRef.current[fileIndex] = false;
+
+    if (uploadId) {
+      try {
+        await axiosClient.post("/api/upload/cancel", { uploadId });
+      } catch (error) {
+        // Ignore cancel errors, we'll restart anyway
+      }
+    }
+
+    setFileStates((prev) =>
+      prev.map((f, idx) =>
+        idx === fileIndex
+          ? {
+              ...f,
+              uploadId: null,
+              resumeUpload: false,
+              progress: 0,
+              status: "pending",
+              chunks: [],
+              error: null,
+            }
+          : f
+      )
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    const refreshed = fileStatesRef.current[fileIndex];
+    if (refreshed) {
+      await uploadFileWithChunks(refreshed, fileIndex);
+      return true;
+    }
+    return false;
+  };
+
+  const sendChunkByIndex = async ({
+    fileState,
+    fileIndex,
+    chunkIdx,
+    uploadId,
+    chunks,
+  }) => {
+    const ch = chunks[chunkIdx];
+    if (!ch) return false;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const buf = await readFileChunk(fileState.file, ch.start, ch.end);
+        const checksum = await getChunkChecksum(buf);
+        const headers = {
+          "Content-Type": "application/octet-stream",
+          "X-Upload-Id": uploadId,
+          "X-Chunk-Index": chunkIdx,
+          "X-Total-Chunks": chunks.length,
+          "X-File-Name": encodeURIComponent(fileState.file.name),
+          "X-Mime-Type": encodeURIComponent(
+            fileState.file.type || "application/octet-stream"
+          ),
+          "X-Parent-Id": encodeURIComponent(parentId || ""),
+          "X-Is-First-Chunk": "0",
+          "X-Is-Last-Chunk": chunkIdx === chunks.length - 1 ? "1" : "0",
+          "X-File-Size": fileState.file.size,
+          "X-Relative-Path": encodeURIComponent(fileState.relativePath || ""),
+          "X-Batch-Id": encodeURIComponent(batchId || ""),
+          "X-Chunk-Start": ch.start,
+          "X-Chunk-End": ch.end,
+        };
+        if (checksum) {
+          headers["X-Chunk-Checksum"] = checksum;
+          headers["X-Chunk-Checksum-Alg"] = "sha256";
+        }
+        await axiosClient.post("/api/upload", buf, {
+          headers,
+          signal: abortControllersRef.current[fileIndex]?.signal,
+          timeout: 300000,
+        });
+        return true;
+      } catch (error) {
+        recordRetryAttempt(fileIndex);
+        if (isChecksumMismatch(error)) {
+          checksumMismatchRef.current[fileIndex] =
+            (checksumMismatchRef.current[fileIndex] || 0) + 1;
+          if (
+            checksumMismatchRef.current[fileIndex] >=
+            CHECKSUM_MISMATCH_THRESHOLD
+          ) {
+            const err = new Error("RESTART_WITH_SMALLER_CHUNKS");
+            err.code = "RESTART_WITH_SMALLER_CHUNKS";
+            throw err;
+          }
+        }
+        if (attempt >= 2) {
+          throw error;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
+      }
+    }
+    return true;
+  };
+
+  const resendMissingChunks = async ({
+    fileState,
+    fileIndex,
+    uploadId,
+    chunks,
+    missingChunks,
+    concurrency = 3,
+  }) => {
+    const list = Array.isArray(missingChunks) ? missingChunks : [];
+    for (let i = 0; i < list.length; i += concurrency) {
+      if (cancelledRef.current[fileIndex]) return false;
+      const batch = list.slice(i, i + concurrency);
+      for (const chunkIdx of batch) {
+        try {
+          await sendChunkByIndex({
+            fileState,
+            fileIndex,
+            chunkIdx,
+            uploadId,
+            chunks,
+          });
+        } catch (error) {
+          if (
+            error?.code === "RESTART_WITH_SMALLER_CHUNKS" ||
+            error?.code === "NETWORK_UNSTABLE"
+          ) {
+            throw error;
+          }
+        }
+      }
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    }
+    return true;
+  };
+
+  const completeUploadWithRetry = async (
+    fileState,
+    fileIndex,
+    uploadId,
+    chunks
+  ) => {
+    const maxRounds = 12;
+    let round = 0;
+
+    while (round < maxRounds) {
+      if (cancelledRef.current[fileIndex]) return false;
+
+      let data = null;
+      try {
+        const res = await axiosClient.post("/api/upload/complete", { uploadId });
+        data = res?.data || null;
+      } catch (error) {
+        data = null;
+      }
+
+      if (data?.success) {
+        return true;
+      }
+
+      const missingChunks =
+        data?.missingChunks == null ? null : data?.missingChunks || [];
+      if (Array.isArray(missingChunks) && missingChunks.length > 0) {
+        await resendMissingChunks({
+          fileState,
+          fileIndex,
+          uploadId,
+          chunks,
+          missingChunks,
+        });
+      } else if (missingChunks === null) {
+        // No bitmap data yet, wait for watermark to advance
+      } else {
+        try {
+          const statusRes = await axiosClient.get("/api/upload/status", {
+            params: { uploadId },
+          });
+          const statusData = statusRes?.data || null;
+          if (statusData?.state === "COMPLETED") {
+            return true;
+          }
+        } catch (error) {
+          // Ignore status errors
+        }
+      }
+
+      round++;
+      const retryAfterMs =
+        typeof data?.retryAfterMs === "number" ? data.retryAfterMs : 500;
+      await new Promise((resolve) => setTimeout(resolve, retryAfterMs));
+    }
+
+    throw new Error("Không thể hoàn tất upload: vẫn thiếu chunks");
+  };
+
   const uploadFileWithChunks = async (fileState, fileIndex) => {
     const file = fileState.file;
     // Bắt đầu với chunk size cơ bản, sẽ điều chỉnh sau khi đo băng thông
-    let chunks = createFileChunks(file);
+    const forcedChunkSize =
+      forcedChunkSizeRef.current[fileIndex] || fileState.chunkSize;
+    let chunks = forcedChunkSize
+      ? createFileChunksWithSize(file, forcedChunkSize)
+      : createFileChunks(file);
     abortControllersRef.current[fileIndex] = new AbortController();
 
     // Theo dõi băng thông để điều chỉnh chunk size
@@ -443,6 +706,41 @@ const MiniStatusBatch = ({
       )
     );
     let uploadId = fileState.uploadId;
+    if (fileState.resumeUpload && uploadId) {
+      setFileStates((prev) =>
+        prev.map((f, idx) =>
+          idx === fileIndex ? { ...f, status: "uploading" } : f
+        )
+      );
+      try {
+        const statusRes = await axiosClient.get("/api/upload/status", {
+          params: { uploadId },
+        });
+        const statusData = statusRes?.data || null;
+        const missingChunks = statusData?.missingChunks || [];
+        if (Array.isArray(missingChunks) && missingChunks.length > 0) {
+          await resendMissingChunks({
+            fileState,
+            fileIndex,
+            uploadId,
+            chunks,
+            missingChunks,
+          });
+        }
+        await completeUploadWithRetry(fileState, fileIndex, uploadId, chunks);
+      } catch (error) {
+        const msg =
+          error?.response?.data?.error ||
+          error?.message ||
+          "Không thể resume upload";
+        setFileStates((prev) =>
+          prev.map((f, idx) =>
+            idx === fileIndex ? { ...f, status: "error", error: msg } : f
+          )
+        );
+      }
+      return;
+    }
     if (!uploadId) {
       try {
         const firstChunkBuf = await readFileChunk(
@@ -450,6 +748,7 @@ const MiniStatusBatch = ({
           chunks[0].start,
           chunks[0].end
         );
+        const firstChecksum = await getChunkChecksum(firstChunkBuf);
         uploadId = `${batchId}-${fileIndex}-${Date.now()}-${Math.random()
           .toString(36)
           .slice(2, 11)}`;
@@ -471,6 +770,10 @@ const MiniStatusBatch = ({
           "X-Chunk-Start": chunks[0].start,
           "X-Chunk-End": chunks[0].end,
         };
+        if (firstChecksum) {
+          firstHeaders["X-Chunk-Checksum"] = firstChecksum;
+          firstHeaders["X-Chunk-Checksum-Alg"] = "sha256";
+        }
         if (isFolder && fileIndex === 0 && emptyFolders?.length > 0) {
           firstHeaders["X-Empty-Folders"] = encodeURIComponent(
             JSON.stringify(emptyFolders)
@@ -510,7 +813,7 @@ const MiniStatusBatch = ({
         // Track upload speed
         const now = Date.now();
         if (!uploadSpeedRef.current[fileIndex]) {
-          uploadSpeedRef.current[fileIndex] = { bytes: 0, time: now };
+          uploadSpeedRef.current[fileIndex] = { bytes: 0, time: now - 100 };
         }
         const speedData = uploadSpeedRef.current[fileIndex];
         const timeDiff = (now - speedData.time) / 1000; // seconds
@@ -523,10 +826,12 @@ const MiniStatusBatch = ({
             time: now,
           };
         }
+        const initialStatus =
+          assembledBytes >= file.size ? "processing" : "uploading";
         setFileStates((prev) => {
           const next = prev.map((f, idx) =>
             idx === fileIndex
-              ? { ...f, uploadId, progress: pct, status: "uploading" }
+              ? { ...f, uploadId, progress: pct, status: initialStatus }
               : f
           );
           const overallProgress = calculateOverallProgress(next);
@@ -545,7 +850,39 @@ const MiniStatusBatch = ({
           setEta(etaSeconds);
           return next;
         });
+        const resumeMeta = {
+          fileName: file.name,
+          size: file.size,
+          type: file.type,
+          lastModified: file.lastModified,
+          relativePath: fileState.relativePath || "",
+          batchId: batchId || "",
+          parentId: parentId || "",
+          chunkSize: chunks[0]?.size || null,
+        };
+        await saveUploadFile(uploadId, file, resumeMeta);
+        addPendingUpload(uploadId, resumeMeta);
       } catch (error) {
+        if (error?.code === "RESTART_WITH_SMALLER_CHUNKS") {
+          const currentChunkSize = chunks[0]?.size || 0;
+          await requestRestartWithSmallerChunks(
+            fileState,
+            fileIndex,
+            uploadId,
+            currentChunkSize
+          );
+          return;
+        }
+        if (error?.code === "NETWORK_UNSTABLE") {
+          setFileStates((prev) =>
+            prev.map((f, idx) =>
+              idx === fileIndex
+                ? { ...f, status: "error", error: "Mạng không ổn định" }
+                : f
+            )
+          );
+          return;
+        }
         if (
           error.name === "AbortError" ||
           String(error.message).includes("aborted")
@@ -588,6 +925,7 @@ const MiniStatusBatch = ({
       try {
         const ch = chunks[i];
         const buf = await readFileChunk(file, ch.start, ch.end);
+        const checksum = await getChunkChecksum(buf);
         if (cancelledRef.current[fileIndex]) {
           setFileStates((prev) =>
             prev.map((f, idx) =>
@@ -614,6 +952,10 @@ const MiniStatusBatch = ({
           "X-Chunk-Start": ch.start,
           "X-Chunk-End": ch.end,
         };
+        if (checksum) {
+          headers["X-Chunk-Checksum"] = checksum;
+          headers["X-Chunk-Checksum-Alg"] = "sha256";
+        }
         // Tăng timeout lên 5 phút (300000ms) cho mạng chậm (77-242 KB/s)
         // Tính timeout dựa trên chunk size: ít nhất 5 phút, hoặc 2x thời gian ước tính
         const chunkSizeMB = (ch.end - ch.start) / (1024 * 1024);
@@ -649,11 +991,11 @@ const MiniStatusBatch = ({
           0,
           Math.min(100, Math.round((assembledBytes / file.size) * 100))
         );
-        const isLast = i === chunks.length - 1;
+        const isAssembled = assembledBytes >= file.size;
         // Track upload speed và đo băng thông
         const now = Date.now();
         if (!uploadSpeedRef.current[fileIndex]) {
-          uploadSpeedRef.current[fileIndex] = { bytes: 0, time: now };
+          uploadSpeedRef.current[fileIndex] = { bytes: 0, time: now - 100 };
         }
         const speedData = uploadSpeedRef.current[fileIndex];
         const timeDiff = (now - speedData.time) / 1000; // seconds
@@ -703,7 +1045,7 @@ const MiniStatusBatch = ({
               ? {
                   ...f,
                   progress: pct,
-                  status: isLast ? "processing" : "uploading",
+                  status: isAssembled ? "processing" : "uploading",
                 }
               : f
           );
@@ -723,7 +1065,7 @@ const MiniStatusBatch = ({
           setEta(etaSeconds);
           return next;
         });
-        if (isLast) {
+        if (i === chunks.length - 1) {
           // Bắt đầu polling như fallback nếu WebSocket event không đến
           // WebSocket event vẫn là primary method, nhưng polling đảm bảo không bị treo
             pollStatusUntilDone(uploadId, fileIndex, file.size);
@@ -786,68 +1128,59 @@ const MiniStatusBatch = ({
     if (failedChunksRef.current[fileIndex]?.length > 0) {
       console.log(`[Upload] Đã gửi xong tất cả chunks. Retry ${failedChunksRef.current[fileIndex].length} chunks bị fail...`);
       
-      // Retry failed chunks với delay và retry nhiều lần hơn
       const failedChunks = [...failedChunksRef.current[fileIndex]];
-      for (const chunkIdx of failedChunks) {
-        if (cancelledRef.current[fileIndex]) break;
-        
-        let retrySuccess = false;
-        for (let retryAttempt = 0; retryAttempt < 5; retryAttempt++) { // Tăng retries lên 5
-          try {
-            const ch = chunks[chunkIdx];
-            if (!ch) break;
-            
-            const buf = await readFileChunk(file, ch.start, ch.end);
-            const headers = {
-              "Content-Type": "application/octet-stream",
-              "X-Upload-Id": uploadId,
-              "X-Chunk-Index": chunkIdx,
-              "X-Total-Chunks": chunks.length,
-              "X-File-Name": encodeURIComponent(file.name),
-              "X-Mime-Type": encodeURIComponent(file.type || "application/octet-stream"),
-              "X-Parent-Id": encodeURIComponent(parentId || ""),
-              "X-Is-First-Chunk": "0",
-              "X-Is-Last-Chunk": chunkIdx === chunks.length - 1 ? "1" : "0",
-              "X-File-Size": file.size,
-              "X-Relative-Path": encodeURIComponent(fileState.relativePath || ""),
-              "X-Batch-Id": encodeURIComponent(batchId || ""),
-              "X-Chunk-Start": ch.start,
-              "X-Chunk-End": ch.end,
-            };
-            
-            const resp = await axiosClient.post("/api/upload", buf, {
-              headers,
-              signal: abortControllersRef.current[fileIndex]?.signal,
-              timeout: 300000, // 5 phút
-            });
-            
-            if (resp.status === 200 && resp.data?.success) {
-              console.log(`[Upload] Đã retry chunk ${chunkIdx} thành công (attempt ${retryAttempt + 1})`);
-              retrySuccess = true;
-              // Remove khỏi failed list
-              failedChunksRef.current[fileIndex] = failedChunksRef.current[fileIndex].filter(idx => idx !== chunkIdx);
-              break;
-            }
-          } catch (retryError) {
-            if (retryAttempt < 4) { // Chưa phải lần cuối
-              const delay = 2000 * Math.pow(2, retryAttempt); // Exponential backoff: 2s, 4s, 8s, 16s
-              console.log(`[Upload] Retry chunk ${chunkIdx} attempt ${retryAttempt + 1}/5 fail, đợi ${delay}ms...`);
-              await new Promise(resolve => setTimeout(resolve, delay));
-            } else {
-              console.warn(`[Upload] Chunk ${chunkIdx} vẫn fail sau 5 retries, bỏ qua. Backend sẽ retry qua polling.`);
-            }
-          }
+      try {
+        await resendMissingChunks({
+          fileState,
+          fileIndex,
+          uploadId,
+          chunks,
+          missingChunks: failedChunks,
+          concurrency: 1,
+        });
+        failedChunksRef.current[fileIndex] = [];
+      } catch (retryError) {
+        if (retryError?.code === "RESTART_WITH_SMALLER_CHUNKS") {
+          const currentChunkSize = chunks[0]?.size || 0;
+          await requestRestartWithSmallerChunks(
+            fileState,
+            fileIndex,
+            uploadId,
+            currentChunkSize
+          );
+          return;
         }
-        
-        // Delay nhỏ giữa các failed chunks
-        if (chunkIdx !== failedChunks[failedChunks.length - 1]) {
-          await new Promise(resolve => setTimeout(resolve, 500));
+        if (retryError?.code === "NETWORK_UNSTABLE") {
+          setFileStates((prev) =>
+            prev.map((f, idx) =>
+              idx === fileIndex
+                ? { ...f, status: "error", error: "Mạng không ổn định" }
+                : f
+            )
+          );
+          return;
         }
       }
       
       // Nếu vẫn còn failed chunks, log warning (backend sẽ retry qua polling)
       if (failedChunksRef.current[fileIndex]?.length > 0) {
         console.warn(`[Upload] Vẫn còn ${failedChunksRef.current[fileIndex].length} chunks fail sau retry. Backend sẽ retry qua polling.`);
+      }
+    }
+
+    if (!cancelledRef.current[fileIndex] && uploadId) {
+      try {
+        await completeUploadWithRetry(fileState, fileIndex, uploadId, chunks);
+      } catch (error) {
+        const msg =
+          error?.response?.data?.error ||
+          error?.message ||
+          "Không thể hoàn tất upload";
+        setFileStates((prev) =>
+          prev.map((f, idx) =>
+            idx === fileIndex ? { ...f, status: "error", error: msg } : f
+          )
+        );
       }
     }
   };

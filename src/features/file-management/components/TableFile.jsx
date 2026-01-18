@@ -12,6 +12,7 @@ import { FaStar, FaRegStar } from "react-icons/fa";
 import EmptyState from "@/shared/ui/EmptyState";
 import Image from "next/image";
 import axiosClient from "@/shared/lib/axiosClient";
+import toast from "react-hot-toast";
 function renderDragPreviewHTML(draggedItems) {
   if (!draggedItems || draggedItems.length === 0) return "";
   const isMulti = draggedItems.length > 1;
@@ -81,7 +82,7 @@ const Table = ({
   const [driveProgressMap, setDriveProgressMap] = useState({});
   const statusPollersRef = useRef({});
   
-  // Sort data dựa trên sortColumn và sortDirection
+  // Sort data dựa trên sortColumn và sortDirection (moved before useEffect to avoid initialization error)
   const sortedData = useMemo(() => {
     if (!sortColumn) return data;
     const sorted = [...data];
@@ -123,6 +124,146 @@ const Table = ({
     if (fileData.uploadId) return fileData.uploadId;
     return null;
   };
+
+  const retryTimersRef = useRef({});
+  const retryStateRef = useRef(new Map());
+  const RETRY_STORAGE_KEY = "driveRetryState";
+  const MAX_AUTO_RETRY = 3;
+  const BASE_RETRY_DELAY = 10 * 1000; // 10s
+  const MAX_RETRY_DELAY = 60 * 1000; // 60s
+
+  const loadRetryState = () => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = localStorage.getItem(RETRY_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object") {
+        Object.entries(parsed).forEach(([key, value]) => {
+          if (value && typeof value === "object") {
+            retryStateRef.current.set(key, value);
+          }
+        });
+      }
+    } catch (e) {
+      // Ignore storage errors
+    }
+  };
+
+  const saveRetryState = () => {
+    if (typeof window === "undefined") return;
+    try {
+      const obj = {};
+      retryStateRef.current.forEach((value, key) => {
+        obj[key] = value;
+      });
+      localStorage.setItem(RETRY_STORAGE_KEY, JSON.stringify(obj));
+    } catch (e) {
+      // Ignore storage errors
+    }
+  };
+
+  const updateRetryState = (fileId, patch) => {
+    const current = retryStateRef.current.get(fileId) || {
+      attempts: 0,
+      lastAt: 0,
+    };
+    const next = { ...current, ...patch };
+    retryStateRef.current.set(fileId, next);
+    saveRetryState();
+    return next;
+  };
+
+  useEffect(() => {
+    loadRetryState();
+  }, []);
+
+  const handleRetryDriveUpload = async (item, options = {}) => {
+    const { silent = false } = options;
+    const uploadId = extractUploadId(item);
+    if (!uploadId) {
+      if (!silent) {
+        toast.error("Không tìm thấy uploadId để retry");
+      }
+      return;
+    }
+    const toastId = silent ? null : toast.loading("Đang retry upload lên Drive...");
+    try {
+      const res = await axiosClient.post("/api/upload/retry", { uploadId });
+      if (res.data?.success) {
+        if (!silent) {
+          toast.success("Đã gửi yêu cầu retry upload", { id: toastId });
+        }
+      } else {
+        if (!silent) {
+          toast.error(res.data?.error || "Retry upload thất bại", { id: toastId });
+        }
+      }
+    } catch (error) {
+      const msg = error?.response?.data?.error || error?.message || "Retry upload thất bại";
+      if (!silent) {
+        toast.error(msg, { id: toastId });
+      }
+    }
+  };
+
+  // Auto retry Drive upload failures with backoff
+  useEffect(() => {
+    const failedFiles = sortedData.filter(
+      (item) =>
+        item.type === "file" &&
+        item.driveUploadStatus === "failed" &&
+        extractUploadId(item)
+    );
+
+    failedFiles.forEach((file) => {
+      const fileId = String(file.id || file._id);
+      if (retryTimersRef.current[fileId]) return;
+
+      const state = retryStateRef.current.get(fileId) || {
+        attempts: 0,
+        lastAt: 0,
+      };
+
+      if (state.attempts >= MAX_AUTO_RETRY) return;
+
+      const delay = Math.min(
+        BASE_RETRY_DELAY * Math.pow(2, state.attempts),
+        MAX_RETRY_DELAY
+      );
+      const elapsed = Date.now() - (state.lastAt || 0);
+      const wait = Math.max(0, delay - elapsed);
+
+      retryTimersRef.current[fileId] = setTimeout(async () => {
+        updateRetryState(fileId, {
+          attempts: state.attempts + 1,
+          lastAt: Date.now(),
+        });
+        await handleRetryDriveUpload(file, { silent: true });
+        clearTimeout(retryTimersRef.current[fileId]);
+        delete retryTimersRef.current[fileId];
+      }, wait);
+    });
+
+    Object.keys(retryTimersRef.current).forEach((fileId) => {
+      const stillFailed = failedFiles.some(
+        (f) => String(f.id || f._id) === String(fileId)
+      );
+      if (!stillFailed) {
+        clearTimeout(retryTimersRef.current[fileId]);
+        delete retryTimersRef.current[fileId];
+        retryStateRef.current.delete(fileId);
+        saveRetryState();
+      }
+    });
+
+    return () => {
+      Object.values(retryTimersRef.current).forEach((timer) => {
+        clearTimeout(timer);
+      });
+      retryTimersRef.current = {};
+    };
+  }, [sortedData]);
   
   // Poll status for uploading files
   useEffect(() => {
@@ -777,7 +918,7 @@ const Table = ({
                             {isUploading && (
                               <span className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full flex-shrink-0">
                                 <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
-                                Đang upload
+                                Drive pending
                                 {driveProgressMap[value.id || value._id] != null && (
                                   <span className="ml-1 text-gray-600">
                                     ({driveProgressMap[value.id || value._id]}%)
@@ -785,6 +926,13 @@ const Table = ({
                                 )}
                               </span>
                             )}
+                            {value.type === "file" &&
+                              value.driveUploadStatus === "failed" && (
+                                <span className="flex items-center gap-1 text-xs text-red-600 bg-red-50 px-2 py-0.5 rounded-full flex-shrink-0">
+                                  <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                                  Upload lỗi
+                                </span>
+                              )}
                           </div>
                         )}
                       </td>
@@ -829,6 +977,19 @@ const Table = ({
                         }}
                       >
                         <div className="flex items-center gap-3">
+                          {value.type === "file" &&
+                            value.driveUploadStatus === "failed" && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRetryDriveUpload(value);
+                                }}
+                                title="Retry upload lên Drive"
+                                className="text-orange-600 hover:text-orange-700 transition-colors text-sm"
+                              >
+                                ⟳ Retry
+                              </button>
+                            )}
                           {value.type === "file" && (
                             <button
                               onClick={(e) => {

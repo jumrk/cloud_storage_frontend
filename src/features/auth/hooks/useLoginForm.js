@@ -98,12 +98,20 @@ function useLoginForm() {
         localStorage.setItem("token", token);
       }
       const { role } = res.data.user;
-      if (role === "admin") {
-        router.push("/admin");
-      } else {
-        router.push(`/`);
-      }
-      toast.success(res.data.message || t("auth.login.login_success"));
+      
+      // Show toast BEFORE navigation to ensure it displays properly
+      toast.success(res.data.message || t("auth.login.login_success"), {
+        duration: 3000,
+      });
+      
+      // Delay navigation slightly to allow toast to render
+      setTimeout(() => {
+        if (role === "admin") {
+          router.push("/admin");
+        } else {
+          router.push(`/`);
+        }
+      }, 100);
     } catch (error) {
       console.log(error);
       const errorMessage = error?.response?.data?.error || t("auth.login.general_error");
@@ -150,12 +158,20 @@ function useLoginForm() {
           localStorage.setItem("token", token);
         }
         const { role } = res.data.user;
-        if (role === "admin") {
-          router.push("/admin");
-        } else {
-          router.push(`/`);
-        }
-        toast.success(res.data.message || t("auth.login.login_success"));
+        
+        // Show toast BEFORE navigation to ensure it displays properly
+        toast.success(res.data.message || t("auth.login.login_success"), {
+          duration: 3000,
+        });
+        
+        // Delay navigation slightly to allow toast to render
+        setTimeout(() => {
+          if (role === "admin") {
+            router.push("/admin");
+          } else {
+            router.push(`/`);
+          }
+        }, 100);
       } catch (error) {
         console.log(error);
         const errorMessage = error?.response?.data?.error || t("auth.login.general_error");

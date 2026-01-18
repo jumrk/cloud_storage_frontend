@@ -4,6 +4,7 @@ import { FiEdit2, FiCheck, FiX, FiShare2, FiLock } from "react-icons/fi";
 import { FaStar, FaRegStar } from "react-icons/fa";
 import Image from "next/image";
 import axiosClient from "@/shared/lib/axiosClient";
+import toast from "react-hot-toast";
 function renderDragPreviewHTML(draggedItems) {
   if (!draggedItems || draggedItems.length === 0) return "";
   const isMulti = draggedItems.length > 1;
@@ -84,6 +85,27 @@ function Card_file({
     if (data.uploadId) return data.uploadId;
     return null;
   }, [data.tempDownloadUrl, data.uploadId]);
+
+  const handleRetryDriveUpload = async (e) => {
+    if (e) e.stopPropagation();
+    const uploadId = extractUploadId();
+    if (!uploadId) {
+      toast.error("Không tìm thấy uploadId để retry");
+      return;
+    }
+    const toastId = toast.loading("Đang retry upload lên Drive...");
+    try {
+      const res = await axiosClient.post("/api/upload/retry", { uploadId });
+      if (res.data?.success) {
+        toast.success("Đã gửi yêu cầu retry upload", { id: toastId });
+      } else {
+        toast.error(res.data?.error || "Retry upload thất bại", { id: toastId });
+      }
+    } catch (error) {
+      const msg = error?.response?.data?.error || error?.message || "Retry upload thất bại";
+      toast.error(msg, { id: toastId });
+    }
+  };
 
   // Poll upload status to get Drive progress
   React.useEffect(() => {
@@ -279,6 +301,17 @@ function Card_file({
           >
             <FiShare2 size={16} />
           </button>
+          {!isFolder && data.driveUploadStatus === "failed" && (
+            <button
+              className="text-orange-500 hover:text-orange-700 bg-white rounded-full p-1.5 shadow-sm transition-colors"
+              title="Retry upload lên Drive"
+              onClick={handleRetryDriveUpload}
+              onMouseDown={(e) => e.stopPropagation()}
+              type="button"
+            >
+              ⟳
+            </button>
+          )}
           {!isFolder && (
             <button
               className={`bg-white rounded-full p-1.5 shadow-sm transition-colors ${
@@ -444,13 +477,26 @@ function Card_file({
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
                 </span>
-                Đang upload
+                Drive pending
                 {drivePct != null && (
                   <span className="ml-1 text-gray-600">
                     ({drivePct}%)
                   </span>
                 )}
               </span>
+            )}
+            {!isFolder && data.driveUploadStatus === "failed" && (
+              <div className="mt-1 inline-flex items-center gap-2">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                  Drive failed
+                </span>
+                <button
+                  className="text-xs text-orange-600 hover:text-orange-700"
+                  onClick={handleRetryDriveUpload}
+                >
+                  Retry
+                </button>
+              </div>
             )}
             {isMobile && (
               <button
