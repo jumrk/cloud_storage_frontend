@@ -4,9 +4,10 @@ import { FiUploadCloud, FiAlertTriangle } from "react-icons/fi";
 import { IoClose } from "react-icons/io5";
 import { v4 as uuidv4 } from "uuid";
 import { useTranslations } from "next-intl";
+import toast from "react-hot-toast";
 import axiosClient from "@/shared/lib/axiosClient";
 
-const UploadModal = ({ isOpen, onClose, onStartUpload, parentId }) => {
+const UploadModal = ({ isOpen, onClose, onStartUpload, parentId, isMember = false }) => {
   const t = useTranslations();
   const fileInputRef = useRef();
   const folderInputRef = useRef();
@@ -228,6 +229,16 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId }) => {
   };
 
   const handleUploadClick = () => {
+    // ================= PERMISSION CHECK FOR MEMBERS =================
+    // Member must be inside a folder (parentId must not be null)
+    if (isMember && parentId === null) {
+      toast.error(
+        t("file_management.member_must_enter_folder") ||
+          "Bạn phải vào một thư mục được cấp quyền để tải lên",
+      );
+      return;
+    }
+
     if (selectedFiles.length > 0) {
       const batchId = uuidv4();
       const folderMap = new Map();

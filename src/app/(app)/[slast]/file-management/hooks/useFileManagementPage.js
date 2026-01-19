@@ -988,21 +988,116 @@ const useFileManagementPage = ({
           const exists = prevData.some(
             (i) => String(i.id || i._id) === String(itemData.id)
           );
+          
+          // Extract base name from folder name (e.g., "person (1)" -> "person")
+          const getBaseName = (name) => {
+            if (!name) return "";
+            const match = name.match(/^(.+?)(\s*\(\d+\))?$/);
+            return match ? match[1].trim() : name.trim();
+          };
+          
+          const actualBaseName = getBaseName(itemData.name);
+          
+          // Cleanup function: remove temp folders that match this actual folder
+          const shouldRemoveTempFolder = (i) => {
+            if (
+              i.type === "folder" &&
+              String(i.parentId || "root") ===
+                String(itemData.parentId || "root")
+            ) {
+              const tempId = String(i.id || i._id || "");
+              if (tempId.startsWith("temp-folder-")) {
+                // Remove if exact name match
+                if (i.name === itemData.name) return true;
+                
+                // Remove if base names match (handles "person" vs "person (1)" cases)
+                const tempBaseName = i.tempBaseName || getBaseName(i.name);
+                if (tempBaseName && actualBaseName && tempBaseName === actualBaseName) {
+                  return true;
+                }
+                
+                // Remove if temp folder's displayed name starts with actual folder's base name
+                // or vice versa (handles edge cases)
+                if (
+                  i.name?.startsWith(actualBaseName + " (") ||
+                  itemData.name?.startsWith(tempBaseName + " (")
+                ) {
+                  return true;
+                }
+              }
+            }
+            return false;
+          };
+          
           if (exists) {
-            return prevData.map((i) =>
-              String(i.id || i._id) === String(itemData.id) ? itemData : i
-            );
+            // Update existing item and remove any matching temp folders
+            return prevData
+              .map((i) =>
+                String(i.id || i._id) === String(itemData.id) ? itemData : i
+              )
+              .filter((i) => !shouldRemoveTempFolder(i));
           }
-          return [itemData, ...prevData];
+          
+          // Remove all matching temp folders and add actual folder
+          const cleaned = prevData.filter((i) => !shouldRemoveTempFolder(i));
+          return [itemData, ...cleaned];
         });
 
         // Update cache
         const cacheKey = currentFolder;
         const cached = folderDataCache.current.get(cacheKey);
         if (cached) {
+          // Extract base name from folder name
+          const getBaseName = (name) => {
+            if (!name) return "";
+            const match = name.match(/^(.+?)(\s*\(\d+\))?$/);
+            return match ? match[1].trim() : name.trim();
+          };
+          
+          const actualBaseName = getBaseName(itemData.name);
+          
+          // Clean cache from temp folders that match this actual folder
+          const cleanedCacheData = cached.data.filter((i) => {
+            if (
+              i.type === "folder" &&
+              String(i.parentId || "root") ===
+                String(itemData.parentId || "root")
+            ) {
+              const tempId = String(i.id || i._id || "");
+              if (tempId.startsWith("temp-folder-")) {
+                // Remove if exact name match
+                if (i.name === itemData.name) return false;
+                
+                // Remove if base names match
+                const tempBaseName = i.tempBaseName || getBaseName(i.name);
+                if (tempBaseName && actualBaseName && tempBaseName === actualBaseName) {
+                  return false;
+                }
+                
+                // Remove if names start with each other's base names
+                if (
+                  i.name?.startsWith(actualBaseName + " (") ||
+                  itemData.name?.startsWith(tempBaseName + " (")
+                ) {
+                  return false;
+                }
+              }
+            }
+            return true;
+          });
+          
+          // Check if itemData already exists in cache
+          const existsInCache = cleanedCacheData.some(
+            (i) => String(i.id || i._id) === String(itemData.id)
+          );
+          
           folderDataCache.current.set(cacheKey, {
             ...cached,
-            data: [itemData, ...cached.data],
+            data: existsInCache
+              ? cleanedCacheData.map((i) =>
+                  String(i.id || i._id) === String(itemData.id) ? itemData : i
+                )
+              : [itemData, ...cleanedCacheData],
             timestamp: Date.now(),
           });
         }
@@ -1378,6 +1473,13 @@ const useFileManagementPage = ({
               : undefined,
           };
 
+          const currentFolderKey = currentFolderId || "root";
+          if (
+            String(fileData.folderId || "root") !== String(currentFolderKey)
+          ) {
+            return;
+          }
+
           // Add file to data state
           setData((prevData) => {
             // Check if file already exists
@@ -1396,7 +1498,7 @@ const useFileManagementPage = ({
               const updatedData = [fileData, ...prevData];
 
               // Update cache
-              const cacheKey = currentFolderId || "root";
+              const cacheKey = currentFolderKey;
               const cached = folderDataCache.current.get(cacheKey);
               if (cached) {
                 folderDataCache.current.set(cacheKey, {
@@ -1420,6 +1522,121 @@ const useFileManagementPage = ({
       }
     },
     [currentFolderId, isMember]
+  );
+
+  const addOptimisticFolders = useCallback(
+    (folderNames, parentId = null) => {
+      const names = Array.from(new Set((folderNames || []).filter(Boolean)));
+      if (names.length === 0) return;
+      const currentFolder = currentFolderId || "root";
+      const targetParent = parentId || null;
+      if (String(currentFolder) !== String(targetParent || "root")) return;
+
+      setData((prevData) => {
+        let updated = [...prevData];
+        
+        // Get base names of existing folders (both real and temp) to avoid duplicates
+        const getBaseName = (name) => {
+          if (!name) return "";
+          const match = name.match(/^(.+?)(\s*\(\d+\))?$/);
+          return match ? match[1].trim() : name.trim();
+        };
+        
+        const existingFolders = updated.filter(
+          (i) =>
+            i.type === "folder" &&
+            String(i.parentId || "root") ===
+              String(targetParent || "root")
+        );
+        
+        const usedNames = new Set(existingFolders.map((i) => i.name));
+        const usedBaseNames = new Set(
+          existingFolders.map((i) => {
+            const tempId = String(i.id || i._id || "");
+            if (tempId.startsWith("temp-folder-")) {
+              return i.tempBaseName || getBaseName(i.name);
+            }
+            return getBaseName(i.name);
+          })
+        );
+
+        const getUniqueName = (base) => {
+          if (!usedNames.has(base)) return base;
+          let idx = 1;
+          let candidate = `${base} (${idx})`;
+          while (usedNames.has(candidate)) {
+            idx += 1;
+            candidate = `${base} (${idx})`;
+          }
+          return candidate;
+        };
+        
+        names.forEach((name) => {
+          // Skip if a folder with this base name already exists (could be from backend event)
+          if (usedBaseNames.has(name)) {
+            // Check if it's a temp folder - if so, we can replace it
+            const existingTempFolder = existingFolders.find(
+              (i) => {
+                const tempId = String(i.id || i._id || "");
+                if (!tempId.startsWith("temp-folder-")) return false;
+                const tempBase = i.tempBaseName || getBaseName(i.name);
+                return tempBase === name;
+              }
+            );
+            
+            // Only add new temp folder if no matching temp folder exists
+            if (!existingTempFolder) {
+              return; // Skip - real folder already exists
+            }
+          }
+          
+          const displayName = getUniqueName(name);
+          usedNames.add(displayName);
+          const tempId = `temp-folder-${targetParent || "root"}-${Date.now()}-${displayName}`;
+          
+          // Check if temp folder already exists (might have been created earlier)
+          const existingTemp = updated.find(
+            (i) =>
+              i.type === "folder" &&
+              String(i.parentId || "root") === String(targetParent || "root") &&
+              String(i.id || i._id || "").startsWith("temp-folder-") &&
+              (i.tempBaseName === name || getBaseName(i.name) === name)
+          );
+          
+          // Only add if no matching temp folder exists
+          if (!existingTemp) {
+            updated = [
+              {
+                id: tempId,
+                _id: tempId,
+                name: displayName,
+                originalName: displayName,
+                type: "folder",
+                size: 0,
+                date: new Date().toISOString(),
+                parentId: targetParent,
+                permissions: [],
+                isTemp: true,
+                tempBaseName: name,
+              },
+              ...updated,
+            ];
+          }
+        });
+
+        const cacheKey = currentFolder;
+        const cached = folderDataCache.current.get(cacheKey);
+        if (cached) {
+          folderDataCache.current.set(cacheKey, {
+            ...cached,
+            data: updated,
+            timestamp: Date.now(),
+          });
+        }
+        return updated;
+      });
+    },
+    [currentFolderId]
   );
 
   // Polling mechanism to check drive upload status
@@ -1774,13 +1991,14 @@ const useFileManagementPage = ({
           }
         }
 
+        const filesOnly = foundFiles.filter((f) => f.type !== "folder");
         // Add all found files to data state
-        if (foundFiles.length > 0) {
+        if (filesOnly.length > 0) {
           setData((prevData) => {
             const existingIds = new Set(
               prevData.map((item) => String(item.id || item._id))
             );
-            const newFiles = foundFiles
+            const newFiles = filesOnly
               .filter((f) => !existingIds.has(String(f._id)))
               .map((f) => ({
                 id: String(f._id || f.id),
@@ -2143,6 +2361,10 @@ const useFileManagementPage = ({
   const handleFolderClick = useCallback(
     (folder) => {
       if (!folder?.id && !folder?._id) return;
+      if (folder.isTemp || String(folder.id || folder._id).startsWith("temp-folder-")) {
+        toast.loading("Thư mục đang được tạo, vui lòng chờ...", { duration: 1500 });
+        return;
+      }
 
       const folderId = String(folder.id || folder._id);
       const folderName = folder.name || "Unknown";
@@ -2589,6 +2811,7 @@ const useFileManagementPage = ({
     updateDataFromChat,
     addUploadedFile,
     addUploadedFilesBatch,
+    addOptimisticFolders,
     handleBack,
     handleFolderClick,
     navigateToFolder,

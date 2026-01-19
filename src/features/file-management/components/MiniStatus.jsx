@@ -152,6 +152,68 @@ const MiniStatusBatch = ({
     fileStatesRef.current = fileStates;
   }, [fileStates]);
 
+  // ================= NETWORK STATUS DETECTION =================
+  const [isOnline, setIsOnline] = useState(
+    typeof navigator !== "undefined" ? navigator.onLine : true
+  );
+  const networkRetryQueueRef = useRef([]); // Queue các chunks cần retry khi online lại
+
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      console.log("[Network] Online - resuming uploads if any pending...");
+      // Resume any pending retries when back online
+      if (networkRetryQueueRef.current.length > 0) {
+        toast.success("Đã kết nối lại mạng. Đang tiếp tục upload...");
+      }
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+      console.warn("[Network] Offline - uploads will pause");
+      toast.error("Mất kết nối mạng. Upload sẽ tiếp tục khi có mạng.");
+    };
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
+  // ================= CLEANUP ON UNMOUNT =================
+  // Fix memory leak: clear all intervals and abort controllers when component unmounts
+  useEffect(() => {
+    return () => {
+      // Clear all polling intervals
+      Object.values(statusPollersRef.current).forEach((interval) => {
+        if (interval) clearInterval(interval);
+      });
+      statusPollersRef.current = {};
+
+      // Abort all pending requests
+      Object.values(abortControllersRef.current).forEach((controller) => {
+        if (controller && !controller.signal.aborted) {
+          controller.abort();
+        }
+      });
+      abortControllersRef.current = {};
+
+      // Clear other refs to help GC
+      retriedChunksRef.current = {};
+      failedChunksRef.current = {};
+      totalRetryRef.current = {};
+      checksumMismatchRef.current = {};
+      uploadSpeedRef.current = {};
+      lastStatusRef.current = {};
+      networkRetryQueueRef.current = [];
+
+      console.log("[MiniStatus] Cleanup completed on unmount");
+    };
+  }, []); // Empty deps = run only on unmount
+
   useEffect(() => {
     fileStates.forEach((f) => {
       if (
@@ -628,6 +690,59 @@ const MiniStatusBatch = ({
     return true;
   };
 
+  // ================= COMPLETE UPLOAD (NON-BLOCKING) =================
+  // Gọi /api/upload/complete để báo backend bắt đầu upload lên Drive
+  // KHÔNG đợi Drive upload hoàn thành - để file tiếp theo bắt đầu ngay
+  const triggerUploadComplete = async (fileState, fileIndex, uploadId, chunks) => {
+    if (cancelledRef.current[fileIndex]) return false;
+
+    try {
+      const res = await axiosClient.post("/api/upload/complete", { uploadId });
+      const data = res?.data || null;
+
+      // Nếu thiếu chunks, retry một lần
+      if (data?.missingChunks && Array.isArray(data.missingChunks) && data.missingChunks.length > 0) {
+        console.log(`[Upload] Missing ${data.missingChunks.length} chunks, retrying once...`);
+        await resendMissingChunks({
+          fileState,
+          fileIndex,
+          uploadId,
+          chunks,
+          missingChunks: data.missingChunks,
+          concurrency: 2,
+        });
+        // Gọi complete lại sau khi resend
+        await axiosClient.post("/api/upload/complete", { uploadId });
+      }
+
+      // Không đợi Drive upload - set status = "processing" và return ngay
+      setFileStates((prev) =>
+        prev.map((f, idx) =>
+          idx === fileIndex && f.status !== "success" && f.status !== "error"
+            ? { ...f, status: "processing", progress: 100 }
+            : f
+        )
+      );
+
+      // Start polling để track Drive upload status (background, non-blocking)
+      pollStatusUntilDone(uploadId, fileIndex, fileState.file.size);
+
+      return true;
+    } catch (error) {
+      console.warn(`[Upload] Complete request failed: ${error.message}`);
+      // Vẫn set processing để không block file tiếp theo
+      setFileStates((prev) =>
+        prev.map((f, idx) =>
+          idx === fileIndex && f.status !== "success" && f.status !== "error"
+            ? { ...f, status: "processing", progress: 100 }
+            : f
+        )
+      );
+      return true;
+    }
+  };
+
+  // Legacy function for compatibility (still waits, used for retry scenarios)
   const completeUploadWithRetry = async (
     fileState,
     fileIndex,
@@ -922,6 +1037,61 @@ const MiniStatusBatch = ({
         );
         return;
       }
+
+      // ================= NETWORK CHECK =================
+      // Wait for network if offline (max 60 seconds before timeout)
+      if (!navigator.onLine) {
+        console.warn(`[Upload] Offline detected at chunk ${i}, waiting...`);
+        setFileStates((prev) =>
+          prev.map((f, idx) =>
+            idx === fileIndex
+              ? { ...f, status: "uploading", error: "Đang chờ kết nối mạng..." }
+              : f
+          )
+        );
+        
+        const waitForNetwork = () =>
+          new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+              window.removeEventListener("online", onOnline);
+              reject(new Error("Network timeout - offline too long"));
+            }, 60000); // 60s timeout
+
+            const onOnline = () => {
+              clearTimeout(timeout);
+              window.removeEventListener("online", onOnline);
+              resolve();
+            };
+
+            if (navigator.onLine) {
+              clearTimeout(timeout);
+              resolve();
+            } else {
+              window.addEventListener("online", onOnline);
+            }
+          });
+
+        try {
+          await waitForNetwork();
+          console.log(`[Upload] Network restored, resuming chunk ${i}`);
+          setFileStates((prev) =>
+            prev.map((f, idx) =>
+              idx === fileIndex ? { ...f, error: null } : f
+            )
+          );
+        } catch (networkError) {
+          console.error(`[Upload] Network timeout at chunk ${i}`);
+          setFileStates((prev) =>
+            prev.map((f, idx) =>
+              idx === fileIndex
+                ? { ...f, status: "error", error: "Mất kết nối mạng quá lâu" }
+                : f
+            )
+          );
+          return;
+        }
+      }
+
       try {
         const ch = chunks[i];
         const buf = await readFileChunk(file, ch.start, ch.end);
@@ -1169,19 +1339,10 @@ const MiniStatusBatch = ({
     }
 
     if (!cancelledRef.current[fileIndex] && uploadId) {
-      try {
-        await completeUploadWithRetry(fileState, fileIndex, uploadId, chunks);
-      } catch (error) {
-        const msg =
-          error?.response?.data?.error ||
-          error?.message ||
-          "Không thể hoàn tất upload";
-        setFileStates((prev) =>
-          prev.map((f, idx) =>
-            idx === fileIndex ? { ...f, status: "error", error: msg } : f
-          )
-        );
-      }
+      // ✅ FIX: Dùng triggerUploadComplete (non-blocking) thay vì completeUploadWithRetry
+      // Điều này cho phép file tiếp theo bắt đầu ngay khi chunks đã gửi xong
+      // Drive upload sẽ chạy background và track qua WebSocket/polling
+      await triggerUploadComplete(fileState, fileIndex, uploadId, chunks);
     }
   };
 
@@ -1533,48 +1694,20 @@ const MiniStatusBatch = ({
             continue; // Bỏ qua file này, tiếp tục file tiếp theo
           }
 
-          // Upload file này và đợi hoàn thành upload lên temp (không đợi upload lên Drive)
+          // Upload file này - triggerUploadComplete sẽ set status = "processing" ngay
+          // và KHÔNG đợi Drive upload hoàn thành
           await uploadFileWithChunks(fileState, fileIndex);
 
-          // Đợi một chút để state được update (setFileStates là async)
-          await new Promise(resolve => setTimeout(resolve, 200));
+          // Đợi ngắn để state update (setFileStates là async)
+          await new Promise(resolve => setTimeout(resolve, 100));
 
-          // Đợi file này hoàn thành upload lên temp (status = "processing")
-          // Không cần đợi upload lên Drive xong, chỉ cần upload lên temp xong là được
-          let fileCompleted = false;
-          let waitCount = 0;
-          const maxWait = 100; // Tối đa 10 giây đợi file hoàn thành upload lên temp (giảm từ 30s vì chỉ cần đợi status update)
-          
-          while (!fileCompleted && waitCount < maxWait) {
-            await new Promise(resolve => setTimeout(resolve, 100)); // Check mỗi 100ms
-            
-            // Lấy state mới nhất từ fileStatesRef (được sync từ fileStates)
-            const currentState = fileStatesRef.current[fileIndex];
-            // File được coi là "hoàn thành upload lên temp" khi:
-            // - status = "processing" (đã upload xong lên temp, đang upload lên Drive) ← ĐÂY LÀ MỤC TIÊU
-            // - status = "success" (đã upload xong cả temp và Drive) - cũng OK nhưng không cần đợi
-            // - status = "error" hoặc "cancelled" (có lỗi, không cần đợi)
-            if (
-              currentState?.status === "processing" ||
-              currentState?.status === "success" ||
-              currentState?.status === "error" ||
-              currentState?.status === "cancelled"
-            ) {
-              fileCompleted = true;
-              console.log(`[Upload] File ${i + 1}/${fileStates.length} đã hoàn thành upload lên temp (status: ${currentState?.status}), bắt đầu file tiếp theo...`);
-            }
-            
-            waitCount++;
-          }
+          // Verify file đã chuyển sang processing/success/error
+          const currentState = fileStatesRef.current[fileIndex];
+          console.log(`[Upload] File ${i + 1}/${fileStates.length} đã gửi xong chunks (status: ${currentState?.status}), qua file tiếp theo...`);
 
-          if (!fileCompleted) {
-            console.warn(`[Upload] File ${i + 1}/${fileStates.length} chưa hoàn thành upload lên temp sau ${maxWait * 100}ms, tiếp tục file tiếp theo...`);
-          }
-
-          // Delay trước khi bắt đầu file tiếp theo để backend xử lý hoàn toàn
-          // Tăng delay từ 500ms lên 1000ms (1 giây) để tránh conflict khi có nhiều tabs upload cùng lúc
+          // Delay ngắn giữa các files để backend không bị overload
           if (i < fileStates.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Delay 1 giây giữa các files
+            await new Promise(resolve => setTimeout(resolve, 300)); // Giảm từ 1000ms xuống 300ms
           }
         }
       } catch (e) {

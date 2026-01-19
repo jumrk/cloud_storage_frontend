@@ -206,6 +206,7 @@ function Card_file({
     document.body.appendChild(dragEl);
     if (e.dataTransfer) {
       e.dataTransfer.setDragImage(dragEl, 20, 20);
+      e.dataTransfer.setData("application/x-d2m-internal", "1");
     }
     window._customDragEl = dragEl;
   };
@@ -418,7 +419,7 @@ function Card_file({
                 </button>
               </div>
             ) : (
-              <>
+              <div className="flex items-center gap-1 w-full">
                 <input
                   type="text"
                   value={newName}
@@ -450,7 +451,7 @@ function Card_file({
                 >
                   <FiX size={16} />
                 </button>
-              </>
+              </div>
             )}
           </>
         ) : (

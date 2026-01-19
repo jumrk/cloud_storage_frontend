@@ -421,6 +421,7 @@ const Table = ({
     document.body.appendChild(dragEl);
     if (e.dataTransfer) {
       e.dataTransfer.setDragImage(dragEl, 20, 20);
+      e.dataTransfer.setData("application/x-d2m-internal", "1");
     }
     window._customDragEl = dragEl;
   };

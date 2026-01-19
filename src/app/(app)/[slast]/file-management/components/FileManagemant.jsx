@@ -1,5 +1,5 @@
 "use client";
-import { FiFilter, FiMessageCircle } from "react-icons/fi";
+import { FiFilter, FiMessageCircle, FiUpload } from "react-icons/fi";
 import Table from "@/features/file-management/components/TableFile";
 import Card_file from "@/features/file-management/components/CardFile";
 import UploadModal from "@/features/file-management/components/UploadModal";
@@ -17,7 +17,8 @@ import ShareModal from "@/features/file-management/components/ShareModal";
 import DownloadStatus from "@/features/share/components/DownloadStatus";
 import useFileManagementPage from "../hooks/useFileManagementPage";
 import FileManagementService from "@/features/file-management/services/fileManagementService";
-import { useState, useRef, useMemo, useCallback } from "react";
+import { useState, useRef, useMemo, useCallback, useEffect } from "react";
+import { v4 as uuidv4 } from "uuid";
 import toast from "react-hot-toast";
 import FileManagerHeader from "@/features/file-management/components/Header";
 import Breadcrumb from "@/shared/ui/Breadcrumb";
@@ -46,11 +47,16 @@ export default function FileManagement({
   const downloadControllerRef = useRef(null); // Store AbortController for cancel (single file)
   const downloadControllersRef = useRef(new Map()); // Store AbortControllers for multiple files (fileId -> AbortController)
   const cancelledDownloadFileIdsRef = useRef(new Set()); // Track cancelled file IDs to stop download loop
+  const processedBatchesRef = useRef(new Set()); // Track which batches we've already processed for optimistic folders
   const [showChat, setShowChat] = useState(false);
   const previousItemsCountRef = useRef(10); // Store previous items count for skeleton
   // Move modal folder states - flat list
   const [moveModalFolders, setMoveModalFolders] = useState([]);
   const [moveModalFolderLoading, setMoveModalFolderLoading] = useState(false);
+  const [externalDragActive, setExternalDragActive] = useState(false);
+  // ================= EXTERNAL DRAG-DROP FOLDER STATE =================
+  // Track emptyFolders from drag-drop to maintain consistency with UploadModal
+  const [externalEmptyFolders, setExternalEmptyFolders] = useState([]);
   const {
     t,
     isSidebarOpen,
@@ -115,6 +121,7 @@ export default function FileManagement({
     updateDataFromChat,
     addUploadedFile,
     addUploadedFilesBatch,
+    addOptimisticFolders,
     setPreviewFile,
     handlePreview,
     handleDownload: originalHandleDownload,
@@ -999,6 +1006,65 @@ export default function FileManagement({
     }
   }, [showMoveModal, fetchAllMoveModalFolders]);
 
+  // Add optimistic folders when new folder batches are created (BEFORE upload starts)
+  useEffect(() => {
+    if (!uploadBatches || uploadBatches.length === 0) return;
+
+    uploadBatches.forEach((batch) => {
+      // Only process folder batches that haven't been processed yet
+      // Check both batch.id and batch.batchId (batch.id is added by handleStartUpload, batchId is from buildUploadBatches/UploadModal)
+      const batchIdentifier = batch.id || batch.batchId;
+      if (
+        batch.type === "folder" &&
+        batchIdentifier &&
+        !processedBatchesRef.current.has(batchIdentifier)
+      ) {
+        processedBatchesRef.current.add(batchIdentifier);
+
+        const folderNames = new Set();
+
+        // Extract folder names from files (files have relativePath)
+        (batch.files || []).forEach((item) => {
+          const rel = item.relativePath || item.name || "";
+          if (!rel) return;
+          const top = rel.split("/")[0];
+          if (top) folderNames.add(top);
+        });
+
+        // Extract folder names from emptyFolders (format: "folder1/" or "folder1/subfolder/")
+        (batch.emptyFolders || []).forEach((f) => {
+          if (!f) return;
+          // Remove trailing slash if present, then get first segment
+          const path = String(f).replace(/\/+$/, "");
+          const top = path.split("/")[0];
+          if (top) folderNames.add(top);
+        });
+
+        if (folderNames.size > 0) {
+          console.log(
+            "[Optimistic Folders] Adding folders for batch:",
+            batchIdentifier,
+            Array.from(folderNames),
+          );
+          addOptimisticFolders(
+            Array.from(folderNames),
+            currentFolderId || null,
+          );
+        }
+      }
+    });
+
+    // Clean up processed batches that are no longer in uploadBatches
+    const currentBatchIds = new Set(
+      uploadBatches.map((b) => b.id || b.batchId).filter(Boolean),
+    );
+    processedBatchesRef.current.forEach((batchId) => {
+      if (!currentBatchIds.has(batchId)) {
+        processedBatchesRef.current.delete(batchId);
+      }
+    });
+  }, [uploadBatches, currentFolderId, addOptimisticFolders]);
+
   // Select folder in Move modal
   const selectMoveModalFolder = React.useCallback(
     (folder) => {
@@ -1008,6 +1074,319 @@ export default function FileManagement({
       });
     },
     [setMoveTargetFolder, t],
+  );
+
+  // Check if member can drag-drop (must be inside a folder, not at root)
+  const canDragDropHere = useCallback(() => {
+    // Leader can drag-drop anywhere (root and folders)
+    if (isLeader) return true;
+    // Member must be inside a folder (currentFolderId must not be null)
+    if (isMember && currentFolderId === null) {
+      toast.error(
+        t("error.permission_denied") ||
+          "Bạn chỉ có thể tải lên trong thư mục được cấp",
+      );
+      return false;
+    }
+    return true;
+  }, [isLeader, isMember, currentFolderId, t]);
+
+  // Check for duplicate folder names and rename if necessary
+  const checkAndRenameDuplicateFolders = useCallback(
+    async (folderNames) => {
+      if (!folderNames || folderNames.length === 0) return folderNames;
+
+      try {
+        // Fetch existing folders in current parent to check for duplicates
+        const response = await axiosClient.post(
+          "/api/upload/check-duplicates",
+          {
+            fileNames: folderNames,
+            parentId: currentFolderId || null,
+          },
+        );
+
+        if (response.data.success && response.data.duplicates) {
+          const duplicates = new Set(response.data.duplicates);
+          // Rename folders that already exist
+          const renamedFolders = folderNames.map((folderName) => {
+            if (duplicates.has(folderName)) {
+              let newName = folderName;
+              let counter = 1;
+              // Keep incrementing counter until we find a unique name
+              while (duplicates.has(newName)) {
+                newName = `${folderName} ${counter}`;
+                counter++;
+              }
+              return newName;
+            }
+            return folderName;
+          });
+          return renamedFolders;
+        }
+        return folderNames;
+      } catch (error) {
+        console.error("Error checking duplicate folders:", error);
+        // Don't block upload if check fails
+        return folderNames;
+      }
+    },
+    [currentFolderId],
+  );
+
+  const isExternalFileDrag = useCallback((e) => {
+    const types = e?.dataTransfer?.types;
+    if (!types) return false;
+    const list = Array.from(types);
+    if (list.includes("application/x-d2m-internal")) return false;
+    return list.includes("Files");
+  }, []);
+
+  const traverseFileTree = async (item, path = "") => {
+    if (item.isFile) {
+      return new Promise((resolve) => {
+        item.file((file) => {
+          resolve([{ file, relativePath: path + file.name }]);
+        });
+      });
+    }
+    if (item.isDirectory) {
+      const dirReader = item.createReader();
+      return new Promise((resolve) => {
+        dirReader.readEntries(async (entries) => {
+          let files = [];
+          const isEmpty = entries.length === 0;
+          for (const entry of entries) {
+            const entryFiles = await traverseFileTree(
+              entry,
+              path + item.name + "/",
+            );
+            files = files.concat(entryFiles);
+          }
+          if (isEmpty) {
+            resolve([
+              { emptyFolder: true, relativePath: path + item.name + "/" },
+            ]);
+          } else {
+            resolve(files);
+          }
+        });
+      });
+    }
+    return [];
+  };
+
+  const getAllFileEntries = async (dataTransferItemList) => {
+    let fileEntries = [];
+    let emptyFolders = [];
+    const promises = [];
+    for (let i = 0; i < dataTransferItemList.length; i++) {
+      const item = dataTransferItemList[i].webkitGetAsEntry?.();
+      if (item) {
+        promises.push(traverseFileTree(item));
+      }
+    }
+    const results = await Promise.all(promises);
+    results.forEach((files) => {
+      files.forEach((obj) => {
+        if (obj.emptyFolder) emptyFolders.push(obj.relativePath);
+        else fileEntries.push(obj);
+      });
+    });
+    return { fileEntries, emptyFolders };
+  };
+
+  const buildUploadBatches = (files, emptyFolders, parentId) => {
+    const batchId = uuidv4();
+    const folderMap = new Map();
+    const rootFiles = [];
+    files.forEach((file) => {
+      const relPathRaw =
+        file._relativePath || file.webkitRelativePath || file.name;
+      const relPath = relPathRaw.replace(/\\/g, "/").replace(/^\.?\/*/, "");
+      if (relPath.includes("/")) {
+        const folderName = relPath.split("/")[0];
+        if (!folderMap.has(folderName)) folderMap.set(folderName, []);
+        folderMap.get(folderName).push({
+          file,
+          name: file.name,
+          relativePath: relPath,
+          batchId,
+        });
+      } else {
+        rootFiles.push({
+          file,
+          name: file.name,
+          relativePath: relPath,
+          batchId,
+        });
+      }
+    });
+
+    const emptyFoldersMap = new Map();
+    (emptyFolders || []).forEach((f) => {
+      const folderName = f.split("/")[0];
+      if (!emptyFoldersMap.has(folderName)) emptyFoldersMap.set(folderName, []);
+      emptyFoldersMap.get(folderName).push(f);
+    });
+
+    const folderBatches = Array.from(folderMap.entries()).map(
+      ([folderName, items]) => ({
+        type: "folder",
+        folderName,
+        batchId,
+        files: items,
+        emptyFolders: emptyFoldersMap.get(folderName) || [],
+        parentId: parentId || null,
+      }),
+    );
+
+    const fileBatch =
+      rootFiles.length > 0
+        ? [
+            {
+              type: "file",
+              batchId,
+              files: rootFiles,
+              parentId: parentId || null,
+            },
+          ]
+        : [];
+
+    return [...folderBatches, ...fileBatch];
+  };
+
+  const handleExternalDrop = useCallback(
+    async (e) => {
+      if (!isExternalFileDrag(e)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setExternalDragActive(false);
+
+      // ================= PERMISSION CHECK FOR MEMBERS =================
+      // Member must be inside a folder (currentFolderId must not be null)
+      if (isMember && currentFolderId === null) {
+        toast.error(
+          t("file_management.member_must_enter_folder") ||
+            "Bạn phải vào một thư mục được cấp quyền để tải lên",
+        );
+        return;
+      }
+
+      let filesToAdd = [];
+      let emptyFoldersToAdd = [];
+      let hasDirectory = false;
+      if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+        for (let i = 0; i < e.dataTransfer.items.length; i++) {
+          const entry = e.dataTransfer.items[i].webkitGetAsEntry?.();
+          if (entry && entry.isDirectory) {
+            hasDirectory = true;
+            break;
+          }
+        }
+      }
+
+      if (hasDirectory) {
+        const { fileEntries, emptyFolders } = await getAllFileEntries(
+          e.dataTransfer.items,
+        );
+        if (fileEntries.length > 0) {
+          filesToAdd = fileEntries.map((obj) => {
+            obj.file._relativePath = obj.relativePath;
+            return obj.file;
+          });
+        }
+        emptyFoldersToAdd = emptyFolders;
+        // ================= SAVE EMPTY FOLDERS TO STATE =================
+        // Maintain consistency with UploadModal by storing emptyFolders in state
+        setExternalEmptyFolders(emptyFoldersToAdd);
+
+        // ================= RENAME DUPLICATE FOLDERS =================
+        // Extract top-level folder names for duplicate checking
+        const topLevelFolders = new Set();
+        emptyFoldersToAdd.forEach((folderPath) => {
+          const topLevelName = folderPath.split("/")[0];
+          if (topLevelName) topLevelFolders.add(topLevelName);
+        });
+        filesToAdd.forEach((file) => {
+          const relPath =
+            file._relativePath || file.webkitRelativePath || file.name;
+          if (relPath.includes("/")) {
+            const topLevelName = relPath.split("/")[0];
+            if (topLevelName) topLevelFolders.add(topLevelName);
+          }
+        });
+
+        // Check and rename duplicate folders (same logic as UploadModal)
+        if (topLevelFolders.size > 0) {
+          const renamedFolders = await checkAndRenameDuplicateFolders(
+            Array.from(topLevelFolders),
+          );
+          const folderRenameMap = new Map();
+          Array.from(topLevelFolders).forEach((originalName, idx) => {
+            folderRenameMap.set(originalName, renamedFolders[idx]);
+          });
+
+          // Update file paths with renamed folder names
+          filesToAdd = filesToAdd.map((file) => {
+            const relPath =
+              file._relativePath || file.webkitRelativePath || file.name;
+            if (relPath.includes("/")) {
+              const topLevelName = relPath.split("/")[0];
+              const newTopLevelName =
+                folderRenameMap.get(topLevelName) || topLevelName;
+              const restOfPath = relPath.substring(topLevelName.length);
+              file._relativePath = newTopLevelName + restOfPath;
+            }
+            return file;
+          });
+
+          // Update empty folder paths with renamed folder names
+          emptyFoldersToAdd = emptyFoldersToAdd.map((folderPath) => {
+            const topLevelName = folderPath.split("/")[0];
+            const newTopLevelName =
+              folderRenameMap.get(topLevelName) || topLevelName;
+            const restOfPath = folderPath.substring(topLevelName.length);
+            return newTopLevelName + restOfPath;
+          });
+
+          setExternalEmptyFolders(emptyFoldersToAdd);
+        }
+      } else if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        filesToAdd = Array.from(e.dataTransfer.files);
+      }
+
+      if (!filesToAdd.length && !emptyFoldersToAdd.length) return;
+      const batches = buildUploadBatches(
+        filesToAdd,
+        emptyFoldersToAdd,
+        currentFolderId,
+      );
+      if (batches.length > 0) {
+        handleStartUpload(batches);
+      }
+    },
+    [currentFolderId, handleStartUpload, isExternalFileDrag, isMember, t, checkAndRenameDuplicateFolders],
+  );
+
+  const handleExternalDragOver = useCallback(
+    (e) => {
+      if (!isExternalFileDrag(e)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setExternalDragActive(true);
+    },
+    [isExternalFileDrag],
+  );
+
+  const handleExternalDragLeave = useCallback(
+    (e) => {
+      if (!isExternalFileDrag(e)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setExternalDragActive(false);
+    },
+    [isExternalFileDrag],
   );
 
   return (
@@ -1032,7 +1411,30 @@ export default function FileManagement({
           isMember={isMember}
           currentFolderId={currentFolderId}
         />
-        <div className="w-full flex-1 overflow-y-auto overflow-x-hidden main-content-scrollbar min-h-0 md:px-0">
+        <div
+          className={`w-full flex-1 overflow-y-auto overflow-x-hidden main-content-scrollbar min-h-0 md:px-0 relative ${
+            externalDragActive ? "ring-2 ring-brand/40 rounded-lg" : ""
+          }`}
+          onDragOver={handleExternalDragOver}
+          onDragEnter={handleExternalDragOver}
+          onDragLeave={handleExternalDragLeave}
+          onDrop={handleExternalDrop}
+        >
+          {externalDragActive && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/30 backdrop-blur-sm pointer-events-none rounded-lg">
+              <div className="flex flex-col items-center gap-2 bg-white/90 border border-brand/30 rounded-2xl px-6 py-4 shadow-lg">
+                <div className="flex items-center justify-center w-12 h-12 rounded-full bg-brand/10 text-brand text-2xl">
+                  <FiUpload />
+                </div>
+                <div className="text-base font-semibold text-gray-900">
+                  Drop to upload
+                </div>
+                <div className="text-xs text-gray-600">
+                  Thả tệp/thư mục để tải lên
+                </div>
+              </div>
+            </div>
+          )}
           {loading ? (
             <>
               {/* Breadcrumb Skeleton */}
@@ -1373,6 +1775,7 @@ export default function FileManagement({
         onClose={() => setShowUploadModal(false)}
         onStartUpload={handleStartUpload}
         parentId={currentFolderId}
+        isMember={isMember}
       />
       {showCreateFolderModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-2">
@@ -1474,6 +1877,7 @@ export default function FileManagement({
               if (result?.uploadIds && result.uploadIds.length > 0) {
                 // Fetch all uploaded files from the folder
                 // Folders will be rendered via "file:created" events from backend
+                // Note: Optimistic folders are already added when batch is created
                 (async () => {
                   try {
                     await addUploadedFilesBatch(result.uploadIds);
@@ -1489,7 +1893,12 @@ export default function FileManagement({
                   }
                 })();
               }
-              // No need to call resetAndReload - events will handle rendering
+              // Note: addOptimisticFolders is now called when batch is created, not here
+              // This prevents duplicate folders if backend events arrive before onComplete
+              // ================= RESET EXTERNAL EMPTY FOLDERS =================
+              // Clear emptyFolders state after folder upload completes
+              // This prevents stale folder references from persisting
+              setExternalEmptyFolders([]);
             } else {
               // Fallback: refetch for other operations (move, delete already handled above)
               // Only reload for operations that are NOT file uploads

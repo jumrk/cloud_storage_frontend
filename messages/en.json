@@ -467,6 +467,9 @@
     "select_all_current": "Select all current",
     "deselect_all": "Deselect all"
   },
+  "file_management": {
+    "member_must_enter_folder": "You must enter a folder that you have permission to upload files"
+  },
   "file_shared": {
     "title": "Shared files",
     "description": {
