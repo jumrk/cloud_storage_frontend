@@ -12,29 +12,31 @@ import toast from "react-hot-toast";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 import useSocket from "@/shared/lib/useSocket";
-// Adaptive chunk size dựa trên file size và băng thông
+// ================= OPTIMIZED CHUNK SIZE =================
+// Tối ưu cho server mạnh và network tốt
+// Tăng chunk size = ít round-trips = upload nhanh hơn
 const calculateOptimalChunkSize = (fileSize) => {
-  // File rất nhỏ: tối đa 50% file size
+  // File rất nhỏ (<1MB): tối đa 50% file size
   if (fileSize < 1 * 1024 * 1024)
     return Math.max(256 * 1024, Math.floor(fileSize / 2));
 
-  // File nhỏ: 1MB chunks
-  if (fileSize < 10 * 1024 * 1024) return 1 * 1024 * 1024;
+  // File nhỏ (<10MB): 2MB chunks
+  if (fileSize < 10 * 1024 * 1024) return 2 * 1024 * 1024;
 
-  // File trung bình: 2MB chunks
-  if (fileSize < 100 * 1024 * 1024) return 2 * 1024 * 1024;
+  // File trung bình (<100MB): 5MB chunks
+  if (fileSize < 100 * 1024 * 1024) return 5 * 1024 * 1024;
 
-  // File lớn: 5MB chunks
-  if (fileSize < 1024 * 1024 * 1024) return 5 * 1024 * 1024;
+  // File lớn (<500MB): 10MB chunks
+  if (fileSize < 500 * 1024 * 1024) return 10 * 1024 * 1024;
 
-  // File rất lớn: 10MB chunks (giảm từ 50MB)
-  if (fileSize < 10 * 1024 * 1024 * 1024) return 10 * 1024 * 1024;
+  // File rất lớn (<2GB): 20MB chunks (TĂNG từ 5-10MB)
+  if (fileSize < 2 * 1024 * 1024 * 1024) return 20 * 1024 * 1024;
 
-  // File cực lớn: 15MB chunks (giảm từ 100MB)
-  if (fileSize < 50 * 1024 * 1024 * 1024) return 15 * 1024 * 1024;
+  // File cực lớn (<10GB): 30MB chunks (TĂNG từ 10MB)
+  if (fileSize < 10 * 1024 * 1024 * 1024) return 30 * 1024 * 1024;
 
-  // File khổng lồ: 25MB chunks (giảm từ 200MB)
-  return 25 * 1024 * 1024;
+  // File khổng lồ (>10GB): 50MB chunks (TĂNG từ 15-25MB)
+  return 50 * 1024 * 1024;
 };
 
 // Hàm tính chunk size adaptive dựa trên băng thông đo được
@@ -398,43 +400,43 @@ const MiniStatusBatch = ({
           state: data.state,
         };
         
-        // Retry missing chunks nếu có
+        // ================= RESEND MISSING CHUNKS (WITH LOCK) =================
+        // CRITICAL: With in-order validation, resending missing chunks is tricky.
+        // We can only resend if backend is waiting for those specific chunks.
+        // If all chunks were sent but bitmap shows missing, it's likely a race condition
+        // or bitmap read bug. In that case, we should NOT resend (would cause OUT_OF_ORDER).
+        //
+        // For now, we DISABLE automatic resend from polling to avoid conflicts.
+        // The main upload loop already handles retries with proper ordering.
+        // Polling should only detect state changes (COMPLETED, FAILED), not trigger resends.
+        //
+        // NOTE: If chunks are truly missing (network error mid-upload), the main upload
+        // loop should have failed and triggered proper retry. Polling-based resend
+        // cannot work correctly with in-order validation since we don't know the
+        // exact chunk backend expects next.
         if (data.missingChunks && Array.isArray(data.missingChunks) && data.missingChunks.length > 0) {
-          // Lấy file state từ ref (được update mỗi khi fileStates thay đổi)
-          const currentFileState = fileStatesRef.current[fileIndex];
-          if (currentFileState && currentFileState.chunks && currentFileState.chunks.length > 0) {
-            const chunks = currentFileState.chunks;
-            const missingChunks = data.missingChunks.filter(chunkIdx => {
-              // ✅ Tăng retries từ 3 lên 10 để đảm bảo chunks bị mất được retry đủ lần
-              const retryKey = `${uploadId}-${chunkIdx}`;
-              const retryCount = retriedChunksRef.current[retryKey] || 0;
-              return retryCount < 10 && chunkIdx < chunks.length;
-            });
-            
-            if (missingChunks.length > 0) {
-              console.log(
-                `[Upload] Phát hiện ${missingChunks.length} chunks bị mất, đang retry...`,
-                missingChunks.slice(0, 10)
-              );
-
-              (async () => {
-                for (const chunkIdx of missingChunks) {
-                  const retryKey = `${uploadId}-${chunkIdx}`;
-                  retriedChunksRef.current[retryKey] =
-                    (retriedChunksRef.current[retryKey] || 0) + 1;
-                }
-                await resendMissingChunks({
-                  fileState: currentFileState,
-                  fileIndex,
-                  uploadId,
-                  chunks,
-                  missingChunks,
-                });
-              })();
-            }
-          }
+          console.warn(
+            `[Upload] Polling detected ${data.missingChunks.length} missing chunks, but NOT resending.`,
+            `With in-order validation, only the main upload loop can resend. Chunks: ${data.missingChunks.slice(0, 5).join(", ")}${data.missingChunks.length > 5 ? "..." : ""}`
+          );
+          // Log for debugging - if this appears frequently, there may be a real issue
+          // that needs investigation (e.g., network drops, backend errors)
         }
         
+        // Handle FAILED state - stop polling and show error
+        if (data.state === "FAILED" || data.state === "ERROR") {
+          clearInterval(statusPollersRef.current[fileIndex]);
+          delete statusPollersRef.current[fileIndex];
+          setFileStates((prev) =>
+            prev.map((f, idx) =>
+              idx === fileIndex
+                ? { ...f, status: "error", error: data.error || "Upload failed on server" }
+                : f
+            )
+          );
+          return;
+        }
+
         if (
           Number(data.nextDriveOffset) < Number(fileSize) &&
           data.state !== "COMPLETED"
@@ -655,37 +657,85 @@ const MiniStatusBatch = ({
     return true;
   };
 
+  // ================= RESEND MISSING CHUNKS (SEQUENTIAL + IN-ORDER) =================
+  // CRITICAL: With in-order validation on backend, we MUST send chunks sequentially
+  // and in ascending order. Backend will reject any out-of-order chunk!
   const resendMissingChunks = async ({
     fileState,
     fileIndex,
     uploadId,
     chunks,
     missingChunks,
-    concurrency = 3,
   }) => {
     const list = Array.isArray(missingChunks) ? missingChunks : [];
-    for (let i = 0; i < list.length; i += concurrency) {
-      if (cancelledRef.current[fileIndex]) return false;
-      const batch = list.slice(i, i + concurrency);
-      for (const chunkIdx of batch) {
-        try {
-          await sendChunkByIndex({
-            fileState,
-            fileIndex,
-            chunkIdx,
-            uploadId,
-            chunks,
-          });
-        } catch (error) {
-          if (
-            error?.code === "RESTART_WITH_SMALLER_CHUNKS" ||
-            error?.code === "NETWORK_UNSTABLE"
-          ) {
-            throw error;
-          }
+    if (list.length === 0) return true;
+    
+    // ✅ CRITICAL: Sort chunks in ascending order for in-order validation
+    const sortedList = [...list].sort((a, b) => a - b);
+    
+    console.log(`[Upload] Resending ${sortedList.length} chunks in order: ${sortedList.slice(0, 5).join(", ")}${sortedList.length > 5 ? "..." : ""}`);
+    
+    // First, check what chunk backend actually expects
+    try {
+      const statusRes = await axiosClient.get("/api/upload/status", {
+        params: { uploadId },
+      });
+      const statusData = statusRes?.data;
+      
+      // If backend reports a different expected chunk, we need to start from there
+      // This handles cases where bitmap shows missing chunks but they were actually received
+      if (statusData?.nextExpectedChunk !== undefined) {
+        const expectedIdx = statusData.nextExpectedChunk;
+        // Filter to only include chunks that backend actually needs
+        const neededChunks = sortedList.filter(idx => idx >= expectedIdx);
+        if (neededChunks.length === 0) {
+          console.log(`[Upload] Backend expects chunk ${expectedIdx}, no missing chunks need resending`);
+          return true;
+        }
+        if (neededChunks[0] !== expectedIdx) {
+          console.warn(`[Upload] Backend expects chunk ${expectedIdx}, but first missing is ${neededChunks[0]}. Gap detected!`);
+          // Cannot fill the gap - let polling handle it
+          return false;
         }
       }
-      await new Promise((resolve) => setTimeout(resolve, 200));
+    } catch (e) {
+      // Ignore status check errors, proceed with resend
+    }
+    
+    // ✅ Send chunks STRICTLY SEQUENTIALLY (concurrency = 1)
+    for (const chunkIdx of sortedList) {
+      if (cancelledRef.current[fileIndex]) return false;
+      
+      try {
+        await sendChunkByIndex({
+          fileState,
+          fileIndex,
+          chunkIdx,
+          uploadId,
+          chunks,
+        });
+        
+        // OPTIMIZED: Giảm delay từ 100ms xuống 10ms
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      } catch (error) {
+        if (
+          error?.code === "RESTART_WITH_SMALLER_CHUNKS" ||
+          error?.code === "NETWORK_UNSTABLE"
+        ) {
+          throw error;
+        }
+        
+        // Handle CHUNK_OUT_OF_ORDER - backend expects a different chunk
+        if (error?.response?.data?.code === "CHUNK_OUT_OF_ORDER") {
+          const expectedIdx = error.response.data.expectedIndex;
+          console.warn(`[Upload] Resend chunk ${chunkIdx} rejected, backend expects ${expectedIdx}. Stopping resend.`);
+          // Cannot continue - backend expects a chunk we don't have in missing list
+          return false;
+        }
+        
+        // For other errors, log and continue to next chunk
+        console.error(`[Upload] Resend chunk ${chunkIdx} failed: ${error.message}`);
+      }
     }
     return true;
   };
@@ -700,19 +750,34 @@ const MiniStatusBatch = ({
       const res = await axiosClient.post("/api/upload/complete", { uploadId });
       const data = res?.data || null;
 
-      // Nếu thiếu chunks, retry một lần
+      // ================= HANDLE MISSING CHUNKS ON COMPLETE =================
+      // With in-order validation, if backend reports missing chunks after all chunks
+      // were sent sequentially, there's likely a race condition or timing issue.
+      // We'll try ONE resend attempt. The fixed resendMissingChunks function will:
+      // 1. Sort chunks in ascending order
+      // 2. Check backend's expected chunk first
+      // 3. Send strictly sequentially
       if (data?.missingChunks && Array.isArray(data.missingChunks) && data.missingChunks.length > 0) {
-        console.log(`[Upload] Missing ${data.missingChunks.length} chunks, retrying once...`);
-        await resendMissingChunks({
+        console.warn(`[Upload] Complete API reports ${data.missingChunks.length} missing chunks. Attempting sequential resend...`);
+        
+        const resendSuccess = await resendMissingChunks({
           fileState,
           fileIndex,
           uploadId,
           chunks,
           missingChunks: data.missingChunks,
-          concurrency: 2,
         });
-        // Gọi complete lại sau khi resend
-        await axiosClient.post("/api/upload/complete", { uploadId });
+        
+        if (resendSuccess) {
+          // Try complete again after successful resend
+          try {
+            await axiosClient.post("/api/upload/complete", { uploadId });
+          } catch (e) {
+            console.warn(`[Upload] Second complete call failed: ${e.message}`);
+          }
+        } else {
+          console.warn(`[Upload] Resend failed - chunks may be out of sync with backend`);
+        }
       }
 
       // Không đợi Drive upload - set status = "processing" và return ngay
@@ -1032,6 +1097,8 @@ const MiniStatusBatch = ({
     // Ensure only ONE chunk is being uploaded at a time (strictly sequential)
     let uploadingChunk = false;
     let nextChunkIndex = 1;
+    let chunkRetryCount = 0; // Track retries for current chunk
+    const MAX_CHUNK_RETRIES = 5; // Max retries per chunk before failing
 
     while (nextChunkIndex < chunks.length) {
       if (cancelledRef.current[fileIndex]) {
@@ -1183,12 +1250,13 @@ const MiniStatusBatch = ({
         // ✅ CRITICAL: Backend confirmed this chunk is FULLY processed before we move to next
         console.log(`[Upload] ✅ Chunk ${i} CONFIRMED by backend, moving to next chunk...`);
         nextChunkIndex++; // Only advance after backend confirmation
+        chunkRetryCount = 0; // Reset retry count on success
         uploadingChunk = false; // Unlock to allow next chunk to start
         
-        // ⏱️ Small delay to ensure backend processes current chunk completely before next one arrives
-        // This prevents frontend from overwhelming backend with out-of-order requests
-        // 100ms is enough for backend to mark chunk processed and update state
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // ⏱️ OPTIMIZED: Giảm delay từ 100ms xuống 10ms
+        // Backend đã có Redis-backed in-order validation, không cần delay lâu
+        // 10ms đủ để event loop xử lý và tránh blocking hoàn toàn
+        await new Promise(resolve => setTimeout(resolve, 10));
         
         const assembledBytes = Number(data.assembledBytes || 0);
         const pct = Math.max(
@@ -1313,67 +1381,37 @@ const MiniStatusBatch = ({
           return;
         }
         
-        // ✅ FIX: Không return, mà track failed chunk và continue
-        // Điều này đảm bảo các chunks sau vẫn được gửi ngay cả khi một chunk fail
-        console.warn(`[Upload] Chunk ${i} fail (${msg || error.message}), tiếp tục chunks khác...`);
+        // ================= STRICTLY SEQUENTIAL: RETRY SAME CHUNK =================
+        // CRITICAL: Do NOT skip to next chunk! Retry THIS chunk with backoff.
+        // Backend expects chunks in order, skipping causes cascade failure!
+        chunkRetryCount++;
+        console.warn(`[Upload] ❌ Chunk ${i} fail (${msg || error.message}), retry ${chunkRetryCount}/${MAX_CHUNK_RETRIES}...`);
         
-        // Track failed chunk để retry sau
-        if (!failedChunksRef.current[fileIndex]) {
-          failedChunksRef.current[fileIndex] = [];
-        }
-        if (!failedChunksRef.current[fileIndex].includes(i)) {
-          failedChunksRef.current[fileIndex].push(i);
-        }
-        
-        // Không set status = "error" để upload tiếp tục
-        // Chỉ log warning và continue
-        continue; // ← Tiếp tục vòng lặp, không dừng!
-      }
-    }
-    
-    // ✅ FIX: Sau khi gửi xong tất cả chunks, retry failed chunks
-    if (failedChunksRef.current[fileIndex]?.length > 0) {
-      console.log(`[Upload] Đã gửi xong tất cả chunks. Retry ${failedChunksRef.current[fileIndex].length} chunks bị fail...`);
-      
-      const failedChunks = [...failedChunksRef.current[fileIndex]];
-      try {
-        await resendMissingChunks({
-          fileState,
-          fileIndex,
-          uploadId,
-          chunks,
-          missingChunks: failedChunks,
-          concurrency: 1,
-        });
-        failedChunksRef.current[fileIndex] = [];
-      } catch (retryError) {
-        if (retryError?.code === "RESTART_WITH_SMALLER_CHUNKS") {
-          const currentChunkSize = chunks[0]?.size || 0;
-          await requestRestartWithSmallerChunks(
-            fileState,
-            fileIndex,
-            uploadId,
-            currentChunkSize
-          );
-          return;
-        }
-        if (retryError?.code === "NETWORK_UNSTABLE") {
+        if (chunkRetryCount >= MAX_CHUNK_RETRIES) {
+          // Too many retries - fail the upload
+          console.error(`[Upload] ❌❌ Chunk ${i} failed after ${MAX_CHUNK_RETRIES} retries, stopping upload.`);
           setFileStates((prev) =>
             prev.map((f, idx) =>
               idx === fileIndex
-                ? { ...f, status: "error", error: "Mạng không ổn định" }
+                ? { ...f, status: "error", error: `Chunk ${i} thất bại sau ${MAX_CHUNK_RETRIES} lần thử: ${msg || error.message}` }
                 : f
             )
           );
           return;
         }
-      }
-      
-      // Nếu vẫn còn failed chunks, log warning (backend sẽ retry qua polling)
-      if (failedChunksRef.current[fileIndex]?.length > 0) {
-        console.warn(`[Upload] Vẫn còn ${failedChunksRef.current[fileIndex].length} chunks fail sau retry. Backend sẽ retry qua polling.`);
+        
+        // Exponential backoff before retry (1s, 2s, 4s...)
+        const backoffMs = Math.min(1000 * Math.pow(2, chunkRetryCount - 1), 10000);
+        console.log(`[Upload] Waiting ${backoffMs}ms before retrying chunk ${i}...`);
+        await new Promise(resolve => setTimeout(resolve, backoffMs));
+        
+        // Loop will continue with SAME nextChunkIndex (retry same chunk)
+        // DO NOT continue or increment - just let the while loop retry
       }
     }
+    
+    // ✅ All chunks sent successfully (no need for separate retry - we retry inline now)
+    console.log(`[Upload] ✅ All ${chunks.length} chunks sent successfully for file ${file.name}`);
 
     if (!cancelledRef.current[fileIndex] && uploadId) {
       // ✅ FIX: Dùng triggerUploadComplete (non-blocking) thay vì completeUploadWithRetry
@@ -1743,8 +1781,9 @@ const MiniStatusBatch = ({
           console.log(`[Upload] File ${i + 1}/${fileStates.length} đã gửi xong chunks (status: ${currentState?.status}), qua file tiếp theo...`);
 
           // Delay ngắn giữa các files để backend không bị overload
+          // OPTIMIZED: Giảm từ 300ms xuống 50ms - đủ để backend khởi tạo session mới
           if (i < fileStates.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 300)); // Giảm từ 1000ms xuống 300ms
+            await new Promise(resolve => setTimeout(resolve, 50));
           }
         }
       } catch (e) {
