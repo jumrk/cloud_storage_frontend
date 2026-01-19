@@ -1028,7 +1028,12 @@ const MiniStatusBatch = ({
       failedChunksRef.current[fileIndex] = [];
     }
     
-    for (let i = 1; i < chunks.length; i++) {
+    // ================= SEQUENTIAL CHUNK UPLOAD LOCK =================
+    // Ensure only ONE chunk is being uploaded at a time (strictly sequential)
+    let uploadingChunk = false;
+    let nextChunkIndex = 1;
+
+    while (nextChunkIndex < chunks.length) {
       if (cancelledRef.current[fileIndex]) {
         setFileStates((prev) =>
           prev.map((f, idx) =>
@@ -1038,61 +1043,70 @@ const MiniStatusBatch = ({
         return;
       }
 
-      // ================= NETWORK CHECK =================
-      // Wait for network if offline (max 60 seconds before timeout)
-      if (!navigator.onLine) {
-        console.warn(`[Upload] Offline detected at chunk ${i}, waiting...`);
-        setFileStates((prev) =>
-          prev.map((f, idx) =>
-            idx === fileIndex
-              ? { ...f, status: "uploading", error: "Đang chờ kết nối mạng..." }
-              : f
-          )
-        );
-        
-        const waitForNetwork = () =>
-          new Promise((resolve, reject) => {
-            const timeout = setTimeout(() => {
-              window.removeEventListener("online", onOnline);
-              reject(new Error("Network timeout - offline too long"));
-            }, 60000); // 60s timeout
+      // ================= WAIT FOR PREVIOUS CHUNK TO COMPLETE =================
+      // CRITICAL: Only send next chunk after previous is fully uploaded + confirmed by backend
+      while (uploadingChunk) {
+        await new Promise(resolve => setTimeout(resolve, 10)); // Wait 10ms for previous chunk to finish
+      }
 
-            const onOnline = () => {
-              clearTimeout(timeout);
-              window.removeEventListener("online", onOnline);
-              resolve();
-            };
+      const i = nextChunkIndex;
+      uploadingChunk = true; // Lock - prevent next chunk from starting
 
-            if (navigator.onLine) {
-              clearTimeout(timeout);
-              resolve();
-            } else {
-              window.addEventListener("online", onOnline);
-            }
-          });
-
-        try {
-          await waitForNetwork();
-          console.log(`[Upload] Network restored, resuming chunk ${i}`);
-          setFileStates((prev) =>
-            prev.map((f, idx) =>
-              idx === fileIndex ? { ...f, error: null } : f
-            )
-          );
-        } catch (networkError) {
-          console.error(`[Upload] Network timeout at chunk ${i}`);
+      try {
+        // ================= NETWORK CHECK =================
+        // Wait for network if offline (max 60 seconds before timeout)
+        if (!navigator.onLine) {
+          console.warn(`[Upload] Offline detected at chunk ${i}, waiting...`);
           setFileStates((prev) =>
             prev.map((f, idx) =>
               idx === fileIndex
-                ? { ...f, status: "error", error: "Mất kết nối mạng quá lâu" }
+                ? { ...f, status: "uploading", error: "Đang chờ kết nối mạng..." }
                 : f
             )
           );
-          return;
-        }
-      }
+          
+          const waitForNetwork = () =>
+            new Promise((resolve, reject) => {
+              const timeout = setTimeout(() => {
+                window.removeEventListener("online", onOnline);
+                reject(new Error("Network timeout - offline too long"));
+              }, 60000); // 60s timeout
 
-      try {
+              const onOnline = () => {
+                clearTimeout(timeout);
+                window.removeEventListener("online", onOnline);
+                resolve();
+              };
+
+              if (navigator.onLine) {
+                clearTimeout(timeout);
+                resolve();
+              } else {
+                window.addEventListener("online", onOnline);
+              }
+            });
+
+          try {
+            await waitForNetwork();
+            console.log(`[Upload] Network restored, resuming chunk ${i}`);
+            setFileStates((prev) =>
+              prev.map((f, idx) =>
+                idx === fileIndex ? { ...f, error: null } : f
+              )
+            );
+          } catch (networkError) {
+            console.error(`[Upload] Network timeout at chunk ${i}`);
+            setFileStates((prev) =>
+              prev.map((f, idx) =>
+                idx === fileIndex
+                  ? { ...f, status: "error", error: "Mất kết nối mạng quá lâu" }
+                  : f
+              )
+            );
+            return;
+          }
+        }
+
         const ch = chunks[i];
         const buf = await readFileChunk(file, ch.start, ch.end);
         const checksum = await getChunkChecksum(buf);
@@ -1132,6 +1146,9 @@ const MiniStatusBatch = ({
         const estimatedTimeMs = (chunkSizeMB / 0.242) * 1000 * 2; // 2x thời gian ước tính với 242 KB/s
         const chunkTimeout = Math.max(300000, estimatedTimeMs); // Tối thiểu 5 phút
         
+        // ================= STRICTLY SEQUENTIAL UPLOAD =================
+        console.log(`[Upload] Sending chunk ${i}/${chunks.length} (WAITING FOR BACKEND CONFIRMATION)...`);
+        
         // Retry với exponential backoff cho chunks bị lỗi (network errors, timeouts)
         const resp = await retryWithBackoff(
           async () => {
@@ -1144,18 +1161,35 @@ const MiniStatusBatch = ({
           3, // Max 3 retries
           2000 // Base delay 2 giây (2s, 4s, 8s)
         );
-        
-        // Delay giữa các chunks để tránh conflict khi có nhiều tabs upload cùng lúc
-        // Tăng delay từ 50ms lên 100ms để backend xử lý tốt hơn khi có concurrent uploads
-        if (i < chunks.length - 1) {
-          // Delay 100ms giữa các chunks (tăng từ 50ms để tránh conflict khi có nhiều tabs)
-          // Điều này giúp backend xử lý chunks từ nhiều uploads cùng lúc tốt hơn
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
+
         const data = resp.data;
         if (resp.status !== 200 || !data.success) {
+          // ================= IN-ORDER VALIDATION HANDLING =================
+          // Backend rejected chunk due to out-of-order arrival
+          if (data.code === "CHUNK_OUT_OF_ORDER") {
+            console.warn(
+              `[Upload] ❌ Chunk ${i} out-of-order, backend expected ${data.expectedIndex}. Rewinding to ${data.expectedIndex}...`,
+            );
+            // Reset to the chunk backend actually expects
+            // This handles case where frontend sent chunks 1,2,3 but backend still expects 1
+            nextChunkIndex = data.expectedIndex || i;
+            uploadingChunk = false; // Unlock to retry from expected index
+            await new Promise(resolve => setTimeout(resolve, 500));
+            continue;
+          }
           throw new Error(data.error || `Upload chunk ${i} thất bại`);
         }
+        
+        // ✅ CRITICAL: Backend confirmed this chunk is FULLY processed before we move to next
+        console.log(`[Upload] ✅ Chunk ${i} CONFIRMED by backend, moving to next chunk...`);
+        nextChunkIndex++; // Only advance after backend confirmation
+        uploadingChunk = false; // Unlock to allow next chunk to start
+        
+        // ⏱️ Small delay to ensure backend processes current chunk completely before next one arrives
+        // This prevents frontend from overwhelming backend with out-of-order requests
+        // 100ms is enough for backend to mark chunk processed and update state
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         const assembledBytes = Number(data.assembledBytes || 0);
         const pct = Math.max(
           0,
@@ -1241,6 +1275,9 @@ const MiniStatusBatch = ({
             pollStatusUntilDone(uploadId, fileIndex, file.size);
         }
       } catch (error) {
+        // ✅ CRITICAL: Always unlock uploadingChunk on error to prevent infinite wait
+        uploadingChunk = false;
+        
         if (
           error.name === "AbortError" ||
           String(error.message).includes("aborted")
