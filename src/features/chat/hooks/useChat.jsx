@@ -233,7 +233,7 @@ export default function useChat(updateUnreadCount) {
     },
     [selected, myId, updateUnreadCount, removeDraftChat]
   );
-  const socketRef = useSocket(token, onMessage);
+  const socketRef = useSocket(null, onMessage);
 
   // Handle socket events for reactions, edits, deletes
   useEffect(() => {

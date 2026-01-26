@@ -186,7 +186,6 @@ export default function ChatLayout({ isAdmin = false, updateUnreadCount }) {
         }
       })
       .catch(() => {});
-    }
   }, []);
 
   useEffect(() => {
