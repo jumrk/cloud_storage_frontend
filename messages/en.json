@@ -168,6 +168,7 @@
     "notifications": "Notifications",
     "account_info": "Account info"
   },
+  "upload_success": "Upload successful!",
   "user_menu": {
     "total": "Total",
     "remaining": "Remaining",
@@ -441,7 +442,11 @@
       "create_folder_placeholder": "Folder name",
       "move_folder_title": "Select destination folder",
       "move_outside_all": "Go outside all folders (Root folder)",
-      "move_folder_option": "📁 {folderName}"
+      "move_folder_option": "📁 {folderName}",
+      "manage_tags_title": "Manage tags",
+      "create_tag": "Create new tag",
+      "tag_name_placeholder": "Tag name...",
+      "existing_tags": "Existing tags"
     },
     "folder": {
       "root": "Root folder"
@@ -449,12 +454,22 @@
     "sidebar": {
       "close_filter": "Close filter",
       "open_filter": "Open filter",
+      "filter_title": "Filters",
       "type": "Type",
       "all": "All",
       "file": "File",
       "folder": "Folder",
       "account": "Account",
-      "file_types": "File types"
+      "sort": "Sort by",
+      "favorites": "Favorites",
+      "file_types": "File types",
+      "tags": "Tags",
+      "all_tags": "All tags",
+      "manage_tags": "Manage tags",
+      "no_tags": "No tags found",
+      "storage": "Storage",
+      "upgrade": "Upgrade storage",
+      "trash_info": "Trash: {size}"
     },
     "error": {
       "cannot_identify_permission_target": "Cannot identify folder or file to grant permission!"
@@ -465,7 +480,21 @@
     },
     "select_all": "Select all",
     "select_all_current": "Select all current",
-    "deselect_all": "Deselect all"
+    "deselect_all": "Deselect all",
+    "context": {
+      "preview": "Preview",
+      "download": "Download",
+      "share": "Advanced Share",
+      "rename": "Rename",
+      "move": "Move",
+      "copy": "Make a copy",
+      "tags": "Tags",
+      "unlock": "Unlock",
+      "lock": "Lock file",
+      "versions": "Old versions",
+      "activity": "Activity history",
+      "delete": "Delete file"
+    }
   },
   "file_management": {
     "member_must_enter_folder": "You must enter a folder that you have permission to upload files"

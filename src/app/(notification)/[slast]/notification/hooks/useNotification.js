@@ -23,9 +23,8 @@ function useNotification() {
   const [totalPages, setTotalPages] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("token") : null;
-  const socketRef = useSocket(token);
+  // ✅ No need for token - cookie sent automatically
+  const socketRef = useSocket(null);
   const loadedRef = useRef(false);
 
   const fetchNotifications = useCallback(

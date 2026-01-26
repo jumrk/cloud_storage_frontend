@@ -93,10 +93,7 @@ function useLoginForm() {
       });
       setErrors({});
 
-      const token = res.data.token;
-      if (token) {
-        localStorage.setItem("token", token);
-      }
+      // ✅ Token is set via httpOnly cookie by backend, no need to save to localStorage
       const { role } = res.data.user;
       
       // Show toast BEFORE navigation to ensure it displays properly
@@ -153,10 +150,7 @@ function useLoginForm() {
         const res = await loginService(formData);
         setErrors({});
 
-        const token = res.data.token;
-        if (token) {
-          localStorage.setItem("token", token);
-        }
+        // ✅ Token set via httpOnly cookie by backend
         const { role } = res.data.user;
         
         // Show toast BEFORE navigation to ensure it displays properly

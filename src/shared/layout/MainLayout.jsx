@@ -26,7 +26,6 @@ import { LuPanelLeftClose, LuPanelRightClose } from "react-icons/lu";
 import Sidebar from "./Sidebar";
 import axiosClient from "@/shared/lib/axiosClient";
 import { useTranslations } from "next-intl";
-import { decodeTokenGetUser } from "@/shared/lib/jwt";
 import NotificationDropdown from "@/shared/components/NotificationDropdown";
 import Image from "next/image";
 import getAvatarUrl from "@/shared/utils/getAvatarUrl";
@@ -89,20 +88,17 @@ export default function MainLayout({
 
   // Function to fetch user data
   const fetchUserData = useCallback(() => {
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("token") : null;
-    if (token) {
-      axiosClient
-        .get("/api/user")
-        .then((res) => {
-          if (res?.data) {
-            setUser((prev) => ({ ...prev, ...res.data }));
-          }
-        })
-        .catch(() => {
-          /* ignore */
-        });
-    }
+    // ✅ Cookie is sent automatically with request
+    axiosClient
+      .get("/api/user")
+      .then((res) => {
+        if (res?.data) {
+          setUser((prev) => ({ ...prev, ...res.data }));
+        }
+      })
+      .catch(() => {
+        /* ignore */
+      });
   }, []);
 
   // Fetch user data if not provided
@@ -113,17 +109,9 @@ export default function MainLayout({
       return;
     }
 
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("token") : null;
-    if (token) {
-      const info = decodeTokenGetUser(token);
-      setUser(info);
-      // Fetch full user data from API
-      fetchUserData();
-      setIsLoadingUser(false);
-    } else {
-      setIsLoadingUser(false);
-    }
+    // ✅ Fetch user data from API (cookie sent automatically)
+    fetchUserData();
+    setIsLoadingUser(false);
   }, [userProp, fetchUserData]);
 
   // Listen for refresh user data events (from video tools)
@@ -136,6 +124,22 @@ export default function MainLayout({
       window.addEventListener("refreshUserData", handleRefreshUserData);
       return () => {
         window.removeEventListener("refreshUserData", handleRefreshUserData);
+      };
+    }
+  }, [fetchUserData]);
+
+  // ✅ Listen for stats:updated events (from file management)
+  useEffect(() => {
+    const handleStatsUpdate = (event) => {
+      console.log("[MainLayout] stats:updated event received", event.detail);
+      // Refetch user data to get updated storage stats
+      fetchUserData();
+    };
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("stats:updated", handleStatsUpdate);
+      return () => {
+        window.removeEventListener("stats:updated", handleStatsUpdate);
       };
     }
   }, [fetchUserData]);
@@ -394,8 +398,7 @@ export default function MainLayout({
     try {
       await axiosClient.post("/api/auth/logout");
     } catch {}
-    localStorage.removeItem("token");
-    localStorage.clear();
+    // ✅ Cookie cleared by backend on logout
     router.push("/login");
   };
 

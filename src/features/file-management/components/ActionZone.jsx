@@ -9,20 +9,92 @@ import {
 } from "react-icons/fi";
 import { RiDeleteBin6Line } from "react-icons/ri";
 import toast from "react-hot-toast";
-import Button_icon from "@/shared/ui/ButtonIcon";
-function CircleActionButton({ icon, bg, onClick, ariaLabel, children }) {
+import { motion, AnimatePresence } from "framer-motion";
+
+// ================= ACTION BUTTON COMPONENT =================
+const ActionBtn = ({
+  icon,
+  label,
+  colorClass = "text-gray-700 hover:bg-gray-100", // Tailwind formatting
+  onClick,
+  draggedItems,
+  onDropAction,
+  disabled = false,
+  danger = false,
+}) => {
+  const [isDragOver, setIsDragOver] = React.useState(false);
+
+  // Handle Drag Events if onDropAction is present
+  const handleDragOver = (e) => {
+    if (draggedItems && draggedItems.length > 0 && onDropAction) {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragOver(true);
+    }
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+    if (draggedItems && draggedItems.length > 0 && onDropAction) {
+      onDropAction(draggedItems);
+    }
+  };
+
   return (
-    <button
-      className={`flex items-center justify-center w-12 h-12 rounded-full ${bg} text-white text-2xl shadow hover:scale-110 active:scale-95 transition-all relative`}
-      onClick={onClick}
-      aria-label={ariaLabel}
-      type="button"
-    >
-      {" "}
-      {icon} {children}{" "}
-    </button>
+    <div className="relative group flex flex-col items-center">
+      <motion.button
+        layout
+        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+        whileHover={{ scale: 1.15 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={onClick}
+        disabled={disabled}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={`
+          relative flex items-center justify-center p-3 rounded-xl transition-colors duration-200
+          ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
+          ${
+            danger
+              ? "text-red-500 hover:bg-red-50"
+              : isDragOver
+              ? "bg-brand/20 text-brand ring-2 ring-brand scale-110"
+              : colorClass
+          }
+        `}
+        title={label}
+      >
+        {icon}
+        {/* Drag Overlay Glow */}
+        {isDragOver && (
+          <motion.div
+            layoutId="drag-glow"
+            className="absolute inset-0 rounded-xl bg-brand/10 z-[-1]"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          />
+        )}
+      </motion.button>
+      {/* Tooltip-ish Label on Hover */}
+      <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+        <div className="bg-gray-800 text-white text-[10px] py-1 px-2 rounded-md shadow-lg font-medium">
+          {label}
+        </div>
+      </div>
+    </div>
   );
-}
+};
+
+// ================= MAIN ACTION ZONE =================
 export default function ActionZone({
   isMobile,
   selectedItems = [],
@@ -38,255 +110,191 @@ export default function ActionZone({
   showRestore = false,
   showPermanentDelete = false,
 }) {
-  const [copiedShareMobile, setCopiedShareMobile] = React.useState(false);
+  // Determine if we are showing the bar
+  const isActive =
+    (isMobile && selectedItems.length > 0) ||
+    (!isMobile && draggedItems.length > 0) ||
+    (!isMobile && selectedItems.length > 0 && (showRestore || showPermanentDelete));
 
-  // Mobile: action zone bên phải
-  if (isMobile && selectedItems.length > 0) {
-    const allFolders = selectedItems.every((item) => item.type === "folder");
-    const isTrashPage = showRestore || showPermanentDelete;
-    return (
-      <div
-        className={`fixed top-1/2 right-2 z-50 flex flex-col gap-4 items-center -translate-y-1/2 transition-all duration-500 ${
-          selectedItems.length > 0
-            ? "opacity-100 translate-x-0"
-            : "opacity-0 translate-x-10 pointer-events-none"
-        }`}
-        style={{ pointerEvents: "auto" }}
-      >
-        {/* Cấp quyền - chỉ hiện khi không phải trash page */}
-        {!isTrashPage && canGrantPermission && allFolders && (
-          <CircleActionButton
-            icon={<FiUserPlus size={26} />}
-            bg="bg-[#1cadd9]"
-            onClick={() =>
-              onGrantPermission && onGrantPermission(selectedItems)
-            }
-            ariaLabel="Cấp quyền"
-          />
-        )}
-        {/* Chia sẻ - chỉ hiện khi không phải trash page */}
-        {!isTrashPage && selectedItems.length === 1 && (
-          <CircleActionButton
-            icon={<FiShare2 size={26} />}
-            bg="bg-blue-500"
-            onClick={() => {
-              if (onShare && selectedItems[0]) {
-                onShare(selectedItems[0]);
-              }
-            }}
-            ariaLabel="Chia sẻ"
-          >
-            {copiedShareMobile && (
-              <span
-                className="absolute left-1/2 -translate-x-1/2 top-full mt-2 text-green-600 text-xs bg-white px-2 py-1 rounded shadow"
-                style={{ whiteSpace: "nowrap", zIndex: 100 }}
-              >
-                Đã copy link!
-              </span>
+  // Count items
+  const itemCount = isMobile || (selectedItems.length > 0 && !draggedItems.length)
+    ? selectedItems.length
+    : draggedItems.length;
+
+  const items = isMobile || (selectedItems.length > 0 && !draggedItems.length)
+    ? selectedItems
+    : draggedItems;
+
+  const allFolders = items.length > 0 && items.every((i) => i.type === "folder");
+  const hasFile = items.some((i) => i.type === "file");
+  const isTrashPage = showRestore || showPermanentDelete;
+
+  // Animation Variants
+  const islandVariants = {
+    hidden: { y: 100, opacity: 0, scale: 0.95 },
+    visible: { 
+      y: 0, 
+      opacity: 1, 
+      scale: 1,
+      transition: { 
+        type: "spring", 
+        stiffness: 260, 
+        damping: 25,
+        mass: 0.8
+      }
+    },
+    exit: { 
+      y: 100, 
+      opacity: 0, 
+      scale: 0.95,
+      transition: { duration: 0.2, ease: "easeInOut" }
+    }
+  };
+
+  return (
+    <AnimatePresence mode="wait">
+      {isActive && (
+        <motion.div
+          layout
+          variants={islandVariants}
+          initial="hidden"
+          animate="visible"
+          exit="exit"
+          className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] flex items-center p-2 rounded-2xl bg-white/90 backdrop-blur-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-white/20 ring-1 ring-gray-900/5 select-none overflow-hidden"
+        >
+          {/* INFO BADGE */}
+          <motion.div layout className="flex items-center gap-2 px-3 pl-4 py-1.5 mr-1 text-sm font-semibold text-gray-700 bg-gray-100/50 rounded-xl border border-gray-200/50">
+            <motion.span 
+              key={itemCount}
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="flex items-center justify-center w-5 h-5 bg-brand text-white rounded-full text-[10px]"
+            >
+              {itemCount}
+            </motion.span>
+            <span className="hidden sm:inline">Đã chọn</span>
+          </motion.div>
+
+          <motion.div layout className="w-[1px] h-8 bg-gray-200 mx-2" />
+
+          {/* ACTIONS GROUP */}
+          <div className="flex items-center gap-1">
+            
+            {/* 1. Restore (Trash Only) */}
+            {showRestore && (
+              <ActionBtn
+                icon={<FiRotateCw size={22} />}
+                label="Khôi phục"
+                colorClass="text-green-600 hover:bg-green-50"
+                onClick={() => onRestore && onRestore()}
+                // Also support drag drop for desktop drag mode if needed (rare for restore)
+                draggedItems={draggedItems}
+                onDropAction={onRestore}
+              />
             )}
-          </CircleActionButton>
-        )}
-        {/* Di chuyển - chỉ hiện khi không phải trash page */}
-        {!isTrashPage && (
-          <CircleActionButton
-            icon={<IoMoveOutline size={28} />}
-            bg="bg-primary"
-            onClick={() => onMove && onMove(selectedItems)}
-            ariaLabel="Di chuyển"
-          />
-        )}
-        {/* Tải xuống - chỉ hiện khi không phải trash page và có ít nhất 1 file được chọn */}
-        {!isTrashPage && selectedItems.some((item) => item.type === "file") && (
-          <CircleActionButton
-            icon={<FiDownload size={26} />}
-            bg="bg-[#828DAD]"
-            onClick={() => {
-              // Lọc chỉ lấy file (không lấy folder)
-              const filesOnly = selectedItems.filter(
-                (item) => item.type === "file",
-              );
-              // Filter files that have temp or Drive URL (allow download from temp even if Drive upload in progress)
-              const readyFiles = filesOnly.filter((file) => {
-                const hasTemp = file.tempDownloadUrl && file.tempFileStatus === "completed";
-                const hasDrive = file.driveFileId || file.driveUrl || file.url;
-                return hasTemp || hasDrive;
-              });
-              if (readyFiles.length > 0 && onDownload) {
-                onDownload(readyFiles);
-              } else if (filesOnly.length > 0) {
-                // All files are not ready (no temp and no Drive)
-                toast.error("File chưa sẵn sàng để tải xuống. Vui lòng đợi upload hoàn thành.");
-              }
-            }}
-            ariaLabel={
-              selectedItems.length === 1
-                ? "Tải xuống"
-                : `Tải xuống ${selectedItems.filter((item) => item.type === "file").length} file`
-            }
-          />
-        )}
-        {/* Khôi phục */}
-        {showRestore && (
-          <CircleActionButton
-            icon={<FiRotateCw size={26} />}
-            bg="bg-green-500"
-            onClick={() => onRestore && onRestore()}
-            ariaLabel="Khôi phục"
-          />
-        )}
-        {/* Xóa vĩnh viễn */}
-        {showPermanentDelete && (
-          <CircleActionButton
-            icon={<FiTrash2 size={26} />}
-            bg="bg-red-600"
-            onClick={() => onPermanentDelete && onPermanentDelete()}
-            ariaLabel="Xóa vĩnh viễn"
-          />
-        )}
-        {/* Xóa - chỉ hiện khi không phải trash page */}
-        {!showPermanentDelete && (
-          <CircleActionButton
-            icon={<RiDeleteBin6Line size={26} />}
-            bg="bg-[#DC2626]"
-            onClick={() => onDelete && onDelete(selectedItems)}
-            ariaLabel="Xóa"
-          />
-        )}
-      </div>
-    );
-  }
-  // Desktop: action zone khi kéo thả
-  if (!isMobile && draggedItems.length > 0) {
-    const allFolders = draggedItems.every((item) => item.type === "folder");
-    const isTrashPage = showRestore || showPermanentDelete;
-    return (
-      <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 flex gap-2 sm:gap-4 md:gap-6 lg:gap-8 bg-white rounded-xl shadow-2xl p-2 sm:p-4 md:p-6 border border-gray-200 pointer-events-none max-w-[95vw] overflow-x-auto animate-slide-up">
-        {/* Cấp quyền - chỉ hiện khi không phải trash page */}
-        {!isTrashPage && canGrantPermission && allFolders && (
-          <Button_icon
-            text="Cấp quyền"
-            icon={<FiUserPlus size={28} />}
-            bg="bg-[#1cadd9]"
-            draggedItems={draggedItems}
-            onDropAction={onGrantPermission}
-          />
-        )}
-        {/* Chia sẻ - chỉ hiện khi không phải trash page và chọn 1 item */}
-        {!isTrashPage && draggedItems.length === 1 && (
-          <Button_icon
-            text="Chia sẻ"
-            icon={<FiShare2 size={26} />}
-            bg="bg-blue-500"
-            draggedItems={draggedItems}
-            onDropAction={(items) => onShare && onShare(items[0])}
-          />
-        )}
-        {/* Di chuyển - chỉ hiện khi không phải trash page */}
-        {!isTrashPage && (
-          <Button_icon
-            text="Di chuyển"
-            icon={<IoMoveOutline size={28} />}
-            bg="bg-primary"
-            draggedItems={draggedItems}
-            onDropAction={onMove}
-          />
-        )}
-        {/* Tải xuống - chỉ hiện khi không phải trash page và có ít nhất 1 file được kéo */}
-        {!isTrashPage && draggedItems.some((item) => item.type === "file") && (
-          <Button_icon
-            text={
-              draggedItems.length === 1
-                ? "Tải xuống"
-                : `Tải xuống ${draggedItems.filter((item) => item.type === "file").length} file`
-            }
-            icon={<FiDownload size={26} />}
-            bg="bg-[#828DAD]"
-            draggedItems={draggedItems}
-            onDropAction={(items) => {
-              // Lọc chỉ lấy file (không lấy folder)
-              const filesOnly = items.filter((item) => item.type === "file");
-              // Filter files that have temp or Drive URL (allow download from temp even if Drive upload in progress)
-              const readyFiles = filesOnly.filter((file) => {
-                const hasTemp = file.tempDownloadUrl && file.tempFileStatus === "completed";
-                const hasDrive = file.driveFileId || file.driveUrl || file.url;
-                return hasTemp || hasDrive;
-              });
-              if (readyFiles.length > 0 && onDownload) {
-                onDownload(readyFiles);
-              } else if (filesOnly.length > 0) {
-                // All files are not ready (no temp and no Drive)
-                toast.error("File chưa sẵn sàng để tải xuống. Vui lòng đợi upload hoàn thành.");
-              }
-            }}
-          />
-        )}
-        {/* Khôi phục */}
-        {showRestore && (
-          <Button_icon
-            text="Khôi phục"
-            icon={<FiRotateCw size={26} />}
-            bg="bg-green-500"
-            draggedItems={draggedItems}
-            onDropAction={onRestore}
-          />
-        )}
-        {/* Xóa vĩnh viễn */}
-        {showPermanentDelete && (
-          <Button_icon
-            text="Xóa vĩnh viễn"
-            icon={<FiTrash2 size={26} />}
-            bg="bg-red-600"
-            draggedItems={draggedItems}
-            onDropAction={onPermanentDelete}
-          />
-        )}
-        {/* Xóa - chỉ hiện khi không phải trash page */}
-        {!showPermanentDelete && (
-          <Button_icon
-            text="Xóa"
-            icon={<RiDeleteBin6Line size={26} />}
-            bg="bg-[#DC2626]"
-            draggedItems={draggedItems}
-            onDropAction={onDelete}
-          />
-        )}
-      </div>
-    );
-  }
-  // Desktop: action zone khi chọn items (cho trash page)
-  if (
-    !isMobile &&
-    selectedItems.length > 0 &&
-    (showRestore || showPermanentDelete)
-  ) {
-    return (
-      <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 flex gap-8 bg-white rounded-xl shadow-2xl p-6 border border-gray-200 animate-slide-up">
-        {showRestore && (
-          <button
-            onClick={() => onRestore && onRestore()}
-            className="flex gap-1 sm:gap-2 items-center justify-center bg-green-500 text-white rounded-[12px] shadow-xl/20 transition-all duration-200 min-w-[80px] sm:min-w-[100px] md:min-w-[120px] min-h-[40px] sm:min-h-[44px] md:min-h-[48px] px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 text-xs sm:text-sm md:text-base font-semibold hover:scale-105 active:scale-95 pointer-events-auto"
-          >
-            <p className="hidden sm:inline">Khôi phục</p>
-            <FiRotateCw size={20} className="sm:w-6 sm:h-6" />
-          </button>
-        )}
-        {showPermanentDelete && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              if (onPermanentDelete) {
-                onPermanentDelete();
-              }
-            }}
-            className="flex gap-1 sm:gap-2 items-center justify-center bg-red-600 text-white rounded-[12px] shadow-xl/20 transition-all duration-200 min-w-[80px] sm:min-w-[100px] md:min-w-[120px] min-h-[40px] sm:min-h-[44px] md:min-h-[48px] px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 text-xs sm:text-sm md:text-base font-semibold hover:scale-105 active:scale-95 pointer-events-auto"
-          >
-            <p className="hidden sm:inline">Xóa vĩnh viễn</p>
-            <FiTrash2 size={20} className="sm:w-6 sm:h-6" />
-          </button>
-        )}
-      </div>
-    );
-  }
-  return null;
+
+            {/* 2. Grant Permission (Normal) */}
+            {!isTrashPage && canGrantPermission && allFolders && (
+              <ActionBtn
+                icon={<FiUserPlus size={22} />}
+                label="Cấp quyền"
+                colorClass="text-[#1cadd9] hover:bg-[#1cadd9]/10"
+                onClick={() => onGrantPermission && onGrantPermission(items)}
+                draggedItems={draggedItems}
+                onDropAction={onGrantPermission}
+              />
+            )}
+
+            {/* 3. Share (Normal, Single Item) */}
+            {!isTrashPage && itemCount === 1 && (
+              <ActionBtn
+                icon={<FiShare2 size={22} />}
+                label="Chia sẻ"
+                colorClass="text-blue-600 hover:bg-blue-50"
+                onClick={() => onShare && onShare(items[0])}
+                draggedItems={draggedItems}
+                onDropAction={(dropped) => onShare && onShare(dropped[0])}
+              />
+            )}
+
+            {/* 4. Move (Normal) */}
+            {!isTrashPage && (
+              <ActionBtn
+                icon={<IoMoveOutline size={22} />}
+                label="Di chuyển"
+                colorClass="text-indigo-600 hover:bg-indigo-50"
+                onClick={() => onMove && onMove(items)}
+                draggedItems={draggedItems}
+                onDropAction={onMove}
+              />
+            )}
+
+            {/* 5. Download (Normal, Files) */}
+            {!isTrashPage && hasFile && (
+              <ActionBtn
+                icon={<FiDownload size={22} />}
+                label="Tải xuống"
+                colorClass="text-gray-600 hover:bg-gray-100"
+                onClick={() => {
+                   const filesOnly = items.filter(i => i.type === "file");
+                   // Smart filter for ready files
+                   const readyFiles = filesOnly.filter((f) => {
+                     const hasTemp = f.tempDownloadUrl && f.tempFileStatus === "completed";
+                     const hasDrive = f.driveFileId || f.driveUrl || f.url;
+                     return hasTemp || hasDrive;
+                   });
+
+                   if (readyFiles.length > 0 && onDownload) {
+                     onDownload(readyFiles);
+                   } else if (filesOnly.length > 0) {
+                     toast.error("File đang xử lý, vui lòng chờ...");
+                   }
+                }}
+                draggedItems={draggedItems}
+                onDropAction={(dropped) => {
+                   // Same logic for drop
+                   const filesOnly = dropped.filter(i => i.type === "file");
+                   const readyFiles = filesOnly.filter((f) => (f.tempDownloadUrl && f.tempFileStatus === "completed") || f.driveFileId || f.driveUrl || f.url);
+                   if (readyFiles.length > 0 && onDownload) onDownload(readyFiles);
+                }}
+              />
+            )}
+            
+          </div>
+
+          {/* DESTRUCTIVE GROUP */}
+          {(showPermanentDelete || (!isTrashPage && !showPermanentDelete)) && (
+            <motion.div layout className="flex items-center">
+              <motion.div layout className="w-[1px] h-8 bg-gray-200 mx-2" />
+              <div className="flex items-center">
+                 {/* Permanent Delete */}
+                 {showPermanentDelete && (
+                    <ActionBtn
+                      icon={<FiTrash2 size={22} />}
+                      label="Xóa vĩnh viễn"
+                      danger
+                      onClick={() => onPermanentDelete && onPermanentDelete()}
+                      draggedItems={draggedItems}
+                      onDropAction={onPermanentDelete}
+                    />
+                 )}
+                 {/* Regular Delete */}
+                 {!showPermanentDelete && !showRestore && (
+                    <ActionBtn
+                      icon={<RiDeleteBin6Line size={22} />}
+                      label="Xóa"
+                      danger
+                      onClick={() => onDelete && onDelete(items)}
+                      draggedItems={draggedItems}
+                      onDropAction={onDelete}
+                    />
+                 )}
+              </div>
+            </motion.div>
+          )}
+
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
 }

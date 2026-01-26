@@ -35,10 +35,8 @@ export default function useSlastHomePage() {
   const [loadingStats, setLoadingStats] = useState(true);
 
   // Setup WebSocket for real-time stats updates
-  const tokenRef = useRef(
-    typeof window !== "undefined" ? localStorage.getItem("token") : null
-  );
-  const socketRef = useSocket(tokenRef.current);
+  // ✅ No need for token - cookie sent automatically
+  const socketRef = useSocket(null);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);

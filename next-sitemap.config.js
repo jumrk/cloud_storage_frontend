@@ -22,7 +22,7 @@ module.exports = {
     "/*/separate-voice/*",
     "/*/sub/*",
     "/*/subtitle/*",
-    "/Login",
+    "/login",
     "/ForgotPassword",
     "/share/*",
     // Exclude dynamic routes that don't exist
@@ -54,7 +54,7 @@ module.exports = {
         disallow: [
           "/admin/",
           "/member/",
-          "/Login",
+          "/login",
           "/ForgotPassword",
           "/share/",
           "/*/admin/",

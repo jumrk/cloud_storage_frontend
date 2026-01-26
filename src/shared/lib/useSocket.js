@@ -7,12 +7,13 @@ export default function useSocket(token, onMessage) {
   const socketRef = useRef(null);
 
   useEffect(() => {
-    if (!token) return;
+    // ✅ Create socket connection - cookie will be sent automatically
+    // Token param kept for backward compatibility but not used
     if (!globalSocket) {
       globalSocket = io(
         process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:5000",
         {
-          auth: { token },
+          withCredentials: true, // ✅ Send cookies with socket connection
           transports: ["websocket"],
         }
       );
@@ -34,7 +35,7 @@ export default function useSocket(token, onMessage) {
         globalSocket.off("chat:message", onMessage);
       }
     };
-  }, [token, onMessage]);
+  }, [onMessage]); // ✅ Removed token from deps
 
   return socketRef;
 }

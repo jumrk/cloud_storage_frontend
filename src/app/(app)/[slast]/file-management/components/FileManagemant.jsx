@@ -15,6 +15,12 @@ import ImportByLinkModal from "./ImportByLinkModal";
 import MiniStatus from "@/features/file-management/components/MiniStatus";
 import ShareModal from "@/features/file-management/components/ShareModal";
 import DownloadStatus from "@/features/share/components/DownloadStatus";
+import TagManagementModal from "@/features/file-management/components/TagManagementModal";
+import ContextMenu from "@/features/file-management/components/ContextMenu";
+import FileVersionModal from "@/features/file-management/components/FileVersionModal";
+import ActivitySidebar from "@/features/file-management/components/ActivitySidebar";
+import RenameModal from "@/features/file-management/components/RenameModal";
+import MoveModal from "@/features/file-management/components/MoveModal";
 import useFileManagementPage from "../hooks/useFileManagementPage";
 import FileManagementService from "@/features/file-management/services/fileManagementService";
 import { useState, useRef, useMemo, useCallback, useEffect } from "react";
@@ -50,12 +56,11 @@ export default function FileManagement({
   const processedBatchesRef = useRef(new Set()); // Track which batches we've already processed for optimistic folders
   const [showChat, setShowChat] = useState(false);
   const previousItemsCountRef = useRef(10); // Store previous items count for skeleton
-  // Move modal folder states - flat list
-  const [moveModalFolders, setMoveModalFolders] = useState([]);
-  const [moveModalFolderLoading, setMoveModalFolderLoading] = useState(false);
+  
   const [externalDragActive, setExternalDragActive] = useState(false);
   // ================= EXTERNAL DRAG-DROP FOLDER STATE =================
   // Track emptyFolders from drag-drop to maintain consistency with UploadModal
+  // Force rebuild comment
   const [externalEmptyFolders, setExternalEmptyFolders] = useState([]);
   const {
     t,
@@ -109,13 +114,18 @@ export default function FileManagement({
     setSearchTerm,
     setShowMoveModal,
     setMoveTargetFolder,
+    pendingMoveItems, // ✅ Export the actual state
+    setPendingMoveItems, // ✅ Export setter too
     handleShowMoveModal,
-    handleConfirmMove,
     handleMoveItems,
     handleDeleteItems,
     setShowGrantPermissionModal,
     handleGrantPermission,
     handleCreateFolder,
+    handleAssignTag,
+    handleRemoveTag,
+    handleLockFile,
+    handleUnlockFile,
     updateDataAfterMove,
     updateDataAfterDelete,
     updateDataFromChat,
@@ -129,6 +139,8 @@ export default function FileManagement({
     areAllVisibleSelected,
     setOpenImport,
     isFileUploading,
+    tags,
+    loadTags,
   } = useFileManagementPage({ userRole, isLeader, isMember });
 
   const api = useMemo(() => FileManagementService(), []);
@@ -139,6 +151,29 @@ export default function FileManagement({
     items: [],
     message: "",
   });
+
+  const [showTagManagement, setShowTagManagement] = useState(false);
+
+  const [contextMenu, setContextMenu] = useState(null);
+  const [showVersioningModal, setShowVersioningModal] = useState(false);
+  const [versioningFile, setVersioningFile] = useState(null);
+  const [showActivitySidebar, setShowActivitySidebar] = useState(false);
+  const [activityTarget, setActivityTarget] = useState({ id: null, type: null, title: "" });
+  
+  const [showRenameModal, setShowRenameModal] = useState(false);
+  const [itemToRename, setItemToRename] = useState(null);
+
+  const handleContextMenu = (e, item) => {
+    e.preventDefault();
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      triggerRect: isMobile ? e.currentTarget.getBoundingClientRect() : null,
+      item,
+    });
+  };
+
+  const closeContextMenu = () => setContextMenu(null);
 
   // Combine and deduplicate folders and files to avoid duplicate keys
   const combinedItems = useMemo(() => {
@@ -166,9 +201,8 @@ export default function FileManagement({
     return result;
   }, [foldersToShowFiltered, filesToShowFiltered]);
 
-  const tokenRef = useRef(
-    typeof window !== "undefined" ? localStorage.getItem("token") : null,
-  );
+  // ✅ No need for token - cookie sent automatically
+  const tokenRef = useRef(null);
 
   const lastDownloadRef = useRef({ itemId: null, timestamp: 0 });
 
@@ -402,7 +436,6 @@ export default function FileManagement({
 
           const res = await api.downloadInternal(
             downloadUrl,
-            tokenRef.current,
             downloadController.signal,
             (progressEvent) => {
               // Check if cancelled before processing progress
@@ -431,6 +464,8 @@ export default function FileManagement({
                       ...f,
                       // Only update if new progress is greater than current to avoid reset
                       progress: Math.max(f.progress || 0, percentCompleted),
+                      loadedBytes: progressEvent.loaded, // ✅ Add actual bytes loaded
+                      totalBytes: progressEvent.total, // ✅ Add total bytes
                     })),
                   };
                 });
@@ -451,6 +486,8 @@ export default function FileManagement({
                         f.progress || 0,
                         Math.min(percentCompleted, 99),
                       ), // Cap at 99% until complete
+                      loadedBytes: progressEvent.loaded, // ✅ Add actual bytes loaded
+                      totalBytes: fileSize, // ✅ Add total bytes
                     })),
                   };
                 });
@@ -758,7 +795,6 @@ export default function FileManagement({
 
           const res = await api.downloadInternal(
             downloadUrl,
-            tokenRef.current,
             downloadController.signal,
             (progressEvent) => {
               // Check if cancelled before processing progress
@@ -785,6 +821,8 @@ export default function FileManagement({
                               f.progress || 0,
                               percentCompleted,
                             ),
+                            loadedBytes: progressEvent.loaded, // ✅ Add actual bytes loaded
+                            totalBytes: progressEvent.total, // ✅ Add total bytes
                           }
                         : f,
                     ),
@@ -806,6 +844,8 @@ export default function FileManagement({
                               f.progress || 0,
                               Math.min(percentCompleted, 99),
                             ),
+                            loadedBytes: progressEvent.loaded, // ✅ Add actual bytes loaded
+                            totalBytes: fileSize, // ✅ Add total bytes
                           }
                         : f,
                     ),
@@ -959,52 +999,7 @@ export default function FileManagement({
     [api, tokenRef, tableActions.selectedItems, isFileUploading],
   );
 
-  // Fetch all folders recursively for Move modal (flat list)
-  const fetchAllMoveModalFolders = React.useCallback(async () => {
-    setMoveModalFolderLoading(true);
-    try {
-      const allFolders = [];
-      // Recursive function to fetch all folders
-      const fetchFoldersRecursive = async (folderId = null, path = "") => {
-        try {
-          const params = folderId ? { folderId } : {};
-          const response = await axiosClient.get("/api/files/browse", {
-            params,
-          });
-          if (response.data?.success) {
-            const folders = response.data.folders || [];
-            for (const folder of folders) {
-              const folderPath = path
-                ? `${path} / ${folder.name}`
-                : folder.name;
-              allFolders.push({
-                ...folder,
-                displayPath: folderPath,
-              });
-              // Recursively fetch subfolders
-              await fetchFoldersRecursive(folder._id, folderPath);
-            }
-          }
-        } catch (err) {
-          console.error("Error fetching folders recursively:", err);
-        }
-      };
-      await fetchFoldersRecursive();
-      setMoveModalFolders(allFolders);
-    } catch (err) {
-      console.error("Error fetching all folders for move modal:", err);
-      toast.error("Không thể tải danh sách thư mục");
-    } finally {
-      setMoveModalFolderLoading(false);
-    }
-  }, []);
 
-  // Load all folders when move modal opens
-  React.useEffect(() => {
-    if (showMoveModal) {
-      fetchAllMoveModalFolders();
-    }
-  }, [showMoveModal, fetchAllMoveModalFolders]);
 
   // Add optimistic folders when new folder batches are created (BEFORE upload starts)
   useEffect(() => {
@@ -1390,29 +1385,33 @@ export default function FileManagement({
   );
 
   return (
-    <div className="flex w-full h-full bg-white relative">
-      <div className="flex-1 flex flex-col items-start px-2 md:px-8 py-6 min-w-0 overflow-hidden">
-        <FileManagerHeader
-          t={t}
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-          showUploadDropdown={showUploadDropdown}
-          setShowUploadDropdown={setShowUploadDropdown}
-          setShowUploadModal={setShowUploadModal}
-          setShowCreateFolderModal={setShowCreateFolderModal}
-          setOpenImport={setOpenImport}
-          viewMode={viewMode}
-          setViewMode={setViewMode}
-          areAllVisibleSelected={areAllVisibleSelected}
-          tableActions={tableActions}
-          foldersToShowFiltered={foldersToShowFiltered}
-          filesToShowFiltered={filesToShowFiltered}
-          dedupeById={dedupeById}
-          isMember={isMember}
-          currentFolderId={currentFolderId}
-        />
+    <div className="flex w-full h-full bg-[#FAFAFA] relative isolate">
+      <div className="flex-1 flex flex-col items-start min-w-0 overflow-hidden relative">
+        <div className="w-full px-2 md:px-8 pt-6 pb-2 shrink-0">
+          <FileManagerHeader
+            t={t}
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            showUploadDropdown={showUploadDropdown}
+            setShowUploadDropdown={setShowUploadDropdown}
+            setShowUploadModal={setShowUploadModal}
+            setShowCreateFolderModal={setShowCreateFolderModal}
+            setOpenImport={setOpenImport}
+            viewMode={viewMode}
+            setViewMode={setViewMode}
+            areAllVisibleSelected={areAllVisibleSelected}
+            tableActions={tableActions}
+            foldersToShowFiltered={foldersToShowFiltered}
+            filesToShowFiltered={filesToShowFiltered}
+            dedupeById={dedupeById}
+            isMember={isMember}
+            currentFolderId={currentFolderId}
+            onNavigateToFile={handlePreview}
+            onNavigateToFolder={handleFolderClick}
+          />
+        </div>
         <div
-          className={`w-full flex-1 overflow-y-auto overflow-x-hidden main-content-scrollbar min-h-0 md:px-0 relative ${
+          className={`w-full flex-1 min-h-0 md:px-0 relative ${
             externalDragActive ? "ring-2 ring-brand/40 rounded-lg" : ""
           }`}
           onDragOver={handleExternalDragOver}
@@ -1420,6 +1419,7 @@ export default function FileManagement({
           onDragLeave={handleExternalDragLeave}
           onDrop={handleExternalDrop}
         >
+          <div className="absolute inset-0 overflow-y-auto overflow-x-hidden main-content-scrollbar px-2 md:px-8 pb-6">
           {externalDragActive && (
             <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/30 backdrop-blur-sm pointer-events-none rounded-lg">
               <div className="flex flex-col items-center gap-2 bg-white/90 border border-brand/30 rounded-2xl px-6 py-4 shadow-lg">
@@ -1597,6 +1597,8 @@ export default function FileManagement({
                           favoriteLoadingId === String(item._id || item.id)
                         }
                         isFileUploading={isFileUploading}
+                        onContextMenu={handleContextMenu}
+                        tags={tags}
                       />
                     ))
                   )}
@@ -1628,6 +1630,8 @@ export default function FileManagement({
                   onToggleFavorite={handleToggleFavorite}
                   favoriteLoadingId={favoriteLoadingId}
                   hasFetched={hasFetched}
+                  onContextMenu={handleContextMenu}
+                  tags={tags}
                 />
               ) : (
                 <div className="w-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2 md:gap-2 lg:gap-3">
@@ -1677,6 +1681,8 @@ export default function FileManagement({
                           favoriteLoadingId === String(item._id || item.id)
                         }
                         isFileUploading={isFileUploading}
+                        onContextMenu={handleContextMenu}
+                        tags={tags}
                       />
                     ))
                   )}
@@ -1699,8 +1705,32 @@ export default function FileManagement({
               )}
             </>
           )}
+          </div>
         </div>
       </div>
+      <UploadModal
+        isOpen={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+        onStartUpload={handleStartUpload}
+        parentId={currentFolderId}
+        isMember={isMember}
+      />
+      {previewFile && (
+        <FilePreviewModal
+          file={previewFile}
+          fileUrl={previewUrl}
+          onClose={() => setPreviewFile(null)}
+          onOpen={() => setShowChat(false)}
+        />
+      )}
+      <ShareModal
+        isOpen={showShareModal}
+        onClose={() => {
+          setShowShareModal(false);
+          setShareItem(null);
+        }}
+        item={shareItem}
+      />
       {/* Desktop Sidebar Filter */}
       {!isMobile && (
         <>
@@ -1718,6 +1748,8 @@ export default function FileManagement({
             filter={filter}
             onChangeFilter={setFilter}
             members={members}
+            tags={tags}
+            onManageTags={() => setShowTagManagement(true)}
             hideMemberFilter={isMember}
           />
         </>
@@ -1739,6 +1771,8 @@ export default function FileManagement({
             filter={filter}
             onChangeFilter={setFilter}
             members={members}
+            tags={tags}
+            onManageTags={() => setShowTagManagement(true)}
             hideMemberFilter={isMember}
           />
         </>
@@ -1770,13 +1804,7 @@ export default function FileManagement({
           </button>
         </div>
       )}
-      <UploadModal
-        isOpen={showUploadModal}
-        onClose={() => setShowUploadModal(false)}
-        onStartUpload={handleStartUpload}
-        parentId={currentFolderId}
-        isMember={isMember}
-      />
+
       {showCreateFolderModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-2">
           <div className="bg-white rounded-xl p-4 w-full max-w-xs md:max-w-md mx-auto shadow-lg">
@@ -1922,96 +1950,20 @@ export default function FileManagement({
         onGrantPermission={handleGrantPermission}
         canGrantPermission={isLeader}
       />
-      {showMoveModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3">
-          <div className="bg-white rounded-xl shadow-2xl relative w-full max-w-md flex flex-col max-h-[80vh]">
-            {/* Header */}
-            <div className="relative bg-gradient-brand p-5 shrink-0">
-              <h3 className="text-brand text-xl font-semibold">
-                {t("file.modal.move_folder_title")}
-              </h3>
-              <button
-                onClick={() => {
-                  setShowMoveModal(false);
-                }}
-                className="absolute top-4 right-4 p-2 rounded-lg bg-white/15 text-white hover:bg-white/25 transition"
-              >
-                <FiX />
-              </button>
-            </div>
-            {/* Folder List */}
-            <div className="flex-1 overflow-y-auto p-4 sidebar-scrollbar max-h-[400px]">
-              {moveModalFolderLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <FiLoader className="animate-spin text-brand text-2xl" />
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  <button
-                    onClick={() => selectMoveModalFolder(null)}
-                    className={`w-full p-3 rounded-lg border ${
-                      moveTargetFolder && moveTargetFolder.id === null
-                        ? "border-brand bg-brand-50"
-                        : "border-gray-200 hover:bg-white"
-                    } flex items-center gap-3 text-left`}
-                  >
-                    <FiFolder className="text-brand" />
-                    <span className="text-gray-900">
-                      {t("file.modal.move_outside_all")}
-                    </span>
-                    {moveTargetFolder && moveTargetFolder.id === null && (
-                      <FiCheck className="ml-auto text-brand" />
-                    )}
-                  </button>
-                  {moveModalFolders.map((folder) => (
-                    <button
-                      key={folder._id}
-                      onClick={() => selectMoveModalFolder(folder)}
-                      className={`w-full p-3 rounded-lg border ${
-                        moveTargetFolder && moveTargetFolder.id === folder._id
-                          ? "border-brand bg-brand-50"
-                          : "border-gray-200 hover:bg-white"
-                      } flex items-center gap-3 text-left`}
-                    >
-                      <FiFolder className="text-brand" />
-                      <span className="text-gray-900 flex-1">
-                        {folder.displayPath || folder.name}
-                      </span>
-                      {moveTargetFolder &&
-                        moveTargetFolder.id === folder._id && (
-                          <FiCheck className="text-brand" />
-                        )}
-                    </button>
-                  ))}
-                  {moveModalFolders.length === 0 && !moveModalFolderLoading && (
-                    <div className="text-center py-8 text-gray-600">
-                      Không có thư mục
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-            {/* Actions */}
-            <div className="p-4 border-t border-gray-200 shrink-0 flex gap-2">
-              <button
-                onClick={() => {
-                  setShowMoveModal(false);
-                }}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-white hover:bg-white text-gray-900 border border-gray-200"
-              >
-                {t("file.button.cancel")}
-              </button>
-              <button
-                onClick={handleConfirmMove}
-                className="px-4 py-2.5 rounded-xl bg-brand text-white hover:opacity-95 disabled:opacity-50"
-                disabled={!moveTargetFolder}
-              >
-                {t("file.button.move")}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <MoveModal
+        isOpen={showMoveModal}
+        onClose={() => setShowMoveModal(false)}
+        moveItems={pendingMoveItems}
+        onConfirm={({ targetFolderId }) => {
+            handleMoveItems(pendingMoveItems, targetFolderId);
+            // Close modal after a small delay to ensure batch is added and MiniStatus can render
+            setTimeout(() => {
+              setShowMoveModal(false);
+              setPendingMoveItems([]);
+            }, 0);
+        }}
+        currentFolderId={currentFolderId}
+      />
       {showUploadDropdown && (
         <div
           className="fixed inset-0 z-40"
@@ -2029,22 +1981,91 @@ export default function FileManagement({
         onClose={() => setOpenImport(false)}
         onImported={resetAndReload}
       />
-      {previewFile && (
-        <FilePreviewModal
-          file={previewFile}
-          fileUrl={previewUrl}
-          onClose={() => setPreviewFile(null)}
-          onOpen={() => setShowChat(false)}
+
+
+      <TagManagementModal
+        isOpen={showTagManagement}
+        onClose={() => setShowTagManagement(false)}
+        tags={tags}
+        onRefresh={loadTags}
+      />
+      <FileVersionModal
+        isOpen={showVersioningModal}
+        onClose={() => {
+          setShowVersioningModal(false);
+          setVersioningFile(null);
+          resetAndReload(); // Refresh data to show potential version changes
+        }}
+        file={versioningFile}
+      />
+      <ActivitySidebar
+        isOpen={showActivitySidebar}
+        onClose={() => {
+          setShowActivitySidebar(false);
+          setActivityTarget({ id: null, type: null, title: "" });
+        }}
+        fileId={activityTarget.type === "file" ? activityTarget.id : null}
+        folderId={activityTarget.type === "folder" ? activityTarget.id : null}
+        title={activityTarget.title}
+      />
+      <RenameModal
+        isOpen={showRenameModal}
+        onClose={() => {
+            setShowRenameModal(false);
+            setItemToRename(null);
+        }}
+        item={itemToRename}
+        onRename={tableActions.handleRename}
+      />
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          triggerRect={contextMenu.triggerRect}
+          item={contextMenu.item}
+          onClose={closeContextMenu}
+          tags={tags}
+          onPreview={() => handlePreview(contextMenu.item)}
+          onDownload={() => handleDownload([contextMenu.item])}
+          onShare={() => {
+            setShareItem(contextMenu.item);
+            setShowShareModal(true);
+          }}
+          onRename={() => {
+            setItemToRename(contextMenu.item);
+            setShowRenameModal(true);
+            closeContextMenu();
+          }}
+          onMove={() => handleShowMoveModal([contextMenu.item])}
+          onTag={(tagId) => {
+            const itemId = contextMenu.item.id || contextMenu.item._id;
+            const itemType = contextMenu.item.type || "file";
+            if (contextMenu.item.tags?.includes(tagId)) {
+              handleRemoveTag(itemId, tagId, itemType);
+            } else {
+              handleAssignTag(itemId, tagId, itemType);
+            }
+          }}
+          onLock={() => handleLockFile(contextMenu.item.id || contextMenu.item._id)}
+          onUnlock={() => handleUnlockFile(contextMenu.item.id || contextMenu.item._id)}
+          onDelete={() => handleDeleteItems([contextMenu.item])}
+          onVersions={() => {
+            setVersioningFile(contextMenu.item);
+            setShowVersioningModal(true);
+          }}
+          onActivity={() => {
+            setActivityTarget({
+              id: contextMenu.item.id || contextMenu.item._id,
+              type: contextMenu.item.type,
+              title: contextMenu.item.name || contextMenu.item.originalName,
+            });
+            setShowActivitySidebar(true);
+          }}
+          isFavorite={isItemFavorite(contextMenu.item)}
+          onToggleFavorite={() => handleToggleFavorite(contextMenu.item)}
+          favoriteLoading={favoriteLoadingId === String(contextMenu.item._id || contextMenu.item.id)}
         />
       )}
-      <ShareModal
-        isOpen={showShareModal}
-        onClose={() => {
-          setShowShareModal(false);
-          setShareItem(null);
-        }}
-        item={shareItem}
-      />
       {/* DownloadStatus cho download progress */}
       {downloadBatch && (
         <DownloadStatus

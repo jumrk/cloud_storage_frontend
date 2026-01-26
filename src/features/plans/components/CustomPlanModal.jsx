@@ -42,10 +42,7 @@ export default function CustomPlanModal({
   const calculatePrice = async () => {
     if (!plan) return;
 
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("token") : null;
-    const user = token ? decodeTokenGetUser(token) : null;
-    const isAuthenticated = !!user;
+    // ✅ User info will be checked via API if needed
 
     let orderType = "register";
     if (isAuthenticated) {
@@ -136,10 +133,7 @@ export default function CustomPlanModal({
   const handleContinue = () => {
     if (!pricing || !isValid) return;
 
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("token") : null;
-    const user = token ? decodeTokenGetUser(token) : null;
-    const isAuthenticated = !!user;
+    // ✅ User info will be checked via API if needed
 
     let orderType = "register";
     if (isAuthenticated) {

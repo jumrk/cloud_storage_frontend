@@ -2,13 +2,11 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import { getFileIcon } from "@/shared/utils/getFileIcon";
 import {
-  FiShare2,
   FiLock,
-  FiDownload,
   FiChevronUp,
   FiChevronDown,
+  FiMoreVertical,
 } from "react-icons/fi";
-import { FaStar, FaRegStar } from "react-icons/fa";
 import EmptyState from "@/shared/ui/EmptyState";
 import Image from "next/image";
 import axiosClient from "@/shared/lib/axiosClient";
@@ -54,6 +52,8 @@ const Table = ({
   onToggleFavorite,
   favoriteLoadingId,
   onSort, // Callback khi sort, nhận (column, direction)
+  onContextMenu,
+  tags = [],
 }) => {
   const [checkedItems, setCheckedItems] = useState({});
   const [editingFolderId, setEditingFolderId] = useState(null);
@@ -788,6 +788,7 @@ const Table = ({
                       onDragEnd={value.locked ? undefined : handleRowDragEnd}
                       onDragOver={(e) => handleDragOver(e, value)}
                       onDrop={(e) => handleDrop(e, value)}
+                      onContextMenu={(e) => onContextMenu && onContextMenu(e, value)}
                     >
                       <td
                         className="px-4 py-3 rounded-l-lg flex items-center gap-3"
@@ -916,6 +917,25 @@ const Table = ({
                               />
                             )}
                           </span>
+                          {/* Tag Badges */}
+                          {value.tags && value.tags.length > 0 && (
+                            <div className="flex gap-1 ml-2 flex-wrap">
+                              {value.tags.map(tagId => {
+                                const tag = tags?.find(t => t._id === tagId);
+                                if (!tag) return null;
+                                return (
+                                  <span 
+                                    key={tagId}
+                                    className="px-1.5 py-0.5 rounded text-[10px] font-bold text-white shadow-sm"
+                                    style={{ backgroundColor: tag.color }}
+                                    title={tag.name}
+                                  >
+                                    {tag.name}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          )}
                             {isUploading && (
                               <span className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full flex-shrink-0">
                                 <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
@@ -991,74 +1011,17 @@ const Table = ({
                                 ⟳ Retry
                               </button>
                             )}
-                          {value.type === "file" && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (onToggleFavorite) {
-                                  onToggleFavorite(value);
-                                }
-                              }}
-                              title={
-                                isFavoriteItem && isFavoriteItem(value)
-                                  ? "Bỏ khỏi yêu thích"
-                                  : "Thêm vào yêu thích"
-                              }
-                              className={`transition-colors ${
-                                isFavoriteItem && isFavoriteItem(value)
-                                  ? "text-amber-500"
-                                  : "text-gray-400 hover:text-amber-500"
-                              } ${
-                                isFavoriteLoading(value)
-                                  ? "opacity-60 cursor-wait"
-                                  : ""
-                              }`}
-                              disabled={isFavoriteLoading(value)}
-                            >
-                              {isFavoriteLoading(value) ? (
-                                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></span>
-                              ) : isFavoriteItem && isFavoriteItem(value) ? (
-                                <FaStar size={16} />
-                              ) : (
-                                <FaRegStar size={16} />
-                              )}
-                            </button>
-                          )}
-                          {onDownload && value.type === "file" && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                // Check if file has any URL available (temp or Drive)
-                                const hasTemp = value.tempDownloadUrl && value.tempFileStatus === "completed";
-                                const hasDrive = value.driveFileId || value.driveUrl || value.url;
-                                
-                                if (hasTemp || hasDrive) {
-                                onDownload(value);
-                                } else {
-                                  // File not ready - could show toast here if needed
-                                }
-                              }}
-                              title={
-                                isUploading 
-                                  ? "File đang upload lên Google Drive (có thể tải từ file tạm)" 
-                                  : "Tải xuống"
-                              }
-                              className="text-green-500 hover:text-green-700 transition-colors"
-                            >
-                              <FiDownload size={18} />
-                            </button>
-                          )}
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (onShare) {
-                                onShare(value);
+                              if (onContextMenu) {
+                                onContextMenu(e, value);
                               }
                             }}
-                            title="Chia sẻ file/thư mục"
-                            className="text-blue-500 hover:text-blue-700 transition-colors"
+                            title="Thêm tùy chọn"
+                            className="text-gray-600 hover:text-brand bg-white rounded-lg p-2 hover:bg-gray-50 transition-all"
                           >
-                            <FiShare2 size={18} />
+                            <FiMoreVertical size={18} />
                           </button>
                         </div>
                       </td>

@@ -14,15 +14,14 @@ function page() {
   useEffect(() => {
     const checkAccess = async () => {
       try {
-        const token =
-          typeof window !== "undefined" ? localStorage.getItem("token") : null;
-        if (!token) {
+        // ✅ Check access via API call (cookie sent automatically)
+        const res = await axiosClient.get("/api/user");
+        if (!res.data) {
           router.push("/login");
           return;
         }
 
-        const userInfo = decodeTokenGetUser(token);
-        if (hasVideoToolsAccess(userInfo)) {
+        if (hasVideoToolsAccess(res.data)) {
           setHasAccess(true);
           setIsChecking(false);
           return;

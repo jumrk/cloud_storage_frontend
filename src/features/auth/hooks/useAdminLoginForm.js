@@ -37,9 +37,7 @@ export default function useAdminLoginForm() {
         toast.error("Tài khoản không có quyền truy cập admin.");
         return;
       }
-      if (token) {
-        localStorage.setItem("token", token);
-      }
+      // ✅ Token set via httpOnly cookie by backend
       toast.success("Đăng nhập admin thành công!");
       router.replace("/admin");
     } catch (error) {

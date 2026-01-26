@@ -27,9 +27,8 @@ const useFileManagementPage = ({
 } = {}) => {
   const t = useTranslations();
   const api = useMemo(() => FileManagementService(), []);
-  const tokenRef = useRef(
-    typeof window !== "undefined" ? localStorage.getItem("token") : null
-  );
+  // ✅ No need for token - cookie sent automatically
+  const tokenRef = useRef(null);
 
   // Setup WebSocket for real-time updates
   const socketRef = useSocket(tokenRef.current);
@@ -77,6 +76,13 @@ const useFileManagementPage = ({
   const limit = 20;
 
   const [currentFolderId, setCurrentFolderId] = useState(null);
+  // ✅ FIX #2: Use ref for currentFolderId to avoid stale closures in socket listeners
+  const currentFolderIdRef = useRef(null);
+
+  // ✅ Sync ref with state
+  useEffect(() => {
+    currentFolderIdRef.current = currentFolderId;
+  }, [currentFolderId]);
 
   const [showMoveModal, setShowMoveModal] = useState(false);
   const [pendingMoveItems, setPendingMoveItems] = useState([]);
@@ -92,8 +98,14 @@ const useFileManagementPage = ({
     fileType: null,
     sortBy: "none", // none, name, size, date
     showFavorites: false,
+    tagId: null,
+    minSize: null,
+    maxSize: null,
+    startDate: null,
+    endDate: null,
   });
   const [members, setMembers] = useState([]);
+  const [tags, setTags] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
 
   const [previewFile, setPreviewFile] = useState(null);
@@ -136,6 +148,21 @@ const useFileManagementPage = ({
     loadFavorites();
     return () => favoriteAbortRef.current?.abort?.();
   }, [loadFavorites]);
+
+  const loadTags = useCallback(async () => {
+    try {
+      const response = await api.getTags();
+      if (response.success) {
+        setTags(response.tags || []);
+      }
+    } catch (err) {
+      console.error("Failed to load tags", err);
+    }
+  }, [api]);
+
+  useEffect(() => {
+    loadTags();
+  }, [loadTags]);
 
   useEffect(() => {
     if (hasResumedPendingRef.current) return;
@@ -315,37 +342,45 @@ const useFileManagementPage = ({
       if (!forceRefresh) {
         const cached = folderDataCache.current.get(folderIdForCache);
         if (cached) {
-          // If requesting page 1, restore all cached data
-          if (pageNum === 1) {
-            isRestoringFromCache.current = true;
-            // Set data first, then other states to avoid empty state flash
-            setData(cached.data);
-            setHasMore(cached.hasMore || false);
-            setLoading(false);
-            setLoadingMore(false);
-            // Always delay hasFetched to ensure data is rendered first
-            // This prevents the empty state flash
-            setTimeout(() => {
-              setHasFetched(true);
-            }, 100);
-            // Reset flag after state updates
-            setTimeout(() => {
-              isRestoringFromCache.current = false;
-            }, 150);
-            return; // Skip fetching
+          // ✅ FIX #3: Add cache TTL check (5 minutes)
+          const CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
+          const cacheAge = Date.now() - (cached.timestamp || 0);
+          const isCacheValid = cacheAge < CACHE_TTL;
+
+          if (!isCacheValid) {
+            console.log(`[fetchData] Cache expired for ${folderIdForCache} (age: ${Math.floor(cacheAge / 1000)}s)`);
+            // Cache expired, clear it and fetch fresh data
+            folderDataCache.current.delete(folderIdForCache);
           } else {
-            // If requesting page > 1, check if cached data already has enough items
-            // Calculate expected item count: we need at least (pageNum - 1) * limit items
-            // to have already loaded this page
-            const expectedMinItems = (pageNum - 1) * limit;
-            if (cached.data.length > expectedMinItems) {
-              // We already have data beyond this page, skip fetching to avoid duplicates
+            // Cache is valid, use it
+            // If requesting page 1, restore all cached data
+            if (pageNum === 1) {
+              // Set data and states synchronously for smooth transition
+              setData(cached.data);
+              setHasMore(cached.hasMore || false);
+              setLoading(false);
               setLoadingMore(false);
-              // Make sure current data state matches cached data
-              if (data.length < cached.data.length) {
-                setData(cached.data);
+              
+              // ✅ FIX: Set hasFetched immediately to show data right away
+              // This prevents the flag from getting stuck when navigating quickly
+              setHasFetched(true);
+              
+              console.log(`[fetchData] Restored from cache: ${cached.data.length} items (age: ${Math.floor(cacheAge / 1000)}s)`);
+              return; // Skip fetching
+            } else {
+              // If requesting page > 1, check if cached data already has enough items
+              // Calculate expected item count: we need at least (pageNum - 1) * limit items
+              // to have already loaded this page
+              const expectedMinItems = (pageNum - 1) * limit;
+              if (cached.data.length > expectedMinItems) {
+                // We already have data beyond this page, skip fetching to avoid duplicates
+                setLoadingMore(false);
+                // Make sure current data state matches cached data
+                if (data.length < cached.data.length) {
+                  setData(cached.data);
+                }
+                return;
               }
-              return;
             }
           }
         }
@@ -365,8 +400,29 @@ const useFileManagementPage = ({
       try {
         let json;
 
-        // Conditional API call based on role
-        if (isMember) {
+        // Use search API if search term or advanced filters are active
+        const isSearching = searchTerm.trim() || filter.tagId || filter.minSize || filter.maxSize || filter.startDate || filter.endDate;
+        console.log("[fetchData] isSearching:", isSearching, "filter:", filter);
+        console.log("[fetchData] filter.tagId:", filter.tagId, "will send as tags param:", filter.tagId || undefined);
+
+        if (isSearching && !isMember) {
+          const searchParams = {
+            q: searchTerm,
+            page: pageNum,
+            limit,
+            type: filter.type !== "all" ? filter.type : undefined,
+            fileType: filter.fileType !== "all" ? filter.fileType : undefined,
+            tags: filter.tagId || undefined,
+            sizeMin: filter.minSize || undefined,
+            sizeMax: filter.maxSize || undefined,
+            dateFrom: filter.startDate || undefined,
+            dateTo: filter.endDate || undefined,
+            sortBy: filter.sortBy !== "none" ? filter.sortBy : undefined,
+            folderId: currentFolderId || undefined,
+          };
+
+          json = await api.searchFiles(searchParams, signal);
+        } else if (isMember) {
           // Member: Use /api/member/folders endpoint
           const res = await axiosClient.get("/api/member/folders", {
             signal,
@@ -489,15 +545,33 @@ const useFileManagementPage = ({
           return; // Early return for member
         } else {
           // Leader: Use existing /api/upload endpoint
+          // ✅ PAGINATION FIX: Send sortBy and sortDir from filter state
+          const sortBy = filter.sortBy !== "none" ? filter.sortBy : "date";
+          const sortDir = "desc"; // Default descending (newest first)
+          
           json = await api.getUploads(
-            { page: pageNum, limit, parentId: currentFolderId ?? null },
+            { page: pageNum, limit, parentId: currentFolderId ?? null, sortBy, sortDir },
             tokenRef.current,
             signal
           );
         }
 
-        // Transform leader API response
-        const files = (json.files || []).map((f) => ({
+        // Transform API response
+        let jsonFiles = json.files || [];
+        let jsonFolders = json.folders || [];
+        
+        // Handle search API response (which returns a single "results" array)
+        if (json.results && Array.isArray(json.results)) {
+          console.log("[fetchData] Search results received:", json.results.length);
+          // If the results don't have type but we know we called searchFiles, 
+          // they are all files. But our backend adds type: "file" so this is safe.
+          jsonFiles = json.results.filter(item => item.type === "file" || !item.type);
+          jsonFolders = json.results.filter(item => item.type === "folder");
+        }
+
+        const totalPages = json.totalPages || json.pagination?.pages || 1;
+
+        const files = jsonFiles.map((f) => ({
           id: f._id ? String(f._id) : String(f.id),
           name: f.originalName || f.name,
           type: "file",
@@ -517,9 +591,13 @@ const useFileManagementPage = ({
           driveFileId: f.driveFileId,
           _id: f._id,
           originalName: f.originalName,
+          tags: (f.tags || []).map(t => typeof t === "string" ? t : t._id),
+          lockedBy: f.lockedBy,
+          lockExpiresAt: f.lockExpiresAt,
+          versionNumber: f.versionNumber,
         }));
 
-        const folders = (json.folders || []).map((f) => ({
+        const folders = jsonFolders.map((f) => ({
           id: f._id ? String(f._id) : String(f.id),
           name: f.name,
           type: "folder",
@@ -529,10 +607,11 @@ const useFileManagementPage = ({
           permissions: f.permissions || [],
           _id: f._id,
           fileCount: f.fileCount || 0,
+          tags: (f.tags || []).map(t => typeof t === "string" ? t : t._id),
         }));
 
         const finalData = [...folders, ...files];
-        const hasMoreData = pageNum < (json.totalPages || 1);
+        const hasMoreData = pageNum < totalPages;
         if (pageNum === 1) {
           setData(finalData);
           setLoading(false); // Set loading to false AFTER setting data
@@ -574,30 +653,19 @@ const useFileManagementPage = ({
         }
       }
     },
-    [api, currentFolderId, isMember, findFolderById]
+    [api, currentFolderId, isMember, findFolderById, searchTerm, filter]
   );
 
-  // Set hasFetched to true when loading changes from true to false (first fetch completed)
-  // This ensures data state is fully updated before showing empty state
+  // Primary data fetching effect
   useEffect(() => {
-    if (!loading && !hasFetched) {
-      // Use a small delay to ensure React has flushed all state updates
-      const timer = setTimeout(() => {
-        setHasFetched(true);
-      }, 150);
-      return () => clearTimeout(timer);
-    }
-  }, [loading, hasFetched]);
+    // ✅ FIX: Reset flag on folder change to prevent stuck
+    isRestoringFromCache.current = false;
+    
+    // ✅ FIX: Always check cache first when navigating
+    // Only force refresh when explicitly called via resetAndReload()
+    // This allows cache to work properly on folder navigation
+    fetchData(page, false);
 
-  // Debounce search and refetch data when searchTerm changes
-  const searchDebounceRef = useRef(null);
-
-  useEffect(() => {
-    // Skip fetchData if we're restoring from cache
-    if (isRestoringFromCache.current) {
-      return;
-    }
-    fetchData(page);
     return () => {
       // Only abort if controller exists and hasn't been aborted
       if (acRef.current && !acRef.current.signal.aborted) {
@@ -618,6 +686,37 @@ const useFileManagementPage = ({
     }
   }, [loading, hasFetched]);
 
+  // Reset page to 1 when filters or search term changes
+  useEffect(() => {
+    // Check if it's the first render where hasFetched is still false and loading is true
+    // but only if searchTerm/filter are at their default values
+    const isDefaultFilter = 
+      filter.type === "all" && 
+      !filter.memberId && 
+      !filter.fileType && 
+      filter.sortBy === "none" && 
+      !filter.showFavorites &&
+      !filter.tagId;
+
+    if (!hasFetched && !searchTerm && isDefaultFilter) return;
+
+    console.log("[Filter Change] Resetting page to 1, filter:", filter);
+    
+    // ✅ FIX: Invalidate cache when filter changes
+    // This ensures search API is called instead of restoring stale cache
+    const cacheKey = currentFolderId || "root";
+    folderDataCache.current.delete(cacheKey);
+    console.log("[Filter Change] Cache invalidated for:", cacheKey);
+    
+    setPage(1);
+    setHasFetched(false);
+    setLoadingMore(false);
+    // ✅ FIX: Force immediate fetch after filter change (don't wait for page state update)
+    setTimeout(() => {
+      fetchData(1, true);
+    }, 0);
+  }, [searchTerm, filter, currentFolderId, fetchData]);
+
   // Track previous folder ID to avoid unnecessary resets
   const prevFolderIdRef = useRef(null);
 
@@ -625,12 +724,14 @@ const useFileManagementPage = ({
     // Only reset if folder actually changed
     if (prevFolderIdRef.current !== currentFolderId) {
       prevFolderIdRef.current = currentFolderId;
+      
+      // ✅ FIX: Reset ALL pagination states immediately to prevent flash
+      // This ensures "Load More" button doesn't show during navigation
       setPage(1);
-      setHasFetched(false); // Reset hasFetched when folder changes to show loading skeleton
-      setLoadingMore(false); // Reset loadingMore when folder changes
-      fetchData(1);
+      setHasFetched(false);
+      setHasMore(false); // ← CRITICAL: Reset hasMore to hide "Load More" button
+      setLoadingMore(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentFolderId]);
 
   // Update folder names in history when data loads
@@ -710,7 +811,8 @@ const useFileManagementPage = ({
       const file = payload.file || payload.item;
       const folderId = payload.folderId || file?.folderId;
       const createdBy = payload.createdBy || payload.uploadedBy;
-      const currentFolder = currentFolderId || "root";
+      // ✅ FIX #2: Use ref instead of closure to avoid stale currentFolderId
+      const currentFolder = currentFolderIdRef.current || "root";
       const itemParentId = folderId || file?.parentId || "root";
 
       // Only add if it's for the current folder and not created by current user (optimistic update already handled)
@@ -784,9 +886,11 @@ const useFileManagementPage = ({
 
     // Handle Drive upload completed
     const handleDriveUploadCompleted = (payload) => {
-      const { file, folderId } = payload;
+      const { file, folderId: fileFolderId } = payload;
+      // ✅ FIX #2: Use ref for fresh value
+      const currentFolder = currentFolderIdRef.current;
 
-      if (String(folderId || "root") === String(currentFolderId || "root")) {
+      if (String(fileFolderId || "root") === String(currentFolder || "root")) {
         setData((prevData) => {
           return prevData.map((item) => {
             if (String(item.id || item._id) === String(file._id || file.id)) {
@@ -803,13 +907,30 @@ const useFileManagementPage = ({
             return item;
           });
         });
+        
+        // ✅ FIX #4: Update cache when file upload completes
+        const cacheKey = currentFolder || "root";
+        const cached = folderDataCache.current.get(cacheKey);
+        if (cached) {
+          folderDataCache.current.set(cacheKey, {
+            ...cached,
+            data: cached.data.map((item) => {
+              if (String(item.id || item._id) === String(file._id || file.id)) {
+                return { ...item, ...file };
+              }
+              return item;
+            }),
+            timestamp: Date.now(),
+          });
+        }
       }
     };
 
     // Handle file/folder moved
     const handleFileMoved = (payload) => {
       const { item, oldFolderId, newFolderId } = payload;
-      const currentFolder = currentFolderId || "root";
+      // ✅ FIX #2: Use ref instead of closure
+      const currentFolder = currentFolderIdRef.current || "root";
 
       // Remove from old folder if we're viewing it
       if (String(oldFolderId || "root") === String(currentFolder)) {
@@ -865,7 +986,8 @@ const useFileManagementPage = ({
     // Handle file/folder deleted
     const handleFileDeleted = (payload) => {
       const { item } = payload;
-      const currentFolder = currentFolderId || "root";
+      // ✅ FIX #2: Use ref instead of closure
+      const currentFolder = currentFolderIdRef.current || "root";
 
       // Remove from current folder if we're viewing it
       if (
@@ -896,7 +1018,8 @@ const useFileManagementPage = ({
     // Handle file/folder renamed
     const handleFileRenamed = (payload) => {
       const { item } = payload;
-      const currentFolder = currentFolderId || "root";
+      // ✅ FIX #2: Use ref instead of closure
+      const currentFolder = currentFolderIdRef.current || "root";
 
       // Update in current folder if we're viewing it
       if (
@@ -921,7 +1044,8 @@ const useFileManagementPage = ({
     // Handle file/folder restored
     const handleFileRestored = (payload) => {
       const { item } = payload;
-      const currentFolder = currentFolderId || "root";
+      // ✅ FIX #2: Use ref instead of closure
+      const currentFolder = currentFolderIdRef.current || "root";
 
       // Only add if we're viewing the parent folder
       const itemParentId = item.folderId || item.parentId || "root";
@@ -967,7 +1091,8 @@ const useFileManagementPage = ({
     // Handle file/folder created (for folder creation)
     const handleFileCreated = (payload) => {
       const { item } = payload;
-      const currentFolder = currentFolderId || "root";
+      // ✅ FIX #2: Use ref instead of closure
+      const currentFolder = currentFolderIdRef.current || "root";
 
       // Only add if we're viewing the parent folder
       if (String(item.parentId || "root") === String(currentFolder)) {
@@ -1108,13 +1233,30 @@ const useFileManagementPage = ({
     const handlePermissionGranted = (payload) => {
       const { folder } = payload;
       // Refresh folder list if user is viewing root or the parent folder
-      const currentFolder = currentFolderId || "root";
+      // ✅ FIX #2: Use ref instead of closure
+      const currentFolder = currentFolderIdRef.current || "root";
       if (String(folder.parentId || "root") === String(currentFolder)) {
         // Invalidate cache and reload to show new folder
         const cacheKey = currentFolder;
         folderDataCache.current.delete(cacheKey);
         resetAndReload(true);
       }
+    };
+
+    // ✅ Handle stats update event (for storage/file count UI refresh)
+    const handleStatsUpdate = async (data) => {
+      console.log("[Socket] stats:updated received:", data);
+      
+      // Dispatch window event to notify other components
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("stats:updated", { detail: data }));
+      }
+      
+      // Also trigger a data refresh to ensure UI is in sync
+      // This helps catch any missed updates or race conditions
+      setTimeout(() => {
+        resetAndReload(false); // Soft reload without clearing cache
+      }, 500);
     };
 
     // Register event listeners
@@ -1126,6 +1268,7 @@ const useFileManagementPage = ({
     socket.on("file:created", handleFileCreated);
     socket.on("file:restored", handleFileRestored);
     socket.on("file:permissionGranted", handlePermissionGranted);
+    socket.on("stats:updated", handleStatsUpdate);
 
     return () => {
       socket.off("file:uploaded", handleFileUploaded);
@@ -1136,8 +1279,11 @@ const useFileManagementPage = ({
       socket.off("file:created", handleFileCreated);
       socket.off("file:restored", handleFileRestored);
       socket.off("file:permissionGranted", handlePermissionGranted);
+      socket.off("stats:updated", handleStatsUpdate);
     };
-  }, [socketRef.current, currentFolderId]);
+    // ✅ FIX #2: Remove currentFolderId from dependencies since we use ref
+    // This prevents unnecessary re-registering of listeners
+  }, [socketRef.current]);
 
   const resetAndReload = useCallback(
     (forceRefresh = true) => {
@@ -1480,7 +1626,98 @@ const useFileManagementPage = ({
             return;
           }
 
-          // Add file to data state
+          // ✅ PAGINATION FIX: Optimistic add vào đúng vị trí theo current sort
+          // Tránh reload API - giữ UX mượt mà
+          console.log("[addUploadedFile] Adding file to correct position based on sort...");
+          
+          // Start polling for drive upload status if still pending
+          if (file.driveUploadStatus === "pending") {
+            startPollingFileStatus(fileData.id, uploadId);
+          }
+          
+          // Start polling for drive upload status BEFORE adding to UI
+          if (file.driveUploadStatus === "pending") {
+            startPollingFileStatus(fileData.id, uploadId);
+          }
+          
+          // Helper: Tìm vị trí chèn đúng theo sort hiện tại
+          const getInsertPosition = (newFile, existingData, sortBy) => {
+            // Nếu không sort hoặc sort by date DESC: file mới ở đầu
+            if (sortBy === "none" || sortBy === "date") {
+              return 0; // Newest first
+            }
+            
+            // Folders luôn đứng trước files
+            let firstFileIndex = existingData.findIndex(item => item.type === "file");
+            if (firstFileIndex === -1) firstFileIndex = existingData.length;
+            
+            // Sort by name (A-Z)
+            if (sortBy === "name") {
+              const newName = (newFile.name || "").toLowerCase();
+              for (let i = firstFileIndex; i < existingData.length; i++) {
+                const itemName = (existingData[i].name || "").toLowerCase();
+                if (newName < itemName) return i;
+              }
+              return existingData.length; // Thêm vào cuối
+            }
+            
+            // Sort by size (small to large)
+            if (sortBy === "size") {
+              const newSize = newFile.size || 0;
+              for (let i = firstFileIndex; i < existingData.length; i++) {
+                const itemSize = existingData[i].size || 0;
+                if (newSize < itemSize) return i;
+              }
+              return existingData.length;
+            }
+            
+            return 0; // Default: đầu mảng
+          };
+          
+          // Add file vào đúng vị trí
+          setData((prevData) => {
+            // Check if file already exists
+            const exists = prevData.some(
+              (item) => String(item.id || item._id) === String(fileData.id)
+            );
+            
+            if (exists) {
+              // Update existing file
+              return prevData.map((item) =>
+                String(item.id || item._id) === String(fileData.id) ? fileData : item
+              );
+            } else {
+              // Insert vào vị trí đúng
+              const insertPos = getInsertPosition(fileData, prevData, filter.sortBy);
+              const newData = [...prevData];
+              newData.splice(insertPos, 0, fileData);
+              
+              // Update cache
+              const cacheKey = currentFolderKey;
+              const cached = folderDataCache.current.get(cacheKey);
+              if (cached) {
+                folderDataCache.current.set(cacheKey, {
+                  ...cached,
+                  data: newData,
+                  timestamp: Date.now(),
+                });
+              }
+              
+              return newData;
+            }
+          });
+          
+          // Show success message
+          toast.success(t("upload_success"));
+          
+          return; // Exit - đã add vào đúng vị trí
+          
+          // ⚠️ OLD LOGIC REMOVED: Optimistic add to beginning
+          // This caused inconsistency - file would appear at top on upload
+          // but at different position on reload
+          
+          /*
+          // OLD CODE - COMMENTED OUT FOR REFERENCE
           setData((prevData) => {
             // Check if file already exists
             const exists = prevData.some(
@@ -1516,19 +1753,25 @@ const useFileManagementPage = ({
           if (file.driveUploadStatus === "pending") {
             startPollingFileStatus(fileData.id, uploadId);
           }
+          */
+          // END OF OLD CODE - Now using invalidate + re-fetch approach
         }
       } catch (error) {
         console.error("Failed to fetch uploaded file:", error);
       }
     },
-    [currentFolderId, isMember]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [currentFolderId, isMember, t, filter.sortBy, folderDataCache, setData]
+    // Note: startPollingFileStatus được define sau nên không thể thêm vào deps
+    // Nhưng nó là stable function (useCallback) nên safe để exclude
   );
 
   const addOptimisticFolders = useCallback(
     (folderNames, parentId = null) => {
       const names = Array.from(new Set((folderNames || []).filter(Boolean)));
       if (names.length === 0) return;
-      const currentFolder = currentFolderId || "root";
+      // ✅ FIX #2: Use ref instead of closure
+      const currentFolder = currentFolderIdRef.current || "root";
       const targetParent = parentId || null;
       if (String(currentFolder) !== String(targetParent || "root")) return;
 
@@ -2178,9 +2421,27 @@ const useFileManagementPage = ({
     [data, currentFolderId]
   );
 
+  const isSearching = useMemo(() => {
+    return !!(
+      searchTerm.trim() ||
+      filter.tagId ||
+      filter.minSize ||
+      filter.maxSize ||
+      filter.startDate ||
+      filter.endDate
+    );
+  }, [searchTerm, filter]);
+
   const filteredFolders = useMemo(() => {
     return data.filter((item) => {
       if (item.type !== "folder") return false;
+      
+      // If we are searching, we generally trust the backend results
+      // but we still want to apply the type filter if it's set to "file" only
+      if (isSearching) {
+        return filter.type === "folder" || filter.type === "all";
+      }
+
       if (filter.memberId) {
         if (
           !Array.isArray(item.permissions) ||
@@ -2192,11 +2453,36 @@ const useFileManagementPage = ({
       }
       return filter.type === "folder" || filter.type === "all";
     });
-  }, [data, filter]);
+  }, [data, filter, isSearching]);
 
   const filteredFiles = useMemo(() => {
     return data.filter((item) => {
       if (item.type !== "file") return false;
+
+      // If we are searching, we generally trust the backend results
+      // but we still want to apply the type/fileType filter and favorites
+      if (isSearching) {
+        if (filter.type !== "file" && filter.type !== "all") return false;
+        
+        if (
+          filter.fileType &&
+          filter.fileType !== "all" &&
+          item.extension !== filter.fileType &&
+          item.mimeType !== filter.fileType
+        )
+          return false;
+
+        // Apply favorite filter
+        if (filter.showFavorites) {
+          const resourceId = item._id || item.id;
+          const resourceIdStr = resourceId ? String(resourceId) : null;
+          if (!resourceIdStr || !favoriteIds.has(resourceIdStr)) {
+            return false;
+          }
+        }
+        return true;
+      }
+
       if (filter.memberId) {
         if (
           !Array.isArray(item.permissions) ||
@@ -2226,9 +2512,10 @@ const useFileManagementPage = ({
       }
       return false;
     });
-  }, [data, filter, favoriteIds]);
+  }, [data, filter, favoriteIds, isSearching]);
 
   const foldersBase =
+    !isSearching &&
     filter.type === "all" &&
     !filter.memberId &&
     (!filter.fileType || filter.fileType === "all")
@@ -2236,6 +2523,7 @@ const useFileManagementPage = ({
       : filteredFolders;
 
   const filesBase =
+    !isSearching &&
     filter.type === "all" &&
     !filter.memberId &&
     (!filter.fileType || filter.fileType === "all")
@@ -2492,22 +2780,39 @@ const useFileManagementPage = ({
   }, [api, newFolderName, currentFolderId, resetAndReload, t]);
 
   const handleMoveItems = useCallback(
-    async (items, targetFolderId) => {
-      if (!items || items.length === 0 || typeof targetFolderId === "undefined")
+    (items, targetFolderId) => {
+      if (!items || items.length === 0 || typeof targetFolderId === "undefined") {
         return;
-      const mapped = items.map((it) => ({
-        id: it._id || it.id,
-        type: it.type,
-        name: it.name || it.originalName,
+      }
+      
+      // ✅ FIX: Create batch and let MiniStatus handle the API call
+      // This ensures proper progress UI and error handling
+      const batchId = uuidv4();
+      const moveItemsData = items.map((i) => ({
+        id: i.id || i._id,
+        type: i.type || "file",
+        name: i.name || i.originalName,
       }));
-      setUploadBatches((prev) => [
-        ...prev,
-        { id: uuidv4(), type: "move", items: mapped, targetFolderId },
-      ]);
+
+      const moveBatch = {
+        id: batchId,
+        type: "move", 
+        batchId: batchId,
+        targetFolderId: targetFolderId, // For FileManagemant.jsx onComplete
+        items: moveItemsData, // For FileManagemant.jsx onComplete (updateDataAfterMove)
+        moveTargetFolderId: targetFolderId, // For MiniStatus.jsx API call
+        moveItems: moveItemsData, // For MiniStatus.jsx API call
+        files: [], // Empty for move batches
+      };
+
+      // Add to batches - MiniStatus will handle the rest
+      setUploadBatches(prev => [...prev, moveBatch]);
+      
+      // Clear selections
       tableActions.handleDragEnd?.();
       tableActions.setSelectedItems([]);
     },
-    [tableActions]
+    [tableActions, setUploadBatches]
   );
 
   const handleDeleteItems = useCallback(
@@ -2576,6 +2881,98 @@ const useFileManagementPage = ({
       tableActions.handleDragEnd?.();
     },
     [tableActions]
+  );
+
+  const handleAssignTag = useCallback(
+    async (itemId, tagId, type = "file") => {
+      try {
+        const res = await api.assignTagToFile(itemId, tagId, type);
+        if (res.success) {
+          toast.success("Đã gắn nhãn");
+          loadTags(); // Refresh tag counts
+          // Update local data
+          setData((prev) =>
+            prev.map((item) =>
+              String(item.id || item._id) === String(itemId)
+                ? { ...item, tags: [...(item.tags || []), tagId] }
+                : item
+            )
+          );
+        }
+      } catch (error) {
+        toast.error("Lỗi gắn nhãn");
+      }
+    },
+    [api, loadTags]
+  );
+
+  const handleRemoveTag = useCallback(
+    async (itemId, tagId, type = "file") => {
+      try {
+        const res = await api.removeTagFromFile(itemId, tagId, type);
+        if (res.success) {
+          toast.success("Đã gỡ nhãn");
+          loadTags();
+          setData((prev) =>
+            prev.map((item) =>
+              String(item.id || item._id) === String(itemId)
+                ? {
+                    ...item,
+                    tags: (item.tags || []).filter(
+                      (id) => String(id) !== String(tagId)
+                    ),
+                  }
+                : item
+            )
+          );
+        }
+      } catch (error) {
+        toast.error("Lỗi gỡ nhãn");
+      }
+    },
+    [api, loadTags]
+  );
+
+  const handleLockFile = useCallback(
+    async (fileId, reason) => {
+      try {
+        const res = await api.lockFile(fileId, { reason });
+        if (res.success) {
+          toast.success("Đã khóa tệp tin");
+          setData((prev) =>
+            prev.map((item) =>
+              String(item.id || item._id) === String(fileId)
+                ? { ...item, lockedBy: "me", locked: true } // Simplified for UI
+                : item
+            )
+          );
+        }
+      } catch (error) {
+        toast.error("Lỗi khóa tệp");
+      }
+    },
+    [api]
+  );
+
+  const handleUnlockFile = useCallback(
+    async (fileId) => {
+      try {
+        const res = await api.unlockFile(fileId);
+        if (res.success) {
+          toast.success("Đã mở khóa tệp tin");
+          setData((prev) =>
+            prev.map((item) =>
+              String(item.id || item._id) === String(fileId)
+                ? { ...item, lockedBy: null, locked: false }
+                : item
+            )
+          );
+        }
+      } catch (error) {
+        toast.error("Lỗi mở khóa tệp");
+      }
+    },
+    [api]
   );
 
   function getPreferredDownloadUrl(item) {
@@ -2665,7 +3062,7 @@ const useFileManagementPage = ({
               });
             }
 
-            const res = await api.downloadInternal(rawUrl, tokenRef.current);
+            const res = await api.downloadInternal(rawUrl);
             const cd = res.headers?.["content-disposition"] || "";
             const fileNameHeader = res.headers?.["x-file-name"] || "";
             const m = /filename\*?=UTF-8''([^;]+)|filename="?([^"]+)"?/i.exec(
@@ -2704,7 +3101,7 @@ const useFileManagementPage = ({
         // For Drive URLs or API endpoints, try to download via API first
         if (rawUrl.startsWith("/api/download/file/")) {
           try {
-            const res = await api.downloadInternal(rawUrl, tokenRef.current);
+            const res = await api.downloadInternal(rawUrl);
             const fileNameHeader = res.headers?.["x-file-name"] || "";
             const fileName = fileNameHeader 
               ? decodeURIComponent(fileNameHeader)
@@ -2787,6 +3184,8 @@ const useFileManagementPage = ({
     filter,
     members,
     searchTerm,
+    tags,
+    loadTags,
     showMoveModal,
     moveTargetFolder,
     showGrantPermissionModal,
@@ -2822,6 +3221,8 @@ const useFileManagementPage = ({
     setSearchTerm,
     setShowMoveModal,
     setMoveTargetFolder,
+    pendingMoveItems,
+    setPendingMoveItems,
     handleShowMoveModal,
     handleConfirmMove,
     handleMoveItems,
@@ -2829,6 +3230,10 @@ const useFileManagementPage = ({
     setShowGrantPermissionModal,
     handleGrantPermission,
     handleCreateFolder,
+    handleAssignTag,
+    handleRemoveTag,
+    handleLockFile,
+    handleUnlockFile,
     setPreviewFile,
     handlePreview,
     handleDownload,
@@ -2840,7 +3245,8 @@ const useFileManagementPage = ({
     areAllVisibleSelected,
     setOpenImport,
     folderHistory,
-    isFileUploading, // Export helper function
+    isFileUploading,
+    loadTags,
   };
 };
 

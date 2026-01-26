@@ -1,7 +1,6 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useTranslations } from "next-intl";
-import { decodeTokenGetUser } from "../lib/jwt";
 import toast from "react-hot-toast";
 import headerService from "../services/headerService";
 import axiosClient from "../lib/axiosClient";
@@ -16,9 +15,8 @@ export default function useHeader() {
   const menuRef = useRef();
   const [currentLocale, setCurrentLocale] = useState("vi");
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("token") : null;
-  const socketRef = useSocket(token);
+  // ✅ No need to get token from localStorage - cookie is sent automatically
+  const socketRef = useSocket(null); // Socket will get auth from cookie
 
   const updateUnreadNotificationCount = useCallback(async () => {
     try {
@@ -29,27 +27,22 @@ export default function useHeader() {
   }, []);
 
   useEffect(() => {
-    const tokenStored = localStorage.getItem("token");
-    if (tokenStored) {
-      const info = decodeTokenGetUser(tokenStored);
-      setUser(info);
-      setIsLoading(false); // User found from token, stop loading
-      updateUnreadNotificationCount();
-      axiosClient
-        .get("/api/user")
-        .then((res) => {
-          if (res?.data) {
-            setUser((prev) => ({ ...prev, ...res.data }));
-          }
-        })
-        .catch(() => {
-          /* ignore */
-        });
-    } else {
-      setUser(null);
-      setUnreadNotificationCount(0);
-      setIsLoading(false); // No token, stop loading
-    }
+    // ✅ Fetch user data from API (cookie sent automatically)
+    axiosClient
+      .get("/api/user")
+      .then((res) => {
+        if (res?.data) {
+          setUser(res.data);
+          updateUnreadNotificationCount();
+        }
+        setIsLoading(false);
+      })
+      .catch(() => {
+        setUser(null);
+        setUnreadNotificationCount(0);
+        setIsLoading(false);
+      });
+    
     if (typeof window !== "undefined") {
       const match = document.cookie.match(/NEXT_LOCALE=([^;]+)/);
       setCurrentLocale(match ? match[1] : "vi");
@@ -92,8 +85,7 @@ export default function useHeader() {
     try {
       await authLogout();
     } catch {}
-    localStorage.removeItem("token");
-    localStorage.clear();
+    // ✅ Cookie cleared by backend on logout
     toast.success(t("header.logout_success"));
     router.push("/login");
   };

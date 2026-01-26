@@ -7,9 +7,8 @@ import FileManagementService from "@/features/file-management/services/fileManag
 export default function usePermissionModal(onPermissionChange, folder) {
   const t = useTranslations();
   const api = useMemo(() => FileManagementService(), []);
-  const tokenRef = useRef(
-    typeof window !== "undefined" ? localStorage.getItem("token") : null
-  );
+  // ✅ No need for token - cookie sent automatically
+  const tokenRef = useRef(null);
 
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -27,7 +26,7 @@ export default function usePermissionModal(onPermissionChange, folder) {
     const ac = new AbortController();
     setIsLoadingList(true);
     try {
-      const data = await api.getMember(tokenRef.current, ac.signal);
+      const data = await api.getMember(ac.signal);
       setMembers(Array.isArray(data?.members) ? data.members : []);
     } catch {
       setMembers([]);
@@ -77,7 +76,7 @@ export default function usePermissionModal(onPermissionChange, folder) {
       if (!folderId || !memberId) return;
       setLoading(true);
       try {
-        await api.postPermission(folderId, memberId, locked, tokenRef.current);
+        await api.postPermission(folderId, memberId, locked);
         setPermMap((prev) => {
           const next = new Map(prev);
           next.set(String(memberId), !!locked);
@@ -96,7 +95,7 @@ export default function usePermissionModal(onPermissionChange, folder) {
       if (!folderId || !memberId) return;
       setLoading(true);
       try {
-        await api.deletePermission(folderId, memberId, tokenRef.current);
+        await api.deletePermission(folderId, memberId);
         setPermMap((prev) => {
           const next = new Map(prev);
           next.delete(String(memberId));

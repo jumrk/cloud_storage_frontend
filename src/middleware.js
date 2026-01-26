@@ -126,6 +126,11 @@ export async function middleware(request) {
   let response = applyLocale(NextResponse.next());
   response = addSecurityHeaders(response);
 
+  // ✅ Always allow share pages (public)
+  if (path.startsWith("/share")) {
+    return response;
+  }
+
   const redirectWithLocale = (targetPath) => {
     const redirectUrl = new URL(targetPath, request.url);
     const redirectResponse = applyLocale(NextResponse.redirect(redirectUrl));

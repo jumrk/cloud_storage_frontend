@@ -38,13 +38,10 @@ export default function ImageUpload({
         const formData = new FormData();
         formData.append("image", file);
 
-        const token =
-          typeof window !== "undefined" ? localStorage.getItem("token") : null;
-
+        // ✅ Cookie sent automatically
         const res = await axiosClient.post("/api/admin/upload-image", formData, {
           headers: {
             "Content-Type": "multipart/form-data",
-            Authorization: token ? `Bearer ${token}` : "",
           },
         });
 

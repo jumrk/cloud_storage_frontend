@@ -2,38 +2,30 @@ import axios from "axios";
 
 const axiosClient = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000",
-  withCredentials: true,
+  withCredentials: true, // ✅ Automatically send cookies with requests
 });
 
-axiosClient.interceptors.request.use(
-  (config) => {
-    if (!config.headers.Authorization) {
-      let token = null;
-      if (typeof window !== "undefined") {
-        token = localStorage.getItem("token");
-      }
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    }
-    return config;
-  },
-  (error) => Promise.reject(error),
-);
+// ✅ No need for request interceptor - cookies are sent automatically
+// ✅ No need to manually add Authorization header
 
 axiosClient.interceptors.response.use(
   (response) => {
-    if (response.data?.token && typeof window !== "undefined") {
-      localStorage.setItem("token", response.data.token);
-    }
+    // ✅ Token is set via httpOnly cookie by backend, no need to save to localStorage
     return response;
   },
   (error) => {
     if (error.response?.status === 401) {
       if (typeof window !== "undefined") {
-        localStorage.removeItem("token");
-        if (window.location.pathname !== "/Login") {
-          window.location.href = "/Login";
+        const requestUrl = error?.config?.url || "";
+        const currentPath = window.location.pathname || "";
+        const isShareRequest =
+          requestUrl.includes("/api/share/") || currentPath.startsWith("/share/");
+
+        // Do not force redirect for public share pages
+        if (!isShareRequest) {
+          if (window.location.pathname !== "/login") {
+            window.location.href = "/login";
+          }
         }
       }
     }

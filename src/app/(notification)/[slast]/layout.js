@@ -25,11 +25,14 @@ export default function NotificationLayout({ children }) {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("token") : null;
-    if (!token) return;
-    const userInfo = decodeTokenGetUser(token);
-    setMyId(userInfo?.id || userInfo?._id || null);
+    // ✅ Fetch user from API (cookie sent automatically)
+    axiosClient.get("/api/user")
+      .then((res) => {
+        if (res.data) {
+          setMyId(res.data.id || res.data._id || null);
+        }
+      })
+      .catch(() => {});
     setUser(userInfo);
     // Fetch full user data from API
     axiosClient
@@ -53,7 +56,7 @@ export default function NotificationLayout({ children }) {
   }, []);
 
   useSocket(
-    typeof window !== "undefined" ? localStorage.getItem("token") : "",
+    null, // ✅ Cookie sent automatically
     (msg) => {
       if (msg && msg.type === "notification:new") {
         updateUnreadCount();
@@ -84,8 +87,7 @@ export default function NotificationLayout({ children }) {
     try {
       await axiosClient.post("/api/auth/logout");
     } catch {}
-    localStorage.removeItem("token");
-    localStorage.clear();
+    // ✅ Cookie cleared by backend on logout
     router.push("/login");
   };
 

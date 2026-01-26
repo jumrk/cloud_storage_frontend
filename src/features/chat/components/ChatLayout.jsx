@@ -178,11 +178,14 @@ export default function ChatLayout({ isAdmin = false, updateUnreadCount }) {
     });
 
   useEffect(() => {
-    const tokenLocal =
-      typeof window !== "undefined" ? localStorage.getItem("token") : null;
-    if (tokenLocal) {
-      const info = decodeTokenGetUser(tokenLocal);
-      setMyId(info?.id || info?._id || null);
+    // ✅ Fetch user from API (cookie sent automatically)
+    axiosClient.get("/api/user")
+      .then((res) => {
+        if (res.data) {
+          setMyId(res.data.id || res.data._id || null);
+        }
+      })
+      .catch(() => {});
     }
   }, []);
 

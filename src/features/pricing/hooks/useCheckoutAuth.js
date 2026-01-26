@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { decodeTokenGetUser } from "@/shared/lib/jwt";
+import axiosClient from "@/shared/lib/axiosClient";
 
 /**
  * Hook để xử lý authentication và lấy thông tin user
@@ -11,28 +11,26 @@ export function useCheckoutAuth(orderTypeParam) {
   const [currentUser, setCurrentUser] = useState(null);
   const [orderType, setOrderType] = useState(() => {
     if (orderTypeParam) return orderTypeParam;
-    if (typeof window !== "undefined") {
-      const token = localStorage.getItem("token");
-      if (token && decodeTokenGetUser(token)) {
-        return "upgrade";
-      }
-    }
-    return "register";
+    return "register"; // Default
   });
 
   useEffect(() => {
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("token") : null;
-    if (token) {
-      const user = decodeTokenGetUser(token);
-      if (user) {
-        setIsAuthenticated(true);
-        setCurrentUser(user);
-        if (!orderTypeParam) {
-          setOrderType("upgrade");
+    // ✅ Fetch user from API (cookie sent automatically)
+    axiosClient.get("/api/user")
+      .then((res) => {
+        if (res.data) {
+          const user = res.data;
+          setIsAuthenticated(true);
+          setCurrentUser(user);
+          if (!orderTypeParam) {
+            setOrderType("upgrade");
+          }
         }
-      }
-    }
+      })
+      .catch(() => {
+        setIsAuthenticated(false);
+        setCurrentUser(null);
+      });
   }, [orderTypeParam]);
 
   // Xác định orderType dựa trên user và plan hiện tại
@@ -53,4 +51,3 @@ export function useCheckoutAuth(orderTypeParam) {
     setOrderType,
   };
 }
-

@@ -12,10 +12,19 @@ const shareService = {
   },
 
   // Tải xuống file/folder qua share token (public)
-  downloadShare: (token) => {
-    return axiosClient.get(`/api/share/${token}/download`, {
+  downloadShare: (token, password = null) => {
+    const config = {
       responseType: "blob",
-    });
+    };
+    if (password) {
+      config.params = { password };
+    }
+    return axiosClient.get(`/api/share/${token}/download`, config);
+  },
+
+  // Verify password for public share
+  verifyPassword: (token, password) => {
+    return axiosClient.post(`/api/share/${token}/verify`, { password });
   },
 };
 

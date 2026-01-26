@@ -1,481 +1,260 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
+
 import { useTranslations } from "next-intl";
+import { FiX, FiDownload, FiInfo, FiLoader, FiAlertCircle, FiCode, FiFileText, FiPlay, FiMusic } from "react-icons/fi";
+import FileManagementService from "../services/fileManagementService";
+import { motion, AnimatePresence } from "framer-motion";
+
 export default function FilePreviewModal({ file, fileUrl, onClose, onOpen }) {
   const t = useTranslations();
-  const ext = file.name.split(".").pop().toLowerCase();
-  const isText = ["txt", "md", "js", "json", "log", "csv"].includes(ext);
-  const [previewUrl, setPreviewUrl] = useState(null);
-  const [previewBlobUrl, setPreviewBlobUrl] = useState(null);
-  const [previewText, setPreviewText] = useState(null);
-  const [previewError, setPreviewError] = useState(null);
-  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+  const api = useMemo(() => FileManagementService(), []);
+  // ✅ No need for token - cookie sent automatically with API requests
+  const apiBase = process.env.NEXT_PUBLIC_API_BASE || "";
 
-  // Determine file type for appropriate preview
-  const mimeType = file?.mimeType || "";
-  const isVideo =
-    mimeType.startsWith("video/") ||
-    ["mp4", "webm", "ogg", "mov", "avi", "mkv"].includes(ext);
-  const isImage =
-    mimeType.startsWith("image/") ||
-    ["jpg", "jpeg", "png", "gif", "webp", "svg", "bmp"].includes(ext);
-  const isPDF = mimeType === "application/pdf" || ext === "pdf";
-  const isTextFile =
-    isText ||
-    mimeType.startsWith("text/") ||
-    ["txt", "md", "js", "json", "log", "csv", "xml", "html", "css"].includes(
-      ext
-    );
-  // Office files that can be previewed via Google Docs Viewer
-  const isOfficeFile =
-    ["doc", "docx", "xls", "xlsx", "ppt", "pptx", "odt", "ods", "odp"].includes(
-      ext
-    ) ||
-    mimeType.includes("application/msword") ||
-    mimeType.includes("application/vnd.openxmlformats-officedocument") ||
-    mimeType.includes("application/vnd.ms-excel") ||
-    mimeType.includes("application/vnd.ms-powerpoint") ||
-    mimeType.includes("application/vnd.oasis.opendocument");
-  // Files that cannot be previewed (executables, archives, etc.)
-  const cannotPreview =
-    [
-      "exe",
-      "msi",
-      "dmg",
-      "pkg",
-      "deb",
-      "rpm",
-      "zip",
-      "rar",
-      "7z",
-      "tar",
-      "gz",
-      "bz2",
-    ].includes(ext) ||
-    mimeType.includes("application/x-msdownload") ||
-    mimeType.includes("application/x-executable") ||
-    mimeType.includes("application/zip") ||
-    mimeType.includes("application/x-rar-compressed");
+  const [previewData, setPreviewData] = useState(null);
+  const [capabilities, setCapabilities] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Check if file is still uploading
-  const isUploading =
-    file?.driveUploadStatus === "uploading" ||
-    file?.driveUploadStatus === "pending" ||
-    (!file?.driveFileId && (file?.tempDownloadUrl || file?.tempFilePath));
-
-  // Close chat when modal opens
   useEffect(() => {
-    if (onOpen && file) {
-      onOpen();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [file]); // Only run when file changes (modal opens)
+    if (onOpen) onOpen();
+    loadPreview();
+  }, [file]);
 
-  // Get preview URL - use backend proxy for Google Drive files
-  useEffect(() => {
-    let currentBlobUrl = null;
-
-    if (!file?._id || isUploading) {
-      setPreviewUrl(null);
-      setPreviewBlobUrl(null);
-      setPreviewText(null);
-      setPreviewError(null);
-      setIsLoadingPreview(false);
-      return;
-    }
-
-    // Get API base URL from environment variable
-    const apiBase = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000";
-
-    // If it's a Google Drive URL, always use backend proxy
-    // Google Drive blocks direct embedding from external domains
-    // Always use backend proxy if file has driveFileId, or if fileUrl contains drive.google.com
-    const needsBackendProxy =
-      file?.driveFileId || (fileUrl && fileUrl.includes("drive.google.com"));
-
-    if (needsBackendProxy) {
-      // For files that cannot be previewed, don't fetch
-      if (cannotPreview) {
-        setPreviewUrl(null);
-        setPreviewBlobUrl(null);
-        setPreviewText(null);
-        setPreviewError(null);
-        setIsLoadingPreview(false);
-        return;
+  const loadPreview = async () => {
+    const fileId = file.id || file._id;
+    setIsLoading(true);
+    setError(null);
+    try {
+      // 1. Get capabilities
+      const capRes = await api.getPreviewCapabilities(fileId);
+      if (capRes.success) {
+        setCapabilities(capRes);
       }
 
-      // For video, image, PDF: use direct proxy URL
-      if (isVideo || isImage || isPDF) {
-        setPreviewUrl(`${apiBase}/api/download/file/${file._id}?preview=true`);
-        setPreviewBlobUrl(null);
-        setPreviewText(null);
-        setPreviewError(null);
-        setIsLoadingPreview(false);
-      } else if (isOfficeFile) {
-        // For Office files, use Google Docs Viewer
-        // Works for both Google Drive and non-Google Drive files
-        const proxyUrl = `${apiBase}/api/download/file/${file._id}?preview=true`;
-        const googleDocsViewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(
-          proxyUrl
-        )}&embedded=true`;
-        setPreviewUrl(googleDocsViewerUrl);
-        setPreviewBlobUrl(null);
-        setPreviewText(null);
-        setPreviewError(null);
-        setIsLoadingPreview(false);
-      } else {
-        // For other files (text, documents, etc.): fetch and create blob URL
-        setIsLoadingPreview(true);
-        const fetchFile = async () => {
-          try {
-            const token =
-              typeof window !== "undefined"
-                ? localStorage.getItem("token")
-                : null;
-            const response = await fetch(
-              `${apiBase}/api/download/file/${file._id}?preview=true`,
-              {
-                headers: token ? { Authorization: `Bearer ${token}` } : {},
-              }
-            );
-
-            if (!response.ok) {
-              throw new Error(`Failed to fetch file: ${response.status}`);
-            }
-
-            // For text files, read as text
-            if (isTextFile) {
-              const text = await response.text();
-              setPreviewText(text);
-              setPreviewBlobUrl(null);
-            } else {
-              // For other files, create blob URL
-              const blob = await response.blob();
-              const blobUrl = URL.createObjectURL(blob);
-              currentBlobUrl = blobUrl;
-              setPreviewBlobUrl(blobUrl);
-              setPreviewText(null);
-            }
-            setPreviewUrl(null);
-            setPreviewError(null);
-            setIsLoadingPreview(false);
-          } catch (error) {
-            console.error("Error fetching file for preview:", error);
-            setPreviewError(error.message);
-            setPreviewUrl(null);
-            setPreviewBlobUrl(null);
-            setPreviewText(null);
-            setIsLoadingPreview(false);
-          }
-        };
-
-        fetchFile();
-      }
-    } else {
-      // Use direct URL for non-Google Drive files
-      // But if fileUrl is not available, still use backend proxy
-      if (!fileUrl) {
-        // If no fileUrl, use backend proxy for all files
-        if (isVideo || isImage || isPDF) {
-          setPreviewUrl(
-            `${apiBase}/api/download/file/${file._id}?preview=true`
-          );
-          setPreviewBlobUrl(null);
-          setPreviewText(null);
-          setPreviewError(null);
-          setIsLoadingPreview(false);
-        } else if (isOfficeFile) {
-          const proxyUrl = `${apiBase}/api/download/file/${file._id}?preview=true`;
-          const googleDocsViewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(
-            proxyUrl
-          )}&embedded=true`;
-          setPreviewUrl(googleDocsViewerUrl);
-          setPreviewBlobUrl(null);
-          setPreviewText(null);
-          setPreviewError(null);
-          setIsLoadingPreview(false);
-        } else if (cannotPreview) {
-          setPreviewUrl(null);
-          setPreviewBlobUrl(null);
-          setPreviewText(null);
-          setPreviewError(null);
-          setIsLoadingPreview(false);
-        } else {
-          // For other files, fetch and create blob URL
-          setIsLoadingPreview(true);
-          const fetchFile = async () => {
-            try {
-              const token =
-                typeof window !== "undefined"
-                  ? localStorage.getItem("token")
-                  : null;
-              const response = await fetch(
-                `${apiBase}/api/download/file/${file._id}?preview=true`,
-                {
-                  headers: token ? { Authorization: `Bearer ${token}` } : {},
-                }
-              );
-
-              if (!response.ok) {
-                throw new Error(`Failed to fetch file: ${response.status}`);
-              }
-
-              if (isTextFile) {
-                const text = await response.text();
-                setPreviewText(text);
-                setPreviewBlobUrl(null);
-              } else {
-                const blob = await response.blob();
-                const blobUrl = URL.createObjectURL(blob);
-                currentBlobUrl = blobUrl;
-                setPreviewBlobUrl(blobUrl);
-                setPreviewText(null);
-              }
-              setPreviewUrl(null);
-              setPreviewError(null);
-              setIsLoadingPreview(false);
-            } catch (error) {
-              console.error("Error fetching file for preview:", error);
-              setPreviewError(error.message);
-              setPreviewUrl(null);
-              setPreviewBlobUrl(null);
-              setPreviewText(null);
-              setIsLoadingPreview(false);
-            }
-          };
-          fetchFile();
-        }
-      } else {
-        // Use direct fileUrl if available
-        if (isVideo || isImage || isPDF) {
-          setPreviewUrl(fileUrl);
-          setPreviewBlobUrl(null);
-          setPreviewText(null);
-          setPreviewError(null);
-          setIsLoadingPreview(false);
-        } else if (isOfficeFile) {
-          const googleDocsViewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(
-            fileUrl
-          )}&embedded=true`;
-          setPreviewUrl(googleDocsViewerUrl);
-          setPreviewBlobUrl(null);
-          setPreviewText(null);
-          setPreviewError(null);
-          setIsLoadingPreview(false);
-        } else if (cannotPreview) {
-          setPreviewUrl(null);
-          setPreviewBlobUrl(null);
-          setPreviewText(null);
-          setPreviewError(null);
-          setIsLoadingPreview(false);
-        } else {
-          // For other files from non-Google Drive, show cannot preview message
-          setPreviewUrl(null);
-          setPreviewBlobUrl(null);
-          setPreviewText(null);
-          setPreviewError(null);
-          setIsLoadingPreview(false);
+      // 2. Get preview data (for text/code)
+      if (["text", "code"].includes(capRes.previewType)) {
+        const dataRes = await api.getFilePreview(fileId);
+        if (dataRes.success) {
+          setPreviewData(dataRes);
         }
       }
-    }
-
-    // Cleanup blob URL on unmount or when file changes
-    return () => {
-      if (currentBlobUrl && currentBlobUrl.startsWith("blob:")) {
-        URL.revokeObjectURL(currentBlobUrl);
-      }
-    };
-  }, [
-    file?._id,
-    fileUrl,
-    isUploading,
-    file?.driveFileId,
-    isVideo,
-    isImage,
-    isPDF,
-    isTextFile,
-    isOfficeFile,
-    cannotPreview,
-  ]);
-
-  // Handle click on overlay (background) to close modal
-  const handleOverlayClick = (e) => {
-    if (e.target === e.currentTarget) {
-      onClose();
+    } catch (err) {
+      console.error("Preview load error:", err);
+      setError("Không thể tải bản xem trước cho tệp tin này.");
+    } finally {
+      setIsLoading(false);
     }
   };
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-      onClick={handleOverlayClick}
-    >
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col relative">
-        <button
-          className="absolute top-2 right-4 text-2xl text-gray-400 hover:text-gray-700 z-10"
-          onClick={onClose}
-          title={t("file.preview.close")}
-        >
-          ×
-        </button>
-        <div className="p-6 flex-1 flex flex-col h-full overflow-hidden">
-          <div className="mb-4 font-semibold text-lg text-center break-all shrink-0">
-            {file.name}
+
+  const renderContent = () => {
+    const fileId = file.id || file._id;
+    const previewUrl = `${apiBase}/api/download/file/${fileId}?preview=true`;
+    const downloadUrl = fileUrl || `${apiBase}/api/download/file/${fileId}`;
+    if (isLoading) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full gap-4 text-brand">
+          <div className="w-16 h-16 relative">
+             <div className="absolute inset-0 border-4 border-gray-100 rounded-full"></div>
+             <div className="absolute inset-0 border-4 border-brand border-t-transparent rounded-full animate-spin"></div>
           </div>
-          <div className="flex-1 min-h-0 overflow-hidden">
-            {isUploading && !fileUrl ? (
-              <div className="flex flex-col items-center justify-center gap-3 mt-6 flex-1">
-                <div className="flex items-center gap-2 text-blue-600">
-                  <span className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></span>
-                  <span className="font-medium">
-                    File đang được upload lên Google Drive
-                  </span>
-                </div>
-                <div className="text-gray-500 text-sm">
-                  Vui lòng đợi upload hoàn thành để xem trước file
-                </div>
-              </div>
-            ) : previewError ? (
-              <div className="flex flex-col items-center justify-center gap-3 mt-6 flex-1">
-                <div className="text-red-500">
-                  Không thể tải file để xem trước: {previewError}
-                </div>
-                <a
-                  href={fileUrl}
-                  download={file.name}
-                  className="px-4 py-2 rounded bg-primary text-white font-semibold hover:bg-primary/90 transition"
-                >
-                  {t("file.action.download")}
-                </a>
-              </div>
-            ) : isLoadingPreview ? (
-              <div className="flex flex-col items-center justify-center gap-3 mt-6 flex-1">
-                <div className="flex items-center gap-2 text-blue-600">
-                  <span className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></span>
-                  <span className="font-medium">
-                    Đang tải file để xem trước...
-                  </span>
-                </div>
-              </div>
-            ) : previewText ? (
-              /* Text files - display text content */
-              <div className="w-full h-full overflow-auto bg-gray-50 p-4">
-                <pre className="whitespace-pre-wrap font-mono text-sm">
-                  {previewText}
-                </pre>
-              </div>
-            ) : isVideo && (previewUrl || previewBlobUrl) ? (
-              /* Video files - use HTML5 video tag */
-              <div className="w-full h-full flex items-center justify-center overflow-hidden">
-                <video
-                  src={previewUrl || previewBlobUrl}
-                  controls
-                  className="max-w-full max-h-full object-contain"
-                  onError={(e) => {
-                    console.error("Video load error:", e);
-                    setPreviewError("Không thể tải video");
-                  }}
-                >
-                  Trình duyệt của bạn không hỗ trợ video tag.
-                </video>
-              </div>
-            ) : isImage && (previewUrl || previewBlobUrl) ? (
-              /* Image files - use img tag */
-              <div className="w-full h-full flex items-center justify-center overflow-hidden">
-                <img
-                  src={previewUrl || previewBlobUrl}
-                  alt={file.name}
-                  className="max-w-full max-h-full object-contain"
-                  onError={(e) => {
-                    console.error("Image load error:", e);
-                    setPreviewError("Không thể tải hình ảnh");
-                  }}
-                />
-              </div>
-            ) : isPDF && (previewUrl || previewBlobUrl) ? (
-              /* PDF files - use embed tag */
-              <div className="w-full h-full overflow-hidden">
-                <embed
-                  src={previewUrl || previewBlobUrl}
-                  type="application/pdf"
-                  className="w-full h-full"
-                  onError={(e) => {
-                    console.error("PDF load error:", e);
-                    setPreviewError("Không thể tải PDF");
-                  }}
-                />
-              </div>
-            ) : isOfficeFile && previewUrl ? (
-              /* Office files - use Google Docs Viewer in iframe */
-              <div className="w-full h-full flex flex-col">
-                <iframe
-                  src={previewUrl}
-                  title={file.name}
-                  width="100%"
-                  height="100%"
-                  className="border-0 flex-1"
-                  onError={(e) => {
-                    console.error("Office file preview error:", e);
-                    setPreviewError(
-                      "Không thể tải file Office qua Google Docs Viewer"
-                    );
-                  }}
-                  onLoad={(e) => {
-                    // Check if Google Docs Viewer failed to load
-                    try {
-                      const iframe = e.target;
-                      // If iframe content is empty or shows error, it might have failed
-                      // Note: Cross-origin restrictions prevent checking iframe content
-                      // So we rely on the iframe's onError and timeout
-                    } catch (err) {
-                      console.error("Error checking iframe content:", err);
-                    }
-                  }}
-                />
-                <div className="p-2 bg-gray-50 border-t text-xs text-gray-500 text-center">
-                  Đang sử dụng Google Docs Viewer. Nếu không hiển thị, vui lòng
-                  tải file xuống.
-                </div>
-              </div>
-            ) : previewBlobUrl && !cannotPreview ? (
-              /* Other files - use object tag with blob URL */
-              <object
-                data={previewBlobUrl}
-                type={mimeType || "application/octet-stream"}
-                className="w-full h-full"
-                onError={(e) => {
-                  console.error("Object load error:", e);
-                  setPreviewError("Không thể tải file");
-                }}
-              >
-                <div className="flex flex-col items-center justify-center gap-3 mt-6 flex-1">
-                  <div className="text-gray-500">
-                    Không thể xem trước file này. Vui lòng tải xuống để xem.
-                  </div>
-                  <a
-                    href={previewBlobUrl}
-                    download={file.name}
-                    className="px-4 py-2 rounded bg-primary text-white font-semibold hover:bg-primary/90 transition"
-                  >
-                    {t("file.action.download")}
-                  </a>
-                </div>
-              </object>
-            ) : (
-              <div className="flex flex-col items-center gap-3 mt-6">
-                <div className="text-gray-500">
-                  {t("file.preview.cannot_preview")}
-                </div>
-                <a
-                  href={fileUrl}
-                  download={file.name}
-                  className="px-4 py-2 rounded bg-primary text-white font-semibold hover:bg-primary/90 transition"
-                >
-                  {t("file.action.download")}
-                </a>
-              </div>
-            )}
-          </div>
+          <p className="text-sm font-semibold animate-pulse text-gray-500">Đang tải bản xem trước...</p>
         </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full gap-6 text-gray-400">
+          <div className="w-20 h-20 rounded-full bg-red-50 flex items-center justify-center border border-red-100">
+             <FiAlertCircle size={32} className="text-red-400" />
+          </div>
+          <div className="text-center space-y-2">
+            <p className="text-gray-900 font-medium">Đã có lỗi xảy ra</p>
+            <p className="text-sm text-gray-500">{error}</p>
+          </div>
+          <button 
+            onClick={() => window.open(downloadUrl, '_blank')}
+            className="px-6 py-2.5 bg-brand text-white rounded-xl font-medium text-sm shadow-lg shadow-brand/20 hover:scale-105 active:scale-95 transition-all"
+          >
+            Tải xuống để xem
+          </button>
+        </div>
+      );
+    }
+
+    const type = capabilities?.previewType;
+
+    switch (type) {
+      case "image":
+        return (
+          <div className="relative w-full h-full flex items-center justify-center rounded-2xl overflow-hidden">
+            <motion.img 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ type: "spring", stiffness: 200, damping: 20 }}
+              src={previewUrl} 
+              alt={file.name} 
+              className="max-w-full max-h-full object-contain drop-shadow-2xl"
+            />
+          </div>
+        );
+
+      case "video":
+        return (
+          <div className="flex items-center justify-center w-full h-full bg-black rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10 relative group">
+            <video 
+              controls 
+              autoPlay
+              className="w-full h-full max-h-[75vh]"
+              src={previewUrl}
+            >
+              Trình duyệt của bạn không hỗ trợ phát video.
+            </video>
+          </div>
+        );
+
+      case "audio":
+        return (
+          <div className="flex flex-col items-center justify-center w-full h-full gap-8 bg-gradient-to-b from-gray-50 to-white rounded-2xl border border-white shadow-inner p-8">
+            <div className="w-40 h-40 rounded-[32px] bg-white shadow-xl flex items-center justify-center ring-1 ring-gray-100 relative overflow-hidden group">
+               <div className="absolute inset-0 bg-brand/5 group-hover:bg-brand/10 transition-colors" />
+               <FiMusic size={64} className="text-brand" />
+            </div>
+            <div className="w-full max-w-md">
+                <audio controls className="w-full shadow-lg rounded-full">
+                  <source src={previewUrl} />
+                </audio>
+            </div>
+          </div>
+        );
+
+      case "pdf":
+        return (
+          <div className="w-full h-full rounded-2xl overflow-hidden border border-gray-200 shadow-sm bg-gray-50">
+            <iframe 
+              src={`${previewUrl}#toolbar=0`} 
+              className="w-full h-full border-none"
+              title="PDF Preview"
+            />
+          </div>
+        );
+
+      case "text":
+      case "code":
+        return (
+          <div className="w-full h-full flex flex-col bg-[#1E1E1E] rounded-2xl overflow-hidden shadow-2xl border border-gray-800 ring-1 ring-black/50">
+            <div className="px-4 py-3 bg-[#252526] border-b border-black flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2">
+                 {/* MacOS Dots */}
+                 <div className="flex gap-1.5 mr-2">
+                    <div className="w-3 h-3 rounded-full bg-[#FF5F56] border border-[#E0443E]" />
+                    <div className="w-3 h-3 rounded-full bg-[#FFBD2E] border border-[#DEA123]" />
+                    <div className="w-3 h-3 rounded-full bg-[#27C93F] border border-[#1AAB29]" />
+                 </div>
+                 <div className="h-4 w-[1px] bg-gray-700 mx-2" />
+                 <span className="text-xs font-mono text-gray-400">
+                    {previewData?.language || 'Plain Text'}
+                 </span>
+              </div>
+              {previewData?.truncated && (
+                 <span className="text-[10px] uppercase font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded">Preview Truncated</span>
+              )}
+            </div>
+            <div className="flex-1 overflow-auto custom-scrollbar p-6">
+              <pre className="text-[13px] leading-relaxed font-mono text-[#D4D4D4] whitespace-pre tab-4">
+                <code>{previewData?.content}</code>
+              </pre>
+            </div>
+          </div>
+        );
+
+      default:
+        return (
+          <div className="flex flex-col items-center justify-center h-full gap-6 text-gray-500">
+            <div className="w-24 h-24 rounded-[28px] bg-gray-50 flex items-center justify-center border border-gray-100 shadow-sm">
+              <FiInfo size={40} className="text-gray-300" />
+            </div>
+            <div className="text-center space-y-1">
+              <p className="text-lg font-semibold text-gray-900">Không thể xem trước</p>
+              <p className="text-sm">Định dạng tập tin này chưa được hỗ trợ xem trực tiếp.</p>
+            </div>
+            <motion.button 
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => window.open(downloadUrl, '_blank')}
+              className="px-8 py-3 bg-gray-900 text-white rounded-xl font-medium text-sm shadow-xl shadow-gray-900/10 hover:bg-black transition-all mt-4"
+            >
+              Tải xuống tập tin
+            </motion.button>
+          </div>
+        );
+    }
+  };
+
+  return (
+    <AnimatePresence>
+      <div className="absolute inset-0 z-[50] flex items-center justify-center p-4 sm:p-6 overflow-hidden">
+        {/* Backdrop */}
+        <motion.div 
+           initial={{ opacity: 0 }}
+           animate={{ opacity: 1 }}
+           exit={{ opacity: 0 }}
+           className="absolute inset-0 bg-black/60 backdrop-blur-md"
+           onClick={onClose}
+        />
+
+        {/* Modal Container */}
+        <motion.div
+           initial={{ opacity: 0, scale: 0.95, y: 20 }}
+           animate={{ opacity: 1, scale: 1, y: 0 }}
+           exit={{ opacity: 0, scale: 0.95, y: 20 }}
+           transition={{ type: "spring", stiffness: 300, damping: 28 }}
+           className="relative w-full max-w-6xl h-[80vh] sm:h-[85vh] bg-white/95 backdrop-blur-2xl rounded-[24px] sm:rounded-[32px] shadow-2xl border border-white/20 flex flex-col overflow-hidden ring-1 ring-black/5"
+           onClick={(e) => e.stopPropagation()}
+        >
+           {/* Header */}
+           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200/50 bg-white/50 backdrop-blur shrink-0 z-10">
+              <div className="flex items-center gap-4 min-w-0">
+                 <div className="flex items-center justify-center w-11 h-11 rounded-2xl bg-gradient-to-br from-gray-50 to-gray-100 border border-white shadow-sm shrink-0">
+                    <FiFileText className="text-gray-500" size={20} />
+                 </div>
+                 <div className="min-w-0 flex flex-col">
+                    <h3 className="text-base font-bold text-gray-900 truncate leading-snug">{file.name}</h3>
+                    <p className="text-xs text-gray-500 truncate mt-0.5 font-medium">
+                       {file.mimeType} • {((file.size || 0) / 1024 / 1024).toFixed(2)} MB
+                    </p>
+                 </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                 <motion.button 
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => window.open(fileUrl || `/api/download/file/${file.id || file._id}`, '_blank')}
+                    className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-all border border-gray-200 shadow-sm"
+                 >
+                    <FiDownload className="text-gray-500" size={16} /> 
+                    <span className="hidden sm:inline">Tải xuống</span>
+                 </motion.button>
+                 <motion.button
+                    whileHover={{ scale: 1.05, rotate: 90 }}
+                    whileTap={{ scale: 0.95 }}
+                    transition={{ rotate: { duration: 0.2 } }}
+                    onClick={onClose}
+                    className="w-9 h-9 flex items-center justify-center bg-gray-100 text-gray-500 rounded-full hover:bg-gray-200 transition-all"
+                 >
+                    <FiX size={20} />
+                 </motion.button>
+              </div>
+           </div>
+
+           {/* Main Content */}
+           <div className="flex-1 overflow-hidden relative bg-gray-50/50 flex items-center justify-center p-2 sm:p-8">
+              {renderContent()}
+           </div>
+        </motion.div>
       </div>
-    </div>
+    </AnimatePresence>
   );
 }

@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import { decodeTokenGetUser } from "@/shared/lib/jwt";
-import orderService from "@/shared/services/orderService";
+import axiosClient from "@/shared/lib/axiosClient";
 
 /**
  * Hook để kiểm tra xem user có order pending không
@@ -14,30 +13,24 @@ export function usePendingOrder() {
   const checkPendingOrder = async () => {
     try {
       setLoading(true);
-      const token =
-        typeof window !== "undefined" ? localStorage.getItem("token") : null;
-      if (!token) {
+      // ✅ Fetch pending orders from API (cookie sent automatically)
+      const res = await axiosClient.get("/api/orders", {
+        params: { status: "pending" }
+      });
+      
+      if (!res.data || !res.data.data) {
         setHasPendingOrder(false);
         setPendingOrder(null);
+        setLoading(false);
         return;
       }
-
-      const user = decodeTokenGetUser(token);
-      if (!user) {
-        setHasPendingOrder(false);
-        setPendingOrder(null);
-        return;
-      }
-
-      // Lấy orders với status pending
-      const res = await orderService.getOrders({ status: "pending" });
-      const orders = res?.data || [];
-
-      // Tìm order pending gần nhất
-      const pending = orders.find((order) => order.status === "pending");
-
-      setHasPendingOrder(!!pending);
-      setPendingOrder(pending || null);
+      
+      // Get first pending order
+      const orders = res.data.data || [];
+      const pendingOrder = orders.find(o => o.status === "pending") || orders[0];
+      
+      setHasPendingOrder(!!pendingOrder);
+      setPendingOrder(pendingOrder || null);
     } catch (error) {
       console.error("Error checking pending order:", error);
       setHasPendingOrder(false);

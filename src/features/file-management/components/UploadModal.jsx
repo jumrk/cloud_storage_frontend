@@ -1,11 +1,33 @@
 "use client";
 import React, { useCallback, useRef, useState, useEffect } from "react";
-import { FiUploadCloud, FiAlertTriangle } from "react-icons/fi";
+
+import { FiUploadCloud, FiAlertTriangle, FiFile, FiFolder, FiX } from "react-icons/fi";
 import { IoClose } from "react-icons/io5";
 import { v4 as uuidv4 } from "uuid";
 import { useTranslations } from "next-intl";
 import toast from "react-hot-toast";
 import axiosClient from "@/shared/lib/axiosClient";
+import useDebounce from "@/hooks/useDebounce";
+import { motion, AnimatePresence } from "framer-motion";
+
+const MAC_FILE_SIZE = 10 * 1024 * 1024 * 1024; // 10GB
+const MAX_FILE_COUNT = 1000;
+
+const dropIn = {
+  hidden: { y: "-100vh", opacity: 0, scale: 0.8 },
+  visible: {
+    y: "0",
+    opacity: 1,
+    scale: 1,
+    transition: {
+      duration: 0.3,
+      type: "spring",
+      damping: 25,
+      stiffness: 300,
+    },
+  },
+  exit: { y: "100vh", opacity: 0, scale: 0.8, transition: { duration: 0.2 } },
+};
 
 const UploadModal = ({ isOpen, onClose, onStartUpload, parentId, isMember = false }) => {
   const t = useTranslations();
@@ -19,6 +41,8 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId, isMember = fals
   const [checkingDuplicates, setCheckingDuplicates] = useState(false);
 
   // Check for duplicate files - check all files in selectedFiles list
+  const debouncedSelectedFiles = useDebounce(selectedFiles, 500);
+
   const checkDuplicates = useCallback(
     async (selectedFilesList) => {
       if (!selectedFilesList || selectedFilesList.length === 0) {
@@ -59,7 +83,6 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId, isMember = fals
     [parentId]
   );
 
-  // console.log(parentId); // Commented out to prevent console spam
   useEffect(() => {
     if (!isOpen) {
       setSelectedFiles([]);
@@ -71,14 +94,14 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId, isMember = fals
     }
   }, [isOpen]);
 
-  // Auto-check duplicates whenever selectedFiles changes
+  // Auto-check duplicates whenever debouncedSelectedFiles changes
   useEffect(() => {
-    if (isOpen && selectedFiles.length > 0) {
-      checkDuplicates(selectedFiles);
-    } else if (selectedFiles.length === 0) {
+    if (isOpen && debouncedSelectedFiles.length > 0) {
+      checkDuplicates(debouncedSelectedFiles);
+    } else if (debouncedSelectedFiles.length === 0) {
       setDuplicateFiles(new Set());
     }
-  }, [selectedFiles, isOpen, checkDuplicates]);
+  }, [debouncedSelectedFiles, isOpen, checkDuplicates]);
 
   const traverseFileTree = async (item, path = "") => {
     if (item.isFile) {
@@ -136,37 +159,43 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId, isMember = fals
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    let filesToAdd = [];
-    let emptyFoldersToAdd = [];
-    let hasDirectory = false;
-    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
-      for (let i = 0; i < e.dataTransfer.items.length; i++) {
-        const entry = e.dataTransfer.items[i].webkitGetAsEntry?.();
-        if (entry && entry.isDirectory) {
-          hasDirectory = true;
-          break;
+    
+    try {
+        let filesToAdd = [];
+        let emptyFoldersToAdd = [];
+        let hasDirectory = false;
+        if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+        for (let i = 0; i < e.dataTransfer.items.length; i++) {
+            const entry = e.dataTransfer.items[i].webkitGetAsEntry?.();
+            if (entry && entry.isDirectory) {
+            hasDirectory = true;
+            break;
+            }
         }
-      }
-    }
-    if (hasDirectory) {
-      const { fileEntries, emptyFolders } = await getAllFileEntries(
-        e.dataTransfer.items
-      );
-      if (fileEntries.length > 0) {
-        filesToAdd = fileEntries.map((obj) => {
-          obj.file._relativePath = obj.relativePath;
-          return obj.file;
-        });
-      }
-      emptyFoldersToAdd = emptyFolders;
-    } else if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      filesToAdd = Array.from(e.dataTransfer.files);
-    }
-    if (filesToAdd.length > 0) {
-      handleFilesOrFolder(filesToAdd);
-    }
-    if (emptyFoldersToAdd.length > 0) {
-      setEmptyFolders((prev) => [...prev, ...emptyFoldersToAdd]);
+        }
+        if (hasDirectory) {
+        const { fileEntries, emptyFolders } = await getAllFileEntries(
+            e.dataTransfer.items
+        );
+        if (fileEntries.length > 0) {
+            filesToAdd = fileEntries.map((obj) => {
+            obj.file._relativePath = obj.relativePath;
+            return obj.file;
+            });
+        }
+        emptyFoldersToAdd = emptyFolders;
+        } else if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        filesToAdd = Array.from(e.dataTransfer.files);
+        }
+        if (filesToAdd.length > 0) {
+        handleFilesOrFolder(filesToAdd);
+        }
+        if (emptyFoldersToAdd.length > 0) {
+        setEmptyFolders((prev) => [...prev, ...emptyFoldersToAdd]);
+        }
+    } catch (error) {
+        console.error("Error handling dropped files:", error);
+        toast.error(t("upload_modal.drop_error") || "Có lỗi xảy ra khi xử lý file kéo thả");
     }
   }, []);
 
@@ -176,16 +205,37 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId, isMember = fals
     setDragActive(e.type === "dragenter" || e.type === "dragover");
   }, []);
 
+  const sanitizePath = (path) => {
+    // Remove null bytes, unsafe chars, and directory traversal attempts
+    return path.replace(/\0/g, '').replace(/(\.\.(\/|\\|$))+/g, '');
+  };
+
   const handleFilesOrFolder = (files) => {
     setSelectedFiles((prev) => {
+        // Validation: Check total file count
+        if (prev.length + files.length > MAX_FILE_COUNT) {
+            toast.error(t("upload_modal.max_file_count_error", { max: MAX_FILE_COUNT }) || `Bạn chỉ có thể upload tối đa ${MAX_FILE_COUNT} file một lần.`);
+            // Only add enough files to reach limit
+            files = files.slice(0, MAX_FILE_COUNT - prev.length);
+        }
+
       const seen = new Set(
         prev.map((p) => `${p.path}__${p.file.size}__${p.file.lastModified}`)
       );
       const toAdd = [];
       for (const file of files) {
+        // Validation: Check max file size
+        if (file.size > MAC_FILE_SIZE) {
+            toast.error(t("upload_modal.file_size_error", { fileName: file.name, max: "10GB" }) || `File ${file.name} vượt quá giới hạn 10GB.`);
+            continue;
+          }
+
         const relPathRaw =
           file._relativePath || file.webkitRelativePath || file.name;
-        const relPath = relPathRaw.replace(/\\/g, "/").replace(/^\.?\/*/, "");
+        // Sanitize path here
+        let relPath = relPathRaw.replace(/\\/g, "/").replace(/^\.?\/*/, "");
+        relPath = sanitizePath(relPath);
+
         const key = `${relPath}__${file.size}__${file.lastModified}`;
         if (seen.has(key)) continue;
         toAdd.push({
@@ -292,179 +342,226 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId, isMember = fals
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div
-        className="relative w-[90%] max-w-2xl bg-white rounded-2xl p-6 shadow-card transition-all duration-300 max-h-[90vh] overflow-y-auto border border-gray-200 main-content-scrollbar"
-        onDragEnter={handleDrag}
-        onDragOver={handleDrag}
-        onDragLeave={() => setDragActive(false)}
-        onDrop={handleDrop}
-      >
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-gray-600 hover:text-danger transition-colors duration-200"
-        >
-          <IoClose size={24} />
-        </button>
-        <div className="flex flex-col items-center gap-4 text-center mb-6">
-          <FiUploadCloud size={60} className="text-brand animate-pulse" />
-          <h2 className="text-2xl font-bold text-gray-900">
-            {t("upload_modal.title")}
-          </h2>
-          <p className="text-sm text-gray-600">{t("upload_modal.drag_drop")}</p>
-        </div>
-        {dragActive && (
-          <div className="absolute inset-0 border-4 border-dashed border-brand rounded-2xl bg-brand-50/50 flex items-center justify-center pointer-events-none">
-            <p className="text-lg font-semibold text-brand">
-              {t("upload_modal.drop_here")}
-            </p>
-          </div>
-        )}
-        {selectedFiles.length > 0 && (
-          <div className="mb-6 max-h-60 overflow-y-auto border border-gray-200 rounded-lg p-2 sidebar-scrollbar">
-            <div className="flex items-center justify-between mb-2 px-2">
-              <div className="text-sm font-medium text-gray-900">
-              {t("upload_modal.file_list", { count: selectedFiles.length })}
-              </div>
-              {checkingDuplicates && (
-                <span className="text-xs text-gray-500">Đang kiểm tra...</span>
-              )}
-            </div>
-            {duplicateFiles.size > 0 && (
-              <div className="mb-2 px-2 py-2 bg-warning/10 border border-warning/30 rounded-md">
-                <div className="flex items-start gap-2">
-                  <FiAlertTriangle
-                    className="text-warning mt-0.5 flex-shrink-0"
-                    size={16}
-                  />
-                  <div className="flex-1">
-                    <p className="text-xs font-medium text-warning-800">
-                      Cảnh báo: {duplicateFiles.size} file đã tồn tại trong thư
-                      mục này
-                    </p>
-                    <p className="text-xs text-warning-700 mt-0.5">
-                      File sẽ được đổi tên tự động khi upload (ví dụ: "file
-                      (1).ext")
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-            {selectedFiles.map((item, index) => {
-              // Extract filename from path for duplicate check
-              const fileName = item.path.split("/").pop();
-              const isDuplicate = duplicateFiles.has(fileName);
-
-              return (
-              <div
-                key={index}
-                  className={`flex items-center justify-between p-3 rounded-md mb-2 last:mb-0 transition-colors border ${
-                    isDuplicate
-                      ? "bg-warning/5 border-warning/30"
-                      : "bg-white border-gray-200/60 hover:bg-white"
-                  }`}
+    <AnimatePresence>
+      {isOpen && (
+        <div className="absolute inset-0 z-[50] flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={onClose}
+          />
+          <motion.div
+            variants={dropIn}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className="relative w-full max-w-2xl bg-white/90 backdrop-blur-md rounded-2xl shadow-2xl overflow-hidden border border-white/50 flex flex-col max-h-[90vh] md:max-h-[85vh]"
+            onDragEnter={handleDrag}
+            onDragOver={handleDrag}
+            onDragLeave={() => setDragActive(false)}
+            onDrop={handleDrop}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 pb-4 flex-shrink-0">
+              <h2 className="text-xl md:text-2xl font-bold text-gray-800 flex items-center gap-2">
+                <span className="p-2 bg-brand/10 rounded-lg text-brand">
+                  <FiUploadCloud size={24} />
+                </span>
+                {t("upload_modal.title")}
+              </h2>
+              <button
+                onClick={onClose}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500 hover:text-danger"
               >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-900 truncate">
-                      📄 {item.path}
-                    </span>
-                      {isDuplicate && (
-                        <FiAlertTriangle
-                          className="text-warning flex-shrink-0"
-                          size={14}
-                          title="File đã tồn tại"
-                        />
-                      )}
+                <IoClose size={24} />
+              </button>
+            </div>
+
+            {/* Scrollable Content Area */}
+            <div className="flex-1 overflow-y-auto min-h-0 px-6 custom-scrollbar">
+              {/* Drag Drop Zone */}
+              <div
+                className={`relative group rounded-xl border-2 border-dashed transition-all duration-300 flex flex-col items-center justify-center py-6 md:py-10 px-4 text-center cursor-pointer overflow-hidden flex-shrink-0 ${
+                  dragActive
+                    ? "border-brand bg-brand/5 scale-[1.01]"
+                    : "border-gray-300 hover:border-brand/50 hover:bg-gray-50/50"
+                }`}
+              >
+                 <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  multiple
+                  onChange={handleFileChange}
+                />
+                <input
+                  ref={folderInputRef}
+                  type="file"
+                  multiple
+                  webkitdirectory=""
+                  directory=""
+                  className="hidden"
+                  onChange={handleFolderChange}
+                />
+                
+                <div className="z-10 flex flex-col items-center gap-3">
+                  <div className={`p-3 md:p-4 rounded-full bg-brand/5 text-brand transform transition-transform duration-300 ${dragActive ? 'scale-110' : 'group-hover:scale-105'}`}>
+                    <FiUploadCloud size={32} className="md:w-12 md:h-12" />
+                  </div>
+                  <div>
+                    <h3 className="text-base md:text-lg font-semibold text-gray-700">
+                      {t("upload_modal.drag_drop")}
+                    </h3>
+                    <p className="text-xs md:text-sm text-gray-500 mt-1">
+                      {t("upload_modal.support_text") || "Hỗ trợ định dạng hình ảnh, video, tài liệu..."}
+                    </p>
+                  </div>
+                  <div className="flex gap-2 md:gap-3 mt-2 flex-wrap justify-center">
+                    <button
+                      onClick={(e) => {
+                          e.stopPropagation();
+                          fileInputRef.current.click();
+                      }}
+                      className="px-3 py-1.5 md:px-4 md:py-2 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md hover:border-brand/30 transition-all text-xs md:text-sm font-medium text-gray-600 hover:text-brand flex items-center gap-2"
+                    >
+                      <FiFile /> {t("upload_modal.choose_file")}
+                    </button>
+                     <button
+                      onClick={(e) => {
+                           e.stopPropagation();
+                           folderInputRef.current.click();
+                      }}
+                      className="px-3 py-1.5 md:px-4 md:py-2 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md hover:border-brand/30 transition-all text-xs md:text-sm font-medium text-gray-600 hover:text-brand flex items-center gap-2"
+                    >
+                      <FiFolder /> {t("upload_modal.choose_folder")}
+                    </button>
                   </div>
                 </div>
-                <button
-                  onClick={() => handleRemoveFile(index)}
-                  className="text-danger hover:opacity-90 p-1"
-                  title={t("upload_modal.remove")}
-                >
-                  <IoClose size={16} />
-                </button>
+  
+                 {dragActive && (
+                  <div className="absolute inset-0 z-0 bg-brand/5 animate-pulse" />
+                )}
               </div>
-              );
-            })}
-          </div>
-        )}
-        <div className="flex flex-col gap-4">
-          <button
-            onClick={() => fileInputRef.current.click()}
-            className="w-full px-6 py-3 bg-brand text-white rounded-lg hover:opacity-95 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50"
-            disabled={isUploading}
-          >
-            {isUploading ? (
-              <>
-                <span className="animate-spin">⏳</span>
-                {t("upload_modal.uploading")}
-              </>
-            ) : (
-              <>
-                <FiUploadCloud size={20} />
-                {t("upload_modal.choose_file")}
-              </>
-            )}
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            className="hidden"
-            multiple
-            onChange={handleFileChange}
-          />
-          <button
-            onClick={() => folderInputRef.current.click()}
-            className="w-full px-6 py-3 bg-accent text-white rounded-lg hover:opacity-95 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50"
-            disabled={isUploading}
-          >
-            {isUploading ? (
-              <>
-                <span className="animate-spin">⏳</span>
-                {t("upload_modal.uploading")}
-              </>
-            ) : (
-              <>
-                <FiUploadCloud size={20} />
-                {t("upload_modal.choose_folder")}
-              </>
-            )}
-          </button>
-          <input
-            ref={folderInputRef}
-            type="file"
-            multiple
-            webkitdirectory=""
-            directory=""
-            className="hidden"
-            onChange={handleFolderChange}
-          />
-          {selectedFiles.length > 0 && (
-            <button
-              onClick={handleUploadClick}
-              className="w-full px-6 py-3 bg-brand text-white rounded-lg hover:opacity-95 transition-all duration-200 disabled:opacity-50 font-semibold"
-              disabled={isUploading}
-            >
-              {isUploading ? (
-                <span className="animate-spin">⏳</span>
-              ) : (
-                t("upload_modal.upload_count", { count: selectedFiles.length })
-              )}
-            </button>
-          )}
+  
+              {/* File List */}
+              <AnimatePresence>
+                {selectedFiles.length > 0 && (
+                  <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="mt-6 border-t border-gray-100 pt-4 pb-2"
+                  >
+                    <div className="flex items-center justify-between mb-3 px-1">
+                      <span className="text-sm font-semibold text-gray-700">
+                        {t("upload_modal.file_list", { count: selectedFiles.length })}
+                      </span>
+                       {checkingDuplicates && (
+                          <span className="text-xs text-brand animate-pulse">Đang kiểm tra trùng lặp...</span>
+                        )}
+                    </div>
+  
+                    {duplicateFiles.size > 0 && (
+                       <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="mb-4 p-3 bg-warning/10 border border-warning/20 rounded-lg flex items-start gap-3"
+                        >
+                         <div className="p-1.5 bg-warning/20 rounded-full text-warning-700 mt-0.5">
+                             <FiAlertTriangle size={14} />
+                         </div>
+                         <div className="text-xs text-warning-800 space-y-0.5">
+                              <p className="font-semibold">Phát hiện {duplicateFiles.size} file trùng lặp</p>
+                               <p className="opacity-80">Hệ thống sẽ tự động đổi tên file (ví dụ: "file (1).ext") để tránh ghi đè.</p>
+                         </div>
+                     </motion.div>
+                    )}
+  
+                    <div className="space-y-2">
+                      {selectedFiles.map((item, index) => {
+                           const fileName = item.path.split("/").pop();
+                           const isDuplicate = duplicateFiles.has(fileName);
+  
+                        return (
+                        <motion.div
+                          key={`${item.path}-${index}`}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: 20 }}
+                          className={`group flex items-center justify-between p-3 rounded-xl border transition-all duration-200 ${
+                              isDuplicate
+                              ? "bg-warning/5 border-warning/30 hover:border-warning/50"
+                              : "bg-gray-50 border-gray-100 hover:border-brand/30 hover:shadow-sm hover:bg-white"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 overflow-hidden">
+                            <div className={`p-2 rounded-lg flex-shrink-0 ${isDuplicate ? 'bg-warning/20 text-warning-700' : 'bg-brand/10 text-brand'}`}>
+                              {item.path.includes("/") ? <FiFolder size={16} /> : <FiFile size={16} />}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-medium text-gray-700 truncate" title={item.path}>
+                                {item.path}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {(item.file.size / 1024 / 1024).toFixed(2)} MB
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleRemoveFile(index)}
+                            className="p-1.5 text-gray-400 hover:text-danger hover:bg-danger/10 rounded-full transition-colors flex-shrink-0"
+                          >
+                            <FiX size={16} />
+                          </button>
+                        </motion.div>
+                      )})}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Footer Actions */}
+            <div className="p-6 pt-4 border-t border-gray-100 flex justify-end gap-3 flex-shrink-0 bg-white/50 backdrop-blur-sm">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 md:px-5 md:py-2.5 rounded-xl text-gray-600 font-medium hover:bg-gray-100 transition-colors text-sm md:text-base"
+                disabled={isUploading}
+              >
+                {t("common.cancel") || "Hủy bỏ"}
+              </button>
+              <button
+                onClick={handleUploadClick}
+                disabled={isUploading || selectedFiles.length === 0}
+                className={`px-5 py-2 md:px-6 md:py-2.5 rounded-xl font-semibold text-white shadow-lg shadow-brand/20 transition-all flex items-center gap-2 text-sm md:text-base ${
+                  isUploading || selectedFiles.length === 0
+                    ? "bg-gray-300 cursor-not-allowed shadow-none"
+                    : "bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-500 hover:to-brand-400 hover:shadow-xl hover:shadow-brand/30 transform hover:-translate-y-0.5"
+                }`}
+              >
+                {isUploading ? (
+                  <>
+                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                     {t("upload_modal.uploading")}...
+                  </>
+                ) : (
+                  <>
+                    <FiUploadCloud size={20} />
+                    {selectedFiles.length > 0 
+                        ? t("upload_modal.upload_count", { count: selectedFiles.length })
+                        : t("upload_modal.start_upload") || "Bắt đầu tải lên"
+                    }
+                  </>
+                )}
+              </button>
+            </div>
+          </motion.div>
         </div>
-        {isUploading && (
-          <p className="mt-4 text-center text-sm text-gray-600">
-            {t("upload_modal.processing")}
-          </p>
-        )}
-      </div>
-    </div>
+      )}
+    </AnimatePresence>
   );
 };
 

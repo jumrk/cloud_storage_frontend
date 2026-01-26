@@ -1,6 +1,7 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useReducer } from "react";
 import Loader from "@/shared/ui/Loader";
-import { FiCheck, FiX, FiUpload, FiClock } from "react-icons/fi";
+import { FiCheck, FiX, FiUpload, FiClock, FiFile, FiFolder, FiTrash2, FiMove } from "react-icons/fi";
+import StatusCard from "@/shared/ui/StatusCard";
 import axiosClient from "@/shared/lib/axiosClient";
 import {
   addPendingUpload,
@@ -12,59 +13,24 @@ import toast from "react-hot-toast";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 import useSocket from "@/shared/lib/useSocket";
-// ================= OPTIMIZED CHUNK SIZE =================
-// Tối ưu cho server mạnh và network tốt
-// Tăng chunk size = ít round-trips = upload nhanh hơn
+import { motion, AnimatePresence } from "framer-motion";
+
+
+
+// ================= FIXED CHUNK SIZE =================
+// Synced with backend auto-tuned chunk size (25MB for optimal performance)
+const FIXED_CHUNK_SIZE = 25 * 1024 * 1024; // 25MB (match backend)
+
 const calculateOptimalChunkSize = (fileSize) => {
-  // File rất nhỏ (<1MB): tối đa 50% file size
-  if (fileSize < 1 * 1024 * 1024)
-    return Math.max(256 * 1024, Math.floor(fileSize / 2));
-
-  // File nhỏ (<10MB): 2MB chunks
-  if (fileSize < 10 * 1024 * 1024) return 2 * 1024 * 1024;
-
-  // File trung bình (<100MB): 5MB chunks
-  if (fileSize < 100 * 1024 * 1024) return 5 * 1024 * 1024;
-
-  // File lớn (<500MB): 10MB chunks
-  if (fileSize < 500 * 1024 * 1024) return 10 * 1024 * 1024;
-
-  // File rất lớn (<2GB): 20MB chunks (TĂNG từ 5-10MB)
-  if (fileSize < 2 * 1024 * 1024 * 1024) return 20 * 1024 * 1024;
-
-  // File cực lớn (<10GB): 30MB chunks (TĂNG từ 10MB)
-  if (fileSize < 10 * 1024 * 1024 * 1024) return 30 * 1024 * 1024;
-
-  // File khổng lồ (>10GB): 50MB chunks (TĂNG từ 15-25MB)
-  return 50 * 1024 * 1024;
+  return FIXED_CHUNK_SIZE;
 };
 
-// Hàm tính chunk size adaptive dựa trên băng thông đo được
+// Hàm tính chunk size adaptive - Disabled, returns fixed size
 const getAdaptiveChunkSize = (fileSize, measuredBandwidthKbps = null) => {
-  const baseChunkSize = calculateOptimalChunkSize(fileSize);
-
-  if (!measuredBandwidthKbps) return baseChunkSize;
-
-  // Nếu băng thông cao (>10Mbps), tăng chunk size lên
-  if (measuredBandwidthKbps > 10 * 1024) {
-    // Tăng max chunk size lên 150MB để tận dụng băng thông cao
-    return Math.min(baseChunkSize * 2, 150 * 1024 * 1024); // Max 150MB (tăng từ 50MB)
-  }
-  
-  // Nếu băng thông rất cao (>50Mbps), tăng chunk size nhiều hơn
-  if (measuredBandwidthKbps > 50 * 1024) {
-    return Math.min(baseChunkSize * 3, 200 * 1024 * 1024); // Max 200MB cho băng thông rất cao
-  }
-
-  // Nếu băng thông thấp (<1Mbps), giảm chunk size xuống
-  if (measuredBandwidthKbps < 1024) {
-    return Math.max(baseChunkSize / 2, 1 * 1024 * 1024); // Min 1MB
-  }
-
-  return baseChunkSize;
+  return FIXED_CHUNK_SIZE;
 };
 const CLOSE_ON_PROCESSING = true;
-const MIN_CHUNK_SIZE = 512 * 1024; // 512KB
+const MIN_CHUNK_SIZE = 25 * 1024 * 1024; // 25MB minimum (match backend)
 const MAX_TOTAL_RETRIES = 30;
 const CHECKSUM_MISMATCH_THRESHOLD = 3;
 const createFileChunks = (file, measuredBandwidthKbps = null) => {
@@ -99,6 +65,26 @@ const readFileChunk = (file, start, end) =>
     r.onerror = reject;
     r.readAsArrayBuffer(file.slice(start, end));
   });
+// ✅ FIX #5: Reducer for fileStates to prevent race conditions
+const fileStatesReducer = (state, action) => {
+  switch (action.type) {
+    case "UPDATE_FILE":
+      return state.map((f, i) => 
+        i === action.index ? { ...f, ...action.updates } : f
+      );
+    case "UPDATE_MULTIPLE":
+      // Batch update multiple files at once
+      return state.map((f, i) => {
+        const update = action.updates[i];
+        return update ? { ...f, ...update } : f;
+      });
+    case "RESET":
+      return action.newState;
+    default:
+      return state;
+  }
+};
+
 const MiniStatusBatch = ({
   files = [],
   isFolder,
@@ -114,12 +100,13 @@ const MiniStatusBatch = ({
   useChunkedUpload = false,
 }) => {
   const t = useTranslations();
-  const tokenRef = useRef(
-    typeof window !== "undefined" ? localStorage.getItem("token") : null
-  );
-  const socketRef = useSocket(tokenRef.current);
+  // ✅ No need for token - cookie sent automatically
+  const socketRef = useSocket(null);
   const [socketConnected, setSocketConnected] = useState(false);
-  const [fileStates, setFileStates] = useState(
+  
+  // ✅ FIX #5: Use reducer instead of useState to prevent race conditions
+  const [fileStates, dispatchFileStates] = useReducer(
+    fileStatesReducer,
     files.map((f) => ({
       file: f.file,
       name: f.name,
@@ -148,6 +135,19 @@ const MiniStatusBatch = ({
   const statusPollersRef = useRef({});
   // Store file states ref để có thể access trong pollStatusUntilDone
   const fileStatesRef = useRef(fileStates);
+
+  // ✅ FIX #5: Wrapper function to maintain backward compatibility with reducer
+  const setFileStates = (updater) => {
+    if (typeof updater === "function") {
+      // If updater is a function, we need to apply it to current state
+      // This is tricky with reducer, so we'll extract the new state and dispatch
+      const newState = updater(fileStatesRef.current);
+      dispatchFileStates({ type: "RESET", newState });
+    } else {
+      // Direct state update
+      dispatchFileStates({ type: "RESET", newState: updater });
+    }
+  };
 
   // Sync fileStatesRef mỗi khi fileStates thay đổi
   useEffect(() => {
@@ -1610,15 +1610,10 @@ const MiniStatusBatch = ({
           }
         }, 100); // Update every 100ms for smoother progress
         try {
-          const token =
-            typeof window !== "undefined"
-              ? localStorage.getItem("token")
-              : null;
-          const headers = token ? { Authorization: `Bearer ${token}` } : {};
+          // ✅ Cookie sent automatically with request
           const res = await axiosClient.post(
             "/api/upload/permanent-delete",
-            { items },
-            { headers }
+            { items }
           );
           clearInterval(progressInterval);
           const json = res.data;
@@ -1793,6 +1788,7 @@ const MiniStatusBatch = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [batchId]);
 
+  // ✅ FIX #1: Add timeout mechanism to force completion if stuck
   useEffect(() => {
     if (
       files.length === 0 ||
@@ -1803,14 +1799,18 @@ const MiniStatusBatch = ({
     ) {
       return;
     }
+
     const isDoneStatus = (s) =>
       s === "success" ||
       s === "error" ||
       s === "cancelled" ||
       (CLOSE_ON_PROCESSING && s === "processing");
+    
     const allDone = fileStates.every((f) => isDoneStatus(f.status));
+    
     if (allDone && fileStates.length > 0 && !hasCompletedRef.current) {
       hasCompletedRef.current = true;
+      
       const successfulFiles = fileStates.filter(
         (f) => f.status === "success"
       ).length;
@@ -1818,15 +1818,14 @@ const MiniStatusBatch = ({
       const processingFiles = fileStates.filter(
         (f) => f.status === "processing"
       ).length;
-      // Collect uploadIds from all files that have been uploaded (including processing)
-      // This includes files that are still uploading to Drive
+      
       const uploadIds = fileStates
         .filter(
           (f) =>
             (f.status === "success" || f.status === "processing") && f.uploadId
         )
         .map((f) => f.uploadId);
-      // No delay - hide immediately and let data render as soon as it's available
+      
       isUploadingRef.current = false;
       setIsVisible(false);
       onComplete?.({
@@ -1836,415 +1835,227 @@ const MiniStatusBatch = ({
         hasErrors,
         processingFiles,
         finalizing: processingFiles > 0,
-        uploadIds, // Pass uploadIds for real-time updates (includes processing files)
+        uploadIds,
       });
+    }
+    
+    // ✅ FIX: Timeout mechanism - if all files uploaded but some stuck in "processing"
+    // Force completion after 30 seconds to prevent UI stuck
+    const allUploaded = fileStates.every(
+      (f) => f.status !== "pending" && f.status !== "uploading"
+    );
+    
+    if (allUploaded && fileStates.length > 0 && !hasCompletedRef.current) {
+      const timeoutId = setTimeout(() => {
+        if (!hasCompletedRef.current) {
+          console.warn("[MiniStatus] Force completing upload after timeout");
+          hasCompletedRef.current = true;
+          
+          const successfulFiles = fileStates.filter(
+            (f) => f.status === "success"
+          ).length;
+          const hasErrors = fileStates.some((f) => f.status === "error");
+          const processingFiles = fileStates.filter(
+            (f) => f.status === "processing"
+          ).length;
+          
+          const uploadIds = fileStates
+            .filter(
+              (f) =>
+                (f.status === "success" || f.status === "processing") && f.uploadId
+            )
+            .map((f) => f.uploadId);
+          
+          isUploadingRef.current = false;
+          setIsVisible(false);
+          onComplete?.({
+            success: successfulFiles > 0,
+            totalFiles: fileStates.length,
+            successfulFiles,
+            hasErrors,
+            processingFiles,
+            finalizing: processingFiles > 0,
+            uploadIds,
+            timedOut: true, // Flag to indicate forced completion
+          });
+        }
+      }, 30000); // 30 second timeout
+      
+      return () => clearTimeout(timeoutId);
     }
   }, [fileStates, files.length, batchType, onComplete]);
 
-  if (!isVisible) return null;
-
-  if (batchType === "move") {
-    return (
-      <div
-        className="fixed bottom-2 right-2 sm:bottom-4 sm:right-4 md:bottom-6 md:right-6 bg-white rounded-lg shadow-card p-2 sm:p-3 md:p-5 flex flex-col gap-1.5 sm:gap-2 md:gap-4 max-w-[calc(100vw-1rem)] sm:max-w-[calc(100vw-2rem)] md:max-w-[450px] w-full border border-gray-200 z-[9999]"
-        style={style}
-      >
-        <div className="flex items-center gap-1 sm:gap-2 mb-0.5 sm:mb-1 md:mb-2">
-          {status === "pending" ? (
-            <FiUpload className="text-brand animate-pulse" size={14} />
-          ) : status === "success" ? (
-            <FiCheck className="text-success" size={14} />
-          ) : (
-            <FiX className="text-danger" size={14} />
-          )}
-          <span className="font-semibold text-xs sm:text-sm md:text-base text-gray-900 truncate">
-            {status === "pending"
-              ? t("upload_status.moving")
-              : status === "success"
-                ? t("upload_status.move_success")
-                : t("upload_status.move_failed")}
-          </span>
-        </div>
-        <div className="w-full bg-gray-100 rounded-full h-2 sm:h-2.5">
-          <div
-            className={`h-2 sm:h-2.5 rounded-full transition-all duration-300 ${
-              status === "success"
-                ? "bg-success"
-                : status === "error"
-                  ? "bg-danger"
-                  : "bg-brand"
-            }`}
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-        {/* Progress info: ETA */}
-        {status === "pending" && progress < 100 && eta && eta > 0 && (
-          <div className="flex items-center justify-end text-[9px] sm:text-[10px] md:text-xs text-gray-600">
-            <span>Còn lại: {formatETA(eta)}</span>
-          </div>
-        )}
-        <div className="flex flex-col gap-1 sm:gap-1 md:gap-1.5 mt-0.5 sm:mt-1 md:mt-2 max-h-20 sm:max-h-24 md:max-h-32 overflow-y-auto sidebar-scrollbar">
-          {moveItems?.map((item, idx) => (
-            <div
-              key={idx}
-              className="flex w-full items-center gap-1 sm:gap-1.5 md:gap-2 text-[10px] sm:text-xs"
-            >
-              <Image
-                src={
-                  item.type === "folder"
-                    ? "/images/icon/folder.png"
-                    : "/images/icon/png.png"
-                }
-                alt="icon"
-                className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 object-contain flex-shrink-0"
-                width={16}
-                height={16}
-                placeholder="blur"
-                blurDataURL="data:image/png;base64,..."
-                priority
-              />
-              <span
-                className="flex-1 truncate overflow-hidden min-w-0 file-name-fixed-width text-brand-700 font-semibold text-[10px] sm:text-xs"
-                title={item.name || item.id}
-              >
-                {item.name || item.id}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (batchType === "create_folder") {
-    return (
-      <div
-        className="fixed bottom-2 right-2 sm:bottom-4 sm:right-4 md:bottom-6 md:right-6 bg-white rounded-lg shadow-card p-2 sm:p-3 md:p-5 flex flex-col gap-1.5 sm:gap-2 md:gap-4 min-w-[240px] sm:min-w-[280px] md:min-w-[320px] max-w-[calc(100vw-1rem)] sm:max-w-[calc(100vw-2rem)] md:max-w-[450px] border border-gray-200 z-[9999]"
-        style={style}
-      >
-        <div className="flex items-center gap-1 sm:gap-2 mb-0.5 sm:mb-1 md:mb-2">
-          {status === "pending" ? (
-            <FiUpload className="text-brand animate-pulse" size={14} />
-          ) : status === "success" ? (
-            <FiCheck className="text-success" size={14} />
-          ) : (
-            <FiX className="text-danger" size={14} />
-          )}
-          <span className="font-semibold text-xs sm:text-sm md:text-base text-gray-900 truncate">
-            {status === "pending"
-              ? t("upload_status.creating_folder")
-              : status === "success"
-                ? t("upload_status.create_folder_success")
-                : t("upload_status.create_folder_failed")}
-          </span>
-        </div>
-        <div className="w-full bg-gray-100 rounded-full h-2 sm:h-2.5">
-          <div
-            className={`h-2 sm:h-2.5 rounded-full transition-all duration-300 ${
-              status === "success"
-                ? "bg-success"
-                : status === "error"
-                  ? "bg-danger"
-                  : "bg-brand"
-            }`}
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-        <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2 text-[10px] sm:text-xs mt-0.5 sm:mt-1 md:mt-2">
-          <Image
-            src={"/images/icon/folder.png"}
-            alt="icon"
-            className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 object-contain flex-shrink-0"
-            width={16}
-            height={16}
-            placeholder="blur"
-            blurDataURL="data:image/png;base64,..."
-            priority
-          />
-          <span className="truncate flex-1 text-brand-700 font-semibold text-[10px] sm:text-xs">
-            {folderName}
-          </span>
-        </div>
-        {status === "error" && (
-          <div className="text-[10px] sm:text-xs text-danger mt-1 sm:mt-2">
-            {result?.error || t("upload_status.create_folder_error")}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  if (batchType === "delete" || batchType === "permanent-delete") {
-    const isPermanent = batchType === "permanent-delete";
-    return (
-      <div
-        className="fixed bottom-2 right-2 sm:bottom-4 sm:right-4 md:bottom-6 md:right-6 bg-white rounded-lg shadow-card p-2 sm:p-3 md:p-5 flex flex-col gap-1.5 sm:gap-2 md:gap-4 max-w-[calc(100vw-1rem)] sm:max-w-[calc(100vw-2rem)] md:max-w-[450px] w-full border border-gray-200 z-[9999]"
-        style={style}
-      >
-        <div className="flex items-center gap-1 sm:gap-2 mb-0.5 sm:mb-1 md:mb-2">
-          {status === "pending" ? (
-            <FiUpload className="text-brand animate-pulse" size={14} />
-          ) : status === "success" ? (
-            <FiCheck className="text-success" size={14} />
-          ) : (
-            <FiX className="text-danger" size={14} />
-          )}
-          <span className="font-semibold text-xs sm:text-sm md:text-base text-gray-900 truncate">
-            {status === "pending"
-              ? isPermanent
-                ? "Đang xóa vĩnh viễn..."
-                : t("upload_status.deleting")
-              : status === "success"
-                ? isPermanent
-                  ? "Đã xóa vĩnh viễn"
-                  : t("upload_status.delete_success")
-                : isPermanent
-                  ? "Xóa vĩnh viễn thất bại"
-                  : t("upload_status.delete_failed")}
-          </span>
-        </div>
-        <div className="w-full bg-gray-100 rounded-full h-2 sm:h-2.5">
-          <div
-            className={`h-2 sm:h-2.5 rounded-full transition-all duration-300 ${
-              status === "success"
-                ? "bg-success"
-                : status === "error"
-                  ? "bg-danger"
-                  : "bg-brand"
-            }`}
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-        {/* Progress info: ETA */}
-        {status === "pending" && progress < 100 && eta && eta > 0 && (
-          <div className="flex items-center justify-end text-[9px] sm:text-[10px] md:text-xs text-gray-600">
-            <span>Còn lại: {formatETA(eta)}</span>
-          </div>
-        )}
-        <div className="flex flex-col gap-1 sm:gap-1 md:gap-1.5 mt-0.5 sm:mt-1 md:mt-2 max-h-20 sm:max-h-24 md:max-h-32 overflow-y-auto sidebar-scrollbar">
-          {moveItems?.map((item, idx) => (
-            <div
-              key={idx}
-              className="flex w-full items-center gap-1 sm:gap-1.5 md:gap-2 text-[10px] sm:text-xs"
-            >
-              <Image
-                src={
-                  item.type === "folder"
-                    ? "/images/icon/folder.png"
-                    : "/images/icon/png.png"
-                }
-                alt="icon"
-                className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 object-contain flex-shrink-0"
-                width={16}
-                height={16}
-                placeholder="blur"
-                blurDataURL="data:image/png;base64,..."
-                priority
-              />
-              <span
-                className="flex-1 truncate overflow-hidden min-w-0 file-name-fixed-width text-danger-700 font-semibold text-[10px] sm:text-xs"
-                title={item.name || item.id}
-              >
-                {item.name || item.id}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
+  // Render logic with AnimatePresence for exit animations
   return (
-    <div
-      className="fixed bottom-2 right-2 sm:bottom-4 sm:right-4 md:bottom-6 md:right-6 bg-white rounded-lg shadow-card p-2 sm:p-3 md:p-5 flex flex-col gap-1.5 sm:gap-2 md:gap-4 max-w-[calc(100vw-1rem)] sm:max-w-[calc(100vw-2rem)] md:max-w-[450px] w-full border border-gray-200 z-[9999]"
-      style={style}
-    >
-      <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2 mb-0.5 sm:mb-1 md:mb-2">
-        {progress < 100 ? (
-          <Loader size="small" position="inline" hideText />
-        ) : fileStates.some((f) => f.status === "error") ? (
-          <FiX className="text-danger" size={10} />
-        ) : (
-          <FiCheck className="text-success" size={10} />
-        )}
-        <span className="font-semibold text-xs sm:text-sm md:text-base text-gray-900 truncate">
-          {progress < 100
-            ? t("upload_status.uploading", { progress })
-            : fileStates.some((f) => f.status === "error")
-              ? t("upload_status.has_error")
-              : t("upload_status.upload_success")}
-        </span>
-      </div>
-      <div className="w-full bg-gray-100 rounded-full h-2 sm:h-2.5">
-        <div
-          className="bg-brand h-2 sm:h-2.5 rounded-full transition-all duration-300"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
-      {/* Progress info: speed and ETA */}
-      {progress < 100 && (
-        <div className="flex items-center justify-between text-[9px] sm:text-[10px] md:text-xs text-gray-600">
-          <span>{formatSpeed(speed)}</span>
-          {eta && eta > 0 && <span>Còn lại: {formatETA(eta)}</span>}
-        </div>
-      )}
-      <div className="flex flex-col gap-1 sm:gap-1 md:gap-1.5 max-h-20 sm:max-h-24 md:max-h-32 overflow-y-auto sidebar-scrollbar">
-        {isFolder ? (
-          <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2 text-[10px] sm:text-xs">
-            <Image
-              src={"/images/icon/folder.png"}
-              alt="icon"
-              className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 object-contain flex-shrink-0"
-              width={16}
-              height={16}
-              placeholder="blur"
-              blurDataURL="data:image/png;base64,..."
-              priority
-            />
-            <span className="truncate flex-1 text-brand-700 font-semibold text-[10px] sm:text-xs">
-              {folderName}
-            </span>
-            <div className="flex-shrink-0">
-              {progress < 100 ? (
-                <FiUpload className="text-brand animate-pulse" size={10} />
-              ) : fileStates.some((f) => f.status === "error") ? (
-                <FiX className="text-danger" size={10} />
-              ) : (
-                <FiCheck className="text-success" size={10} />
-              )}
-            </div>
-          </div>
-        ) : (
-          fileStates.map((f, idx) => {
-            const drivePct = lastStatusRef.current[idx]?.drivePct ?? null;
-            return (
-              <div
-                key={idx}
-                className="flex flex-col gap-0.5 sm:gap-0.5 md:gap-1 w-full"
-              >
-                <div className="flex w-full items-center gap-1 sm:gap-1.5 md:gap-2 text-[10px] sm:text-xs">
-                  <Image
-                    src={f.icon}
-                    alt="icon"
-                    className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 object-contain flex-shrink-0"
-                    width={16}
-                    height={16}
-                    placeholder="blur"
-                    blurDataURL="data:image/png;base64,..."
-                    priority
-                  />
-                  <span
-                    className={
-                      "flex-1 truncate overflow-hidden min-w-0 file-name-fixed-width text-[10px] sm:text-xs" +
-                      (f.status === "success"
-                        ? " text-success-600"
-                        : f.status === "error"
-                          ? " text-danger-600"
-                          : f.status === "uploading"
-                            ? " text-brand-600"
-                            : f.status === "processing"
-                              ? " text-warning-600"
-                              : " text-gray-600")
-                    }
-                    title={f.name}
-                  >
-                    {f.name}
-                    {f.status === "processing" && drivePct != null && (
-                      <span className="ml-0.5 sm:ml-1 md:ml-2 text-gray-600 text-[9px] sm:text-[10px] md:text-xs">
-                        {" "}
-                        (Drive {drivePct}%){" "}
-                      </span>
-                    )}
-                  </span>
-                  <div className="flex-shrink-0 flex items-center gap-0.5 sm:gap-0.5 md:gap-1">
-                    <CircularProgress
-                      percent={f.progress || 0}
-                      size={14}
-                      stroke={2}
-                    />
-                    {f.status === "success" ? (
-                      <FiCheck className="text-success" size={10} />
-                    ) : f.status === "error" ? (
-                      <FiX className="text-danger" size={10} />
-                    ) : f.status === "uploading" ? (
-                      <FiUpload
-                        className="text-brand animate-pulse"
-                        size={10}
-                      />
-                    ) : f.status === "processing" ? (
-                      <FiClock className="text-warning-600" size={10} />
-                    ) : (
-                      <FiClock className="text-gray-600" size={10} />
-                    )}
-                    {(f.status === "uploading" ||
-                      f.status === "processing") && (
-                      <button
-                        onClick={() => cancelUpload(idx)}
-                        className="text-danger hover:opacity-90"
-                        title="Cancel upload"
-                      >
-                        <FiX size={9} />
-                      </button>
-                    )}
-                    {f.status === "error" && (
-                      <button
-                        onClick={() =>
-                          uploadFileWithChunks(fileStates[idx], idx)
-                        }
-                        className="text-brand hover:opacity-90"
-                        title="Retry upload"
-                      >
-                        <FiUpload size={9} />
-                      </button>
-                    )}
-                  </div>
+    <AnimatePresence>
+      {isVisible && (
+        <>
+          {batchType === "move" ? (
+             <StatusCard
+                title={status === "pending" ? t("upload_status.moving") : status === "success" ? t("upload_status.move_success") : t("upload_status.move_failed")}
+                status={status}
+                progress={progress}
+                eta={formatETA(eta)}
+                headerIcon={<FiMove size={18} />}
+                headerColor="text-brand"
+                style={style}
+             >
+                <div className="space-y-2">
+                    {moveItems?.map((item, idx) => (
+                        <div key={idx} className="flex items-center gap-2 text-xs">
+                             <div className="p-1 rounded bg-gray-100/50">
+                                {item.type === "folder" ? <FiFolder className="text-yellow-500"/> : <FiFile className="text-gray-500"/>}
+                             </div>
+                             <span className="truncate text-gray-600 font-medium">{item.name || item.id}</span>
+                        </div>
+                    ))}
                 </div>
-                {f.status === "error" && f.error && (
-                  <div
-                    className="text-[9px] sm:text-[10px] md:text-xs text-danger ml-4 sm:ml-5 md:ml-6 break-words max-w-full"
-                    title={f.error}
-                  >
-                    {f.error}
+             </StatusCard>
+          ) : batchType === "create_folder" ? (
+            <StatusCard
+                title={status === "pending" ? t("upload_status.creating_folder") : status === "success" ? t("upload_status.create_folder_success") : t("upload_status.create_folder_failed")}
+                status={status}
+                progress={progress}
+                headerIcon={<FiFolder size={18} />}
+                headerColor="text-brand"
+                style={style}
+             >
+                <div className="flex items-center gap-2 text-xs mt-1">
+                     <div className="p-1 rounded bg-yellow-100/50 text-yellow-600">
+                        <FiFolder />
+                     </div>
+                     <span className="truncate font-medium text-gray-700">{folderName}</span>
+                </div>
+                {status === "error" && (
+                  <div className="text-xs text-danger mt-2 bg-danger/5 p-2 rounded">
+                    {result?.error || t("upload_status.create_folder_error")}
                   </div>
                 )}
-              </div>
-            );
-          })
-        )}
-      </div>
-    </div>
+             </StatusCard>
+          ) : (batchType === "delete" || batchType === "permanent-delete") ? (
+             <StatusCard
+                title={
+                    status === "pending"
+                    ? (batchType === "permanent-delete" ? "Đang xóa vĩnh viễn..." : t("upload_status.deleting"))
+                    : status === "success"
+                        ? (batchType === "permanent-delete" ? "Đã xóa vĩnh viễn" : t("upload_status.delete_success"))
+                        : (batchType === "permanent-delete" ? "Xóa vĩnh viễn thất bại" : t("upload_status.delete_failed"))
+                }
+                status={status}
+                progress={progress}
+                eta={formatETA(eta)}
+                headerIcon={<FiTrash2 size={18} />}
+                headerColor="text-danger" // Red for delete
+                style={style}
+             >
+                <div className="space-y-2">
+                    {moveItems?.map((item, idx) => (
+                        <div key={idx} className="flex items-center gap-2 text-xs opacity-75">
+                             <div className="p-1 rounded bg-danger/5 text-danger">
+                                {item.type === "folder" ? <FiFolder /> : <FiFile />}
+                             </div>
+                             <span className="truncate text-gray-600 line-through decoration-danger/30">{item.name || item.id}</span>
+                        </div>
+                    ))}
+                </div>
+             </StatusCard>
+          ) : (
+            // Default: Upload Status
+             <StatusCard
+                title={
+                   progress < 100
+                    ? t("upload_status.uploading", { progress })
+                    : fileStates.some((f) => f.status === "error")
+                      ? t("upload_status.has_error")
+                      : t("upload_status.upload_success")
+                }
+                status={status}
+                progress={progress}
+                speed={formatSpeed(speed)}
+                eta={formatETA(eta)}
+                headerIcon={<FiUpload size={18} />}
+                headerColor="text-brand"
+                style={style}
+             >
+                <div className="space-y-2 mt-1">
+                    {isFolder ? (
+                         <div className="flex items-center gap-2 text-xs">
+                             <div className="p-1.5 rounded bg-yellow-100/50 text-yellow-600">
+                                <FiFolder size={14}/>
+                             </div>
+                             <div className="flex-1 min-w-0">
+                                <p className="truncate font-medium text-gray-700">{folderName}</p>
+                             </div>
+                             {fileStates.some((f) => f.status === "error") ? <FiX className="text-danger"/> : progress < 100 ? <Loader size="small"/> : <FiCheck className="text-success"/>}
+                        </div>
+                    ) : (
+                        fileStates.map((f, idx) => {
+                             const drivePct = lastStatusRef.current[idx]?.drivePct ?? null;
+                             return (
+                                <div key={idx} className="group flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-100">
+                                     <div className="p-1.5 rounded bg-brand/5 text-brand shrink-0">
+                                        <FiFile size={14} />
+                                     </div>
+                                     <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between">
+                                            <p className={`truncate text-xs font-medium ${
+                                                f.status === 'success' ? 'text-success-700' :
+                                                f.status === 'error' ? 'text-danger-700' :
+                                                'text-gray-700'
+                                            }`}>
+                                                {f.name}
+                                            </p>
+                                        </div>
+                                         <div className="flex items-center justify-between mt-0.5">
+                                             <p className="text-[10px] text-gray-400">
+                                                {f.status === 'processing' && drivePct != null ? `Drive: ${drivePct}%` :
+                                                 f.status === 'success' ? 'Hoàn tất' :
+                                                 f.status === 'error' ? 'Thất bại' :
+                                                 f.status === 'uploading' ? 'Đang tải lên...' :
+                                                 'Đang chờ...'}
+                                             </p>
+                                             {f.status !== 'success' && f.status !== 'error' ? (
+                                                <div className="relative w-12 h-1 bg-gray-100 rounded-full overflow-hidden">
+                                                    <div className="absolute top-0 left-0 h-full bg-brand rounded-full" style={{width: `${f.progress || 0}%`}}></div>
+                                                </div>
+                                             ) : null}
+                                         </div>
+                                         {f.error && <p className="text-[10px] text-danger mt-1 bg-danger/5 p-1 rounded truncate" title={f.error}>{f.error}</p>}
+                                     </div>
+
+                                     <div className="shrink-0 flex items-center">
+                                         {(f.status === "uploading" || f.status === "processing") && (
+                                              <button
+                                                onClick={() => cancelUpload(idx)}
+                                                className="p-1 text-gray-400 hover:text-danger hover:bg-danger/10 rounded-full transition-colors"
+                                                title="Hủy"
+                                              >
+                                                <FiX size={14} />
+                                              </button>
+                                         )}
+                                          {f.status === "error" && (
+                                              <button
+                                                onClick={() => uploadFileWithChunks(fileStates[idx], idx)}
+                                                className="p-1 text-gray-400 hover:text-brand hover:bg-brand/10 rounded-full transition-colors"
+                                                title="Thử lại"
+                                              >
+                                                <FiUpload size={14} />
+                                              </button>
+                                         )}
+                                          {f.status === "success" && <FiCheck className="text-success" size={14} />}
+                                     </div>
+                                </div>
+                             )
+                        })
+                    )}
+                </div>
+             </StatusCard>
+          )}
+        </>
+      )}
+    </AnimatePresence>
   );
 };
-
-function CircularProgress({ percent = 0, size = 24, stroke = 3 }) {
-  const r = (size - stroke) / 2;
-  const c = 2 * Math.PI * r;
-  const offset = c - (percent / 100) * c;
-  return (
-    <svg width={size} height={size} className="inline-block align-middle">
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={r}
-        fill="none"
-        stroke="var(--color-border)"
-        strokeWidth={stroke}
-      />
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={r}
-        fill="none"
-        stroke="var(--color-success)"
-        strokeWidth={stroke}
-        strokeDasharray={c}
-        strokeDashoffset={offset}
-        strokeLinecap="round"
-        style={{ transition: "stroke-dashoffset 0.3s" }}
-      />
-    </svg>
-  );
-}
 
 const MiniStatus = ({
   files = [],

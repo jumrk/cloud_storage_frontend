@@ -770,17 +770,10 @@ export default function ChatConversation({
 
     const handleDownload = () => {
       if (systemFile.downloadUrl) {
-        // Add token to download URL for authentication
-        const token =
-          typeof window !== "undefined" ? localStorage.getItem("token") : null;
+        // ✅ Download URL - cookie sent automatically
         const downloadLink = document.createElement("a");
         downloadLink.href = systemFile.downloadUrl;
-        if (token) {
-          // Append token as query parameter
-          const url = new URL(systemFile.downloadUrl);
-          url.searchParams.set("token", token);
-          downloadLink.href = url.toString();
-        }
+        // ✅ Cookie sent automatically with download request
         downloadLink.download = systemFile.name;
         downloadLink.target = "_blank";
         document.body.appendChild(downloadLink);

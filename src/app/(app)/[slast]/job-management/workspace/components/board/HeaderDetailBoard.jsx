@@ -35,11 +35,11 @@ export default function HeaderDetailBoard() {
 
   const checkOwner = async () => {
     try {
-      // Get current user ID from token
-      const token = localStorage.getItem("token");
-      if (!token) return;
+      // ✅ Get current user from API (cookie sent automatically)
+      const userRes = await axiosClient.get("/api/user");
+      if (!userRes.data) return;
 
-      // Decode token to get user ID
+      const userId = userRes.data.id || userRes.data._id;
       let currentUserId = null;
       try {
         const payload = JSON.parse(atob(token.split(".")[1]));

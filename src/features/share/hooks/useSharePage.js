@@ -25,25 +25,42 @@ export default function useSharePage() {
   const [downloadBatch, setDownloadBatch] = useState(null);
   const [currentFolderId, setCurrentFolderId] = useState(null); // Track current subfolder
   const [rootFolderId, setRootFolderId] = useState(null); // Track root shared folder
+  const [passwordRequired, setPasswordRequired] = useState(false);
+  const [sharePassword, setSharePasswordState] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const sharePasswordRef = useRef("");
   const downloadBatchIdRef = useRef(0);
 
+  const setSharePassword = useCallback((value) => {
+    sharePasswordRef.current = value;
+    setSharePasswordState(value);
+  }, []);
+
+  const getSharePasswordValue = useCallback(
+    (override) => (override !== undefined ? override : sharePasswordRef.current),
+    []
+  );
+
   // Fetch share info or subfolder info
-  const fetchShareInfo = useCallback(async (subfolderId = null) => {
+  const fetchShareInfo = useCallback(async (subfolderId = null, passwordOverride) => {
     if (!id) return;
     setLoading(true);
+    const passwordValue = getSharePasswordValue(passwordOverride);
     try {
       let res;
       if (subfolderId) {
         // Fetch subfolder content
-        res = await shareService.getShareSubfolderInfo(id, subfolderId);
+        res = await shareService.getShareSubfolderInfo(id, subfolderId, passwordValue);
       } else {
         // Fetch root share info
-        res = await shareService.getShareInfo(id);
+        res = await shareService.getShareInfo(id, passwordValue);
       }
       
       const data = res.data;
       setItem(data);
       setCurrentFolderId(subfolderId);
+      setPasswordRequired(false);
+      setPasswordError("");
       
       if (data.type === "folder") {
         // Set root folder ID if this is the first load
@@ -59,19 +76,30 @@ export default function useSharePage() {
       } else if (err.message) {
         msg = err.message;
       }
-      setError(msg);
-      toast.error(msg);
+      const code = err?.response?.data?.code;
+      if (code === "PASSWORD_REQUIRED" || code === "PASSWORD_INVALID") {
+        setPasswordRequired(true);
+        setPasswordError(code === "PASSWORD_INVALID" ? msg : "");
+        setError("");
+      } else {
+        setError(msg);
+        toast.error(msg);
+      }
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, getSharePasswordValue]);
 
   // Enter a subfolder
   const handleEnterFolder = useCallback(
     async (folder) => {
       setLoading(true);
       try {
-        const res = await shareService.getShareSubfolderInfo(id, folder.id);
+        const res = await shareService.getShareSubfolderInfo(
+          id,
+          folder.id,
+          getSharePasswordValue()
+        );
         const data = res.data;
         setItem(data);
         setCurrentFolderId(folder.id);
@@ -83,12 +111,18 @@ export default function useSharePage() {
         if (err.response && err.response.data && err.response.data.error) {
           msg = err.response.data.error;
         }
-        toast.error(msg);
+        const code = err?.response?.data?.code;
+        if (code === "PASSWORD_REQUIRED" || code === "PASSWORD_INVALID") {
+          setPasswordRequired(true);
+          setPasswordError(code === "PASSWORD_INVALID" ? msg : "");
+        } else {
+          toast.error(msg);
+        }
       } finally {
         setLoading(false);
       }
     },
-    [id]
+    [id, getSharePasswordValue]
   );
 
   // Navigate via breadcrumb
@@ -103,11 +137,15 @@ export default function useSharePage() {
         let res;
         if (idx === 0) {
           // Go back to root
-          res = await shareService.getShareInfo(id);
+          res = await shareService.getShareInfo(id, getSharePasswordValue());
           setCurrentFolderId(null);
         } else {
           // Go to a subfolder
-          res = await shareService.getShareSubfolderInfo(id, target.id);
+          res = await shareService.getShareSubfolderInfo(
+            id,
+            target.id,
+            getSharePasswordValue()
+          );
           setCurrentFolderId(target.id);
         }
         
@@ -119,12 +157,18 @@ export default function useSharePage() {
         if (err.response && err.response.data && err.response.data.error) {
           msg = err.response.data.error;
         }
-        toast.error(msg);
+        const code = err?.response?.data?.code;
+        if (code === "PASSWORD_REQUIRED" || code === "PASSWORD_INVALID") {
+          setPasswordRequired(true);
+          setPasswordError(code === "PASSWORD_INVALID" ? msg : "");
+        } else {
+          toast.error(msg);
+        }
       } finally {
         setLoading(false);
       }
     },
-    [breadcrumb, id]
+    [breadcrumb, id, getSharePasswordValue]
   );
 
   const copyShareLink = useCallback(async () => {
@@ -135,6 +179,14 @@ export default function useSharePage() {
     toast.success("Đã copy link chia sẻ!");
     setTimeout(() => setCopied(false), 1500);
   }, [id]);
+
+  const submitSharePassword = useCallback(async () => {
+    if (!sharePassword) {
+      setPasswordError("Vui lòng nhập mật khẩu");
+      return;
+    }
+    await fetchShareInfo(currentFolderId, sharePassword);
+  }, [sharePassword, fetchShareInfo, currentFolderId]);
 
   // Helper function to get Google Drive download URL from file data
   const getDriveDownloadUrl = useCallback((file) => {
@@ -193,9 +245,10 @@ export default function useSharePage() {
           if (onProgress && progressEvent.total) {
             const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
             lastProgressValue = percentCompleted;
-            onProgress(percentCompleted);
+            // ✅ Pass both progress % and loaded bytes
+            onProgress(percentCompleted, progressEvent.loaded, progressEvent.total);
           }
-        });
+        }, getSharePasswordValue());
         
         clearTimeout(timeout);
         if (progressStalledTimeout) clearInterval(progressStalledTimeout);
@@ -233,10 +286,15 @@ export default function useSharePage() {
 
         const errorMsg =
           err?.response?.data?.error || "Lỗi tải xuống: " + err.message;
+        const code = err?.response?.data?.code;
+        if (code === "PASSWORD_REQUIRED" || code === "PASSWORD_INVALID") {
+          setPasswordRequired(true);
+          setPasswordError(code === "PASSWORD_INVALID" ? errorMsg : "");
+        }
         return { success: false, error: errorMsg };
       }
     },
-    [id, getDriveDownloadUrl]
+    [id, getDriveDownloadUrl, getSharePasswordValue]
   );
 
   // Download folder (all files)
@@ -246,7 +304,7 @@ export default function useSharePage() {
         setDownloadingId(folderItem.id);
 
         // Get list of files in folder
-        const res = await shareService.getShareFolderFiles(id);
+        const res = await shareService.getShareFolderFiles(id, getSharePasswordValue());
         if (
           !res.data?.success ||
           !res.data?.files ||
@@ -334,7 +392,7 @@ export default function useSharePage() {
             const result = await downloadSingleFile(
               { id: fileState.id, name: fileState.name },
               fileState.relativePath,
-              (progress) => {
+              (progress, loadedBytes, totalBytes) => {
                 // Clear simulated progress when real progress starts
                 if (simulatedProgressInterval) {
                   clearInterval(simulatedProgressInterval);
@@ -345,7 +403,12 @@ export default function useSharePage() {
                   return {
                     ...prev,
                     files: prev.files.map((f, idx) =>
-                      idx === i ? { ...f, progress: progress } : f
+                      idx === i ? { 
+                        ...f, 
+                        progress: progress,
+                        loadedBytes: loadedBytes || 0, // ✅ Add loaded bytes
+                        totalBytes: totalBytes || f.size, // ✅ Add total bytes
+                      } : f
                     ),
                   };
                 });
@@ -421,12 +484,18 @@ export default function useSharePage() {
       } catch (err) {
         const errorMsg =
           err?.response?.data?.error || "Lỗi tải xuống: " + err.message;
-        toast.error(errorMsg);
+        const code = err?.response?.data?.code;
+        if (code === "PASSWORD_REQUIRED" || code === "PASSWORD_INVALID") {
+          setPasswordRequired(true);
+          setPasswordError(code === "PASSWORD_INVALID" ? errorMsg : "");
+        } else {
+          toast.error(errorMsg);
+        }
         setDownloadBatch(null);
         setDownloadingId(null);
       }
     },
-    [id, downloadSingleFile]
+    [id, downloadSingleFile, getSharePasswordValue]
   );
 
   // Download via URL (open in new tab)
@@ -444,7 +513,11 @@ export default function useSharePage() {
 
       try {
         setDownloadingId(targetItem.id);
-        const res = await shareService.getShareFileUrl(id, targetItem.id);
+        const res = await shareService.getShareFileUrl(
+          id,
+          targetItem.id,
+          getSharePasswordValue()
+        );
         const downloadUrl = res.data?.url || res.data?.originalUrl;
         
         if (downloadUrl) {
@@ -455,12 +528,18 @@ export default function useSharePage() {
         }
       } catch (err) {
         const errorMsg = err?.response?.data?.error || "Lỗi lấy URL: " + err.message;
-        toast.error(errorMsg);
+        const code = err?.response?.data?.code;
+        if (code === "PASSWORD_REQUIRED" || code === "PASSWORD_INVALID") {
+          setPasswordRequired(true);
+          setPasswordError(code === "PASSWORD_INVALID" ? errorMsg : "");
+        } else {
+          toast.error(errorMsg);
+        }
       } finally {
         setDownloadingId(null);
       }
     },
-    [id, item?.canDownload]
+    [id, item?.canDownload, getSharePasswordValue]
   );
 
   const handleDownload = useCallback(
@@ -616,6 +695,11 @@ export default function useSharePage() {
     downloadBatch,
     currentFolderId,
     rootFolderId,
+    passwordRequired,
+    sharePassword,
+    setSharePassword,
+    passwordError,
+    submitSharePassword,
     formatSize,
     fetchShareInfo,
     handleEnterFolder,

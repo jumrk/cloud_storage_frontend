@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import PlanList from "./PlanList";
 import { useCurrentPlanSlug } from "../hooks";
-import { decodeTokenGetUser } from "@/shared/lib/jwt";
+import axiosClient from "@/shared/lib/axiosClient";
 
 /**
  * Client component wrapper cho PlanList để lấy currentPlanSlug từ user data
@@ -12,14 +12,18 @@ export default function PlanListWithUser(props) {
   const [userRole, setUserRole] = useState(null);
 
   useEffect(() => {
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("token") : null;
-    if (!token) {
-      setUserRole(null);
-      return;
-    }
-    const info = decodeTokenGetUser(token);
-    setUserRole(info?.role || null);
+    // ✅ Fetch user role from API (cookie sent automatically)
+    axiosClient.get("/api/user")
+      .then((res) => {
+        if (!res.data) {
+          setUserRole(null);
+          return;
+        }
+        setUserRole(res.data.role || null);
+      })
+      .catch(() => {
+        setUserRole(null);
+      });
   }, []);
 
   return (

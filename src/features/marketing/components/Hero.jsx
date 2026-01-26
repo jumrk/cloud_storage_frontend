@@ -15,9 +15,14 @@ import Button from "@/shared/ui/button";
 function Hero() {
   const t = useTranslations();
   const router = useRouter();
-  const handleGetStarted = () => {
-    const token = localStorage.getItem("token");
-    router.push(token ? "/home" : "/login");
+  const handleGetStarted = async () => {
+    // ✅ Check if user is authenticated via API (cookie sent automatically)
+    try {
+      const res = await axiosClient.get("/api/user");
+      router.push(res.data ? "/home" : "/login");
+    } catch {
+      router.push("/login");
+    }
   };
   const handleScrollToPlan = () => {
     if (typeof window !== "undefined") {

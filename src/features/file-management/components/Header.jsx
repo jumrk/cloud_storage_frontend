@@ -11,6 +11,10 @@ import {
 } from "react-icons/fi";
 import { BiSelectMultiple } from "react-icons/bi";
 import Popover from "@/shared/ui/Popover";
+import SearchSuggestions from "./SearchSuggestions";
+import { useState, useEffect, useRef, useMemo } from "react";
+import FileManagementService from "../services/fileManagementService";
+
 export default function FileManagerHeader({
   t,
   searchTerm,
@@ -29,7 +33,58 @@ export default function FileManagerHeader({
   dedupeById,
   isMember = false,
   currentFolderId = null,
+  onNavigateToFile,
+  onNavigateToFolder,
 }) {
+  const [suggestions, setSuggestions] = useState([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const searchRef = useRef(null);
+  const api = useMemo(() => FileManagementService(), []);
+  // ✅ No need for token - cookie sent automatically
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (searchRef.current && !searchRef.current.contains(e.target)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setSuggestions([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setLoadingSuggestions(true);
+      try {
+        const res = await api.getSearchSuggestions(searchTerm);
+        if (res.success) {
+          setSuggestions(res.suggestions || []);
+        }
+      } catch (error) {
+        console.error("Suggestions error:", error);
+      } finally {
+        setLoadingSuggestions(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm, api]);
+
+  const handleSelectSuggestion = (item) => {
+    setShowSuggestions(false);
+    if (item.type === "folder") {
+      onNavigateToFolder && onNavigateToFolder(item);
+    } else {
+      onNavigateToFile && onNavigateToFile(item);
+    }
+  };
+
   // Member can only upload/create folder when inside a folder (currentFolderId !== null)
   const canUploadOrCreate = !isMember || currentFolderId !== null;
   const allSelected = areAllVisibleSelected(
@@ -41,7 +96,7 @@ export default function FileManagerHeader({
   return (
     <div className="w-full flex items-center justify-between gap-2 md:gap-3 lg:gap-4 mb-4 md:mb-6">
       
-      <div className="flex-1 max-w-md relative">
+      <div className="flex-1 max-w-md relative" ref={searchRef}>
         
         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600 text-lg">
           
@@ -53,9 +108,16 @@ export default function FileManagerHeader({
           className="w-full pl-10 pr-4 py-2 rounded-xl bg-white shadow-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand text-[15px] text-gray-900 placeholder:text-gray-600"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
+          onFocus={() => setShowSuggestions(true)}
+        />
+        <SearchSuggestions 
+          suggestions={suggestions} 
+          loading={loadingSuggestions} 
+          visible={showSuggestions}
+          onSelect={handleSelectSuggestion}
         />
       </div>
-      <div className="flex items-center gap-1.5 md:gap-2 flex-shrink-0">
+      <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
         
         <div className="relative">
           

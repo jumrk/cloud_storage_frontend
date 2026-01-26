@@ -25,48 +25,26 @@ export default function AdminLayout({ children }) {
   const [isLoadingUser, setIsLoadingUser] = useState(true);
 
   useEffect(() => {
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("token") : null;
-
-    if (!token) {
-      setIsLoadingUser(false);
-      router.replace("/login");
-      toast.error("Vui lòng đăng nhập!");
-      return;
-    }
-
-    const userInfo = decodeTokenGetUser(token);
-    setMyId(userInfo?.id || userInfo?._id || null);
-    setUser(userInfo);
-
-    // Check if user is admin
-    try {
-      const userData = token ? JSON.parse(token) : null;
-      if (!userData || userData.role !== "admin") {
-        router.replace("/");
-        toast.error("Bạn không có quyền truy cập trang admin!");
-      }
-    } catch {
-      // If token is not JSON, check from decoded token
-      if (!userInfo || userInfo.role !== "admin") {
-        router.replace("/");
-        toast.error("Bạn không có quyền truy cập trang admin!");
-      }
-    }
-
-    // Fetch full user data from API
-    axiosClient
-      .get("/api/user")
+    // ✅ Fetch user from API (cookie sent automatically)
+    axiosClient.get("/api/user")
       .then((res) => {
-        if (res?.data) {
-          setUser((prev) => ({ ...prev, ...res.data }));
+        if (!res.data) {
+          setIsLoadingUser(false);
+          return;
         }
+        
+        const userData = res.data;
+        if (userData.role !== "admin") {
+          router.push("/");
+          return;
+        }
+        setUser(userData);
+        setIsLoadingUser(false);
       })
       .catch(() => {
-        /* ignore */
-      })
-      .finally(() => {
         setIsLoadingUser(false);
+        router.replace("/login");
+        toast.error("Vui lòng đăng nhập!");
       });
   }, [router]);
 
@@ -123,8 +101,7 @@ export default function AdminLayout({ children }) {
     try {
       await axiosClient.post("/api/auth/logout");
     } catch {}
-    localStorage.removeItem("token");
-    localStorage.clear();
+    // ✅ Cookie cleared by backend on logout
     router.push("/login");
   };
 

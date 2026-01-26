@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import axiosClient from "@/shared/lib/axiosClient";
-import { decodeTokenGetUser } from "@/shared/lib/jwt";
 
 /**
  * Hook để lấy current plan slug từ user data
@@ -11,27 +10,15 @@ export function useCurrentPlanSlug() {
 
   useEffect(() => {
     const fetchUserPlan = async () => {
-      // Kiểm tra xem user đã đăng nhập chưa
-      const token =
-        typeof window !== "undefined" ? localStorage.getItem("token") : null;
-      if (!token) {
-        setCurrentPlanSlug("");
-        return;
-      }
-
-      const user = decodeTokenGetUser(token);
-      if (!user) {
-        setCurrentPlanSlug("");
-        return;
-      }
-
-      // Fetch user data từ API để lấy plan slug
+      // ✅ Fetch user plan from API (cookie sent automatically)
       try {
         const res = await axiosClient.get("/api/user");
-        const userData = res.data;
-        setCurrentPlanSlug(userData?.plan?.slug || "");
-      } catch (err) {
-        // Nếu có lỗi (ví dụ: không có quyền), set về empty
+        if (!res.data) {
+          setCurrentPlanSlug("");
+          return;
+        }
+        setCurrentPlanSlug(res.data.plan?.slug || res.data.planSlug || "");
+      } catch {
         setCurrentPlanSlug("");
       }
     };
@@ -41,4 +28,3 @@ export function useCurrentPlanSlug() {
 
   return currentPlanSlug;
 }
-

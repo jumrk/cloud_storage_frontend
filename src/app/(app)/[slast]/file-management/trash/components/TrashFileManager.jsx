@@ -1,21 +1,17 @@
 "use client";
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import CardDelete from "@/features/file-management/components/CardDelete";
+import { useTranslations } from "next-intl";
 import {
-  FiGrid,
-  FiList,
   FiSearch,
   FiChevronDown,
-  FiRotateCw,
-  FiTrash2,
   FiChevronUp,
+  FiRotateCw, // Restore
+  FiTrash2, // Delete Forever
 } from "react-icons/fi";
 import { BiSelectMultiple } from "react-icons/bi";
 import EmptyState from "@/shared/ui/EmptyState";
 import { toast } from "react-hot-toast";
-import Skeleton from "react-loading-skeleton";
-import "react-loading-skeleton/dist/skeleton.css";
 import SkeletonTable from "@/shared/skeletons/SkeletonTable";
 import FileManagementService from "@/features/file-management/services/fileManagementService";
 import ActionZone from "@/features/file-management/components/ActionZone";
@@ -23,30 +19,42 @@ import ConfirmDialog from "@/shared/ui/ConfirmDialog";
 import Breadcrumb from "@/shared/ui/Breadcrumb";
 import MiniStatus from "@/features/file-management/components/MiniStatus";
 import Popover from "@/shared/ui/Popover";
+import Image from "next/image";
+import { getFileIcon } from "@/shared/utils/getFileIcon";
+
+// Helper function
+function formatSize(size) {
+  if (!size || isNaN(size)) return "-";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let i = 0;
+  while (size >= 1024 && i < units.length - 1) {
+    size /= 1024;
+    i++;
+  }
+  return `${size.toFixed(2)} ${units[i]}`;
+}
 
 export default function TrashFileManager() {
+  const t = useTranslations("file_trash");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const api = useMemo(() => FileManagementService(), []);
-  const tokenRef = useMemo(
-    () =>
-      typeof window !== "undefined" ? localStorage.getItem("token") : null,
-    []
-  );
+  
   const [loading, setLoading] = useState(true);
   const [files, setFiles] = useState([]);
   const [folders, setFolders] = useState([]);
-  const [view, setView] = useState("grid");
+  // view state removed as we force table layout
   const [selectedItems, setSelectedItems] = useState([]);
   const [isMobile, setIsMobile] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortBy, setSortBy] = useState("newest"); //"newest","oldest","name"
+  const [sortBy, setSortBy] = useState("newest"); // "newest","oldest","name"
   const [tableSort, setTableSort] = useState({
     column: null,
     direction: "asc",
-  }); // For table column sorting
+  }); 
   const [confirmDialog, setConfirmDialog] = useState({
     open: false,
     title: "",
@@ -55,16 +63,14 @@ export default function TrashFileManager() {
     loading: false,
   });
   const [permanentDeleteBatches, setPermanentDeleteBatches] = useState([]);
-  const [currentFolderId, setCurrentFolderId] = useState(null); // Track current folder being viewed
-  const [folderStack, setFolderStack] = useState([]); // Track folder navigation stack
+  const [currentFolderId, setCurrentFolderId] = useState(null);
+  const [folderStack, setFolderStack] = useState([]);
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
-  const sortDropdownRef = React.useRef(null);
+  const sortDropdownRef = useRef(null);
   const limit = 20;
 
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
@@ -90,7 +96,7 @@ export default function TrashFileManager() {
         search: searchTerm,
         sortBy,
       };
-      const res = await api.getDeletedItems(params, tokenRef);
+      const res = await api.getDeletedItems(params);
       if (res.success) {
         setFiles(res.files || []);
         setFolders(res.folders || []);
@@ -103,13 +109,12 @@ export default function TrashFileManager() {
     } finally {
       setLoading(false);
     }
-  }, [api, tokenRef, page, limit, searchTerm, sortBy]);
+  }, [api, page, limit, searchTerm, sortBy]);
 
   useEffect(() => {
     fetchDeletedItems();
   }, [fetchDeletedItems]);
 
-  // Reset page when search or sort changes
   useEffect(() => {
     setPage(1);
   }, [searchTerm, sortBy]);
@@ -149,26 +154,18 @@ export default function TrashFileManager() {
       })),
     ];
 
-    // Filter items based on current folder
-    // If currentFolderId is null, show only root items (items whose parent/folder is NOT deleted)
     if (currentFolderId === null) {
-      // Get all folder IDs that are deleted
       const deletedFolderIds = new Set(folders.map((f) => f._id?.toString()));
-
-      // Filter: only show items that don't have a parent/folderId, OR their parent/folderId is NOT in deleted list (meaning parent still exists, so this item is at root level)
       items = items.filter((item) => {
         if (item.type === "folder") {
-          // Folder: show if no parentId OR parent is NOT deleted (parent still exists)
           if (!item.parentId) return true;
           return !deletedFolderIds.has(item.parentId?.toString());
         } else {
-          // File: show if no folderId OR folder is NOT deleted (folder still exists)
           if (!item.folderId) return true;
           return !deletedFolderIds.has(item.folderId?.toString());
         }
       });
     } else {
-      // Show items inside current folder
       items = items.filter((item) => {
         if (item.type === "folder") {
           return item.parentId?.toString() === currentFolderId?.toString();
@@ -178,7 +175,6 @@ export default function TrashFileManager() {
       });
     }
 
-    // Apply table column sorting if active
     if (tableSort.column) {
       items.sort((a, b) => {
         let aVal, bVal;
@@ -191,6 +187,9 @@ export default function TrashFileManager() {
         } else if (tableSort.column === "daysLeft") {
           aVal = a.daysLeft || 0;
           bVal = b.daysLeft || 0;
+        } else if (tableSort.column === "size") {
+            aVal = a.size || 0;
+            bVal = b.size || 0;
         } else {
           return 0;
         }
@@ -205,13 +204,11 @@ export default function TrashFileManager() {
   const handleTableSort = (column) => {
     setTableSort((prev) => {
       if (prev.column === column) {
-        // Toggle direction if same column
         return {
           column,
           direction: prev.direction === "asc" ? "desc" : "asc",
         };
       } else {
-        // New column, default to asc
         return {
           column,
           direction: "asc",
@@ -256,20 +253,15 @@ export default function TrashFileManager() {
 
   const handleFolderClick = (folder) => {
     if (folder.type === "folder") {
-      // Add current folder to stack before navigating
-      // Only add if it's not already the last item in stack (to avoid duplicates)
       if (currentFolderId !== null) {
         const currentFolder = folders.find(
           (f) => f._id?.toString() === currentFolderId?.toString()
         );
         setFolderStack((prev) => {
-          // Check if current folder is already the last item in stack
           const lastItem = prev[prev.length - 1];
           if (lastItem && String(lastItem.id) === String(currentFolderId)) {
-            // Already in stack as last item, don't add again
             return prev;
           }
-          // Add current folder to stack
           return [
             ...prev,
             { id: currentFolderId, name: currentFolder?.name || "Unknown" },
@@ -277,7 +269,7 @@ export default function TrashFileManager() {
         });
       }
       setCurrentFolderId(folder.id);
-      setSelectedItems([]); // Clear selection when navigating
+      setSelectedItems([]);
     }
   };
 
@@ -287,7 +279,7 @@ export default function TrashFileManager() {
       const previousFolder = newStack.pop();
       setFolderStack(newStack);
       setCurrentFolderId(previousFolder.id);
-      setSelectedItems([]); // Clear selection when navigating
+      setSelectedItems([]);
     } else {
       setCurrentFolderId(null);
       setSelectedItems([]);
@@ -296,30 +288,21 @@ export default function TrashFileManager() {
 
   const handleBreadcrumbClick = (folderId) => {
     if (folderId === null) {
-      // Click on home icon - go to root
       setCurrentFolderId(null);
       setFolderStack([]);
       setSelectedItems([]);
     } else {
-      // Check if clicked folder is current folder
-      if (currentFolderId?.toString() === folderId?.toString()) {
-        // Already at this folder, do nothing
-        return;
-      }
-      // Find the index of clicked folder in stack
+      if (currentFolderId?.toString() === folderId?.toString()) return;
+      
       const index = folderStack.findIndex(
         (f) => f.id?.toString() === folderId?.toString()
       );
       if (index !== -1) {
-        // Navigate to that folder - cut stack at that index
         const newStack = folderStack.slice(0, index + 1);
         setFolderStack(newStack);
         setCurrentFolderId(folderId);
         setSelectedItems([]);
       } else {
-        // Clicked on current folder from breadcrumb items
-        // This shouldn't happen as current folder is the last item and not clickable
-        // But handle it just in case
         setCurrentFolderId(folderId);
         setSelectedItems([]);
       }
@@ -328,7 +311,6 @@ export default function TrashFileManager() {
 
   const getBreadcrumbItems = () => {
     const items = [];
-    // Add all folders in stack
     folderStack.forEach((folder) => {
       if (folder.id !== null) {
         items.push({
@@ -337,8 +319,6 @@ export default function TrashFileManager() {
         });
       }
     });
-    // Add current folder only if it's NOT already in stack
-    // (to avoid duplicate display when navigating back)
     if (currentFolderId !== null) {
       const isCurrentFolderInStack = folderStack.some(
         (folder) => folder && String(folder.id) === String(currentFolderId)
@@ -368,9 +348,9 @@ export default function TrashFileManager() {
         id: item.id,
         type: item.type,
       }));
-      const res = await api.restoreItems(items, tokenRef);
+      const res = await api.restoreItems(items);
       if (res.success) {
-        toast.success(`Đã khôi phục ${res.restored?.length || 0} mục`);
+        toast.success(t("confirm.restore_success", { count: res.restored?.length || 0 }));
         setSelectedItems([]);
         fetchDeletedItems();
       } else {
@@ -383,14 +363,11 @@ export default function TrashFileManager() {
   };
 
   const handlePermanentDelete = async (item = null) => {
-    // If item is provided, use it; otherwise use selectedItems
-    // But also check if item is an array (from ActionZone) or a single object (from CardDelete)
     let itemsToDelete;
-    if (item !== null && item !== undefined) {
-      // If item is an array, use it directly; otherwise wrap it in an array
-      itemsToDelete = Array.isArray(item) ? item : [item];
+    if (item !== null && item !== undefined && !item.nativeEvent) { // Check for event object just in case
+        itemsToDelete = Array.isArray(item) ? item : [item];
     } else {
-      itemsToDelete = selectedItems;
+        itemsToDelete = selectedItems;
     }
 
     if (itemsToDelete.length === 0) {
@@ -398,28 +375,16 @@ export default function TrashFileManager() {
       return;
     }
 
-    // Validate items have required fields
     const invalidItems = itemsToDelete.filter((it) => !it.id || !it.type);
-    if (invalidItems.length > 0) {
-      toast.error("Một số mục không hợp lệ");
-      return;
-    }
+    if (invalidItems.length > 0) return;
 
     const confirmCallback = async () => {
       setConfirmDialog({
-        open: false,
-        title: "",
-        message: "",
-        onConfirm: null,
-        loading: false,
+        open: false, title: "", message: "", onConfirm: null, loading: false,
       });
-      // Clear selected items immediately so ActionZone disappears
       setSelectedItems([]);
 
-      // Create batch for MiniStatus
-      const batchId = `permanent-delete-${Date.now()}-${Math.random()
-        .toString(36)
-        .slice(2, 11)}`;
+      const batchId = `permanent-delete-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
       const batchItems = itemsToDelete.map((it) => ({
         id: it.id,
         name: it.name || it.originalName || it.id,
@@ -429,10 +394,7 @@ export default function TrashFileManager() {
       try {
         setPermanentDeleteBatches((prev) => [
           ...prev,
-          {
-            id: batchId,
-            items: batchItems,
-          },
+          { id: batchId, items: batchItems },
         ]);
       } catch (error) {
         toast.error("Không thể tạo batch xóa");
@@ -441,10 +403,10 @@ export default function TrashFileManager() {
 
     setConfirmDialog({
       open: true,
-      title: "Xóa vĩnh viễn",
-      message: `Bạn có chắc chắn muốn xóa vĩnh viễn ${itemsToDelete.length} mục? Hành động này không thể hoàn tác.`,
-      confirmText: "Xóa vĩnh viễn",
-      cancelText: "Hủy",
+      title: t("confirm.delete_title"),
+      message: t("confirm.delete_message", { count: itemsToDelete.length }),
+      confirmText: t("actions.delete_forever"),
+      cancelText: tCommon("cancel"),
       onConfirm: confirmCallback,
       loading: false,
     });
@@ -453,15 +415,10 @@ export default function TrashFileManager() {
   const handleRestoreSingle = async (item) => {
     if (!item) return;
     try {
-      const items = [
-        {
-          id: item.id,
-          type: item.type,
-        },
-      ];
-      const res = await api.restoreItems(items, tokenRef);
+      const items = [{ id: item.id, type: item.type }];
+      const res = await api.restoreItems(items);
       if (res.success) {
-        toast.success("Đã khôi phục mục");
+        toast.success(t("confirm.restore_success", { count: 1 }));
         setSelectedItems([]);
         fetchDeletedItems();
       } else {
@@ -479,171 +436,39 @@ export default function TrashFileManager() {
     return d.toLocaleString("vi-VN");
   };
 
+  const columnWidths = {
+    checkbox: "48px",
+    name: "40%",
+    size: "15%",
+    date: "20%",
+    daysLeft: "15%",
+    actions: "10%"
+  };
+
   return (
     <div className="flex w-full h-full bg-white relative">
       <div className="flex-1 flex flex-col items-start px-3 md:px-6 py-4">
-        {/* Header with search, view, and sort */}
+        {/* Header */}
         <div className="w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
-          <div className="flex-1 relative max-w-md">
-            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" />
-            <input
-              type="text"
-              placeholder="Tìm kiếm..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-xl bg-white shadow-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand text-[15px] text-gray-900 placeholder:text-gray-600"
-            />
-          </div>
-          <div className="flex flex-wrap gap-2 items-center">
-            {/* Sort dropdown */}
-            <div className="relative" ref={sortDropdownRef}>
-              <button
-                onClick={() => setSortDropdownOpen(!sortDropdownOpen)}
-                className="flex items-center justify-between pl-4 pr-3 py-2 rounded-xl bg-white shadow-sm border border-gray-200 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand text-[15px] text-gray-900 cursor-pointer transition-colors min-w-[170px]"
-              >
-                <span>
-                  {sortBy === "newest" && "Mới nhất"}
-                  {sortBy === "oldest" && "Cũ nhất"}
-                  {sortBy === "name" && "Sắp xếp theo tên"}
-                </span>
-                <FiChevronDown className={`ml-2 text-gray-600 transition-transform ${sortDropdownOpen ? 'rotate-180' : ''}`} />
-              </button>
-              <Popover open={sortDropdownOpen} className="top-full mt-1 w-full min-w-[170px] overflow-hidden">
-                <div className="py-1">
-                  <button
-                    onClick={() => {
-                      setSortBy("newest");
-                      setSortDropdownOpen(false);
-                    }}
-                    className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${
-                      sortBy === "newest" ? "bg-brand-50 text-brand font-medium" : "text-gray-900"
-                    }`}
-                  >
-                    Mới nhất
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSortBy("oldest");
-                      setSortDropdownOpen(false);
-                    }}
-                    className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${
-                      sortBy === "oldest" ? "bg-brand-50 text-brand font-medium" : "text-gray-900"
-                    }`}
-                  >
-                    Cũ nhất
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSortBy("name");
-                      setSortDropdownOpen(false);
-                    }}
-                    className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${
-                      sortBy === "name" ? "bg-brand-50 text-brand font-medium" : "text-gray-900"
-                    }`}
-                  >
-                    Sắp xếp theo tên
-                  </button>
-                </div>
-              </Popover>
+            <h1 className="text-xl font-bold text-gray-800">{t("title")}</h1>
+            <div className="flex items-center gap-3">
+             <div className="relative max-w-md">
+                <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                <input
+                    type="text"
+                    placeholder={t("search_placeholder")} // Fallback or use standard key
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2 rounded-lg bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand text-sm transition-all"
+                />
+             </div>
             </div>
-            {/* View toggle */}
-            <div className="hidden items-center gap-2 bg-white rounded-xl px-2 py-1 shadow-sm border border-gray-200 lg:flex">
-              <button
-                className={`p-2 rounded-lg transition-all text-lg ${
-                  view === "grid" ? "shadow" : "text-gray-600 hover:bg-white"
-                }`}
-                style={
-                  view === "grid"
-                    ? {
-                        background:
-                          "color-mix(in srgb, var(--color-brand) 15%, transparent)",
-                        color: "var(--color-brand)",
-                      }
-                    : undefined
-                }
-                onClick={() => setView("grid")}
-                aria-label="Xem dạng lưới"
-              >
-                <FiGrid />
-              </button>
-              <button
-                className={`p-2 rounded-lg transition-all text-lg ${
-                  view === "list" ? "shadow" : "text-gray-600 hover:bg-white"
-                }`}
-                style={
-                  view === "list"
-                    ? {
-                        background:
-                          "color-mix(in srgb, var(--color-brand) 15%, transparent)",
-                        color: "var(--color-brand)",
-                      }
-                    : undefined
-                }
-                onClick={() => setView("list")}
-                aria-label="Xem dạng bảng"
-              >
-                <FiList />
-              </button>
-            </div>
-            {/* Select All Button */}
-            <div className="bg-white rounded-xl px-1 py-1 shadow-sm border border-gray-200">
-              <button
-                aria-label="Chọn tất cả"
-                title={
-                  allItems.length > 0 &&
-                  allItems.every((item) =>
-                    selectedItems.find((i) => i.id === item.id)
-                  )
-                    ? "Bỏ chọn tất cả"
-                    : "Chọn tất cả"
-                }
-                className="p-2 rounded-lg transition focus:outline-none focus:ring-2"
-                style={{
-                  color:
-                    allItems.length > 0 &&
-                    allItems.every((item) =>
-                      selectedItems.find((i) => i.id === item.id)
-                    )
-                      ? "var(--color-danger-500)"
-                      : "var(--color-brand)",
-                  background:
-                    allItems.length > 0 &&
-                    allItems.every((item) =>
-                      selectedItems.find((i) => i.id === item.id)
-                    )
-                      ? "color-mix(in srgb, var(--color-danger) 10%, transparent)"
-                      : undefined,
-                  boxShadow:
-                    allItems.length > 0 &&
-                    allItems.every((item) =>
-                      selectedItems.find((i) => i.id === item.id)
-                    )
-                      ? "none"
-                      : undefined,
-                }}
-                onClick={() => {
-                  const allSelected =
-                    allItems.length > 0 &&
-                    allItems.every((item) =>
-                      selectedItems.find((i) => i.id === item.id)
-                    );
-                  if (allSelected) {
-                    setSelectedItems([]);
-                  } else {
-                    setSelectedItems(allItems);
-                  }
-                }}
-              >
-                <BiSelectMultiple />
-              </button>
-            </div>
-          </div>
         </div>
+        
+        <p className="text-sm text-gray-500 mb-4">{t("description")}</p>
 
-        {/* Breadcrumb - Only show when there are items or in a folder */}
-        {(allItems.length > 0 ||
-          currentFolderId !== null ||
-          folderStack.length > 0) && (
+        {/* Breadcrumb */}
+        {(allItems.length > 0 || currentFolderId !== null || folderStack.length > 0) && (
           <div className="w-full mb-2" style={{ minHeight: "28px" }}>
             <Breadcrumb
               items={getBreadcrumbItems()}
@@ -652,254 +477,186 @@ export default function TrashFileManager() {
           </div>
         )}
 
-        {/* Main content area */}
-        <div className="w-full">
+        {/* Main Content */}
+        <div className="w-full flex-1 overflow-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           {loading ? (
-            <>
-              {view === "list" ? (
-                <SkeletonTable rows={8} />
-              ) : (
-                <div className="w-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                  {Array.from({ length: 10 }).map((_, idx) => (
-                    <div
-                      key={idx}
-                      className="bg-white rounded-xl shadow-sm p-4 flex flex-col items-center border border-gray-100"
-                    >
-                      <Skeleton
-                        circle
-                        width={48}
-                        height={48}
-                        className="mb-2"
-                      />
-                      <Skeleton width={80} height={18} className="mb-1" />
-                      <Skeleton width={60} height={14} />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>
+            <SkeletonTable rows={8} />
           ) : allItems.length === 0 ? (
-            <div className="text-center text-gray-600 py-12">
-              <EmptyState message="Không có file nào trong thùng rác" />
+            <div className="flex flex-col items-center justify-center p-12">
+                <EmptyState message={t("empty")} />
             </div>
           ) : (
-            <>
-              {view === "grid" ? (
-                <>
-                  <div className="w-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                    {allItems.map((item) => (
-                      <div
-                        key={item.id}
-                        onClick={(e) => {
-                          // Only handle folder click if not clicking on buttons or inputs
-                          if (
-                            item.type === "folder" &&
-                            !e.target.closest("button") &&
-                            !e.target.closest("input") &&
-                            !e.target.closest("label")
-                          ) {
-                            handleFolderClick(item);
-                          }
-                        }}
-                        className={
-                          item.type === "folder" ? "cursor-pointer" : ""
-                        }
-                      >
-                        <CardDelete
-                          data={item}
-                          selectedItems={selectedItems}
-                          onSelectItem={handleSelectItem}
-                          onRestore={handleRestoreSingle}
-                          onPermanentDelete={handlePermanentDelete}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                  {/* Pagination */}
-                  {totalPages > 1 && (
-                    <div className="flex items-center justify-center gap-2 mt-6">
-                      <button
-                        onClick={() => setPage((p) => Math.max(1, p - 1))}
-                        disabled={page === 1}
-                        className="px-4 py-2 rounded-lg border border-gray-200 bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white"
-                      >
-                        Trước
-                      </button>
-                      <span className="px-4 py-2 text-sm text-gray-600">
-                        Trang {page} / {totalPages} ({total} mục)
-                      </span>
-                      <button
-                        onClick={() =>
-                          setPage((p) => Math.min(totalPages, p + 1))
-                        }
-                        disabled={page === totalPages}
-                        className="px-4 py-2 rounded-lg border border-gray-200 bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white"
-                      >
-                        Sau
-                      </button>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="bg-white rounded-lg shadow overflow-hidden">
-                  <table className="w-full">
-                    <thead className="bg-white">
-                      <tr>
-                        <th className="px-4 py-3 text-left">
-                          <input
+            <table className="w-full md:min-w-[800px] border-collapse">
+              <thead className="bg-gray-50/50 border-b border-gray-200 sticky top-0 z-10 backdrop-blur-sm">
+                <tr>
+                  <th className="px-4 py-3 text-left" style={{ width: columnWidths.checkbox }}>
+                    <div className="flex items-center justify-center">
+                        <input
                             type="checkbox"
-                            checked={
-                              allItems.length > 0 &&
-                              allItems.every((item) =>
-                                selectedItems.find((i) => i.id === item.id)
-                              )
-                            }
+                            checked={allItems.length > 0 && allItems.every((item) => selectedItems.find((i) => i.id === item.id))}
                             onChange={(e) => handleSelectAll(e.target.checked)}
-                            className="w-4 h-4"
-                          />
-                        </th>
-                        <th
-                          className="px-4 py-3 text-left text-sm font-semibold text-gray-900 cursor-pointer hover:bg-white select-none"
-                          onClick={() => handleTableSort("name")}
-                        >
-                          <div className="flex items-center gap-2">
-                            Tên {getSortIcon("name")}
-                          </div>
-                        </th>
-                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">
-                          Loại
-                        </th>
-                        <th
-                          className="px-4 py-3 text-left text-sm font-semibold text-gray-900 cursor-pointer hover:bg-white select-none"
-                          onClick={() => handleTableSort("date")}
-                        >
-                          <div className="flex items-center gap-2">
-                            Ngày xóa {getSortIcon("date")}
-                          </div>
-                        </th>
-                        <th
-                          className="px-4 py-3 text-left text-sm font-semibold text-gray-900 cursor-pointer hover:bg-white select-none"
-                          onClick={() => handleTableSort("daysLeft")}
-                        >
-                          <div className="flex items-center gap-2">
-                            Còn lại {getSortIcon("daysLeft")}
-                          </div>
-                        </th>
-                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">
-                          Thao tác
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {allItems.map((item) => {
-                        const checked = !!selectedItems.find(
-                          (i) => i.id === item.id
-                        );
-                        const daysLeft =
-                          item.daysLeft ||
-                          getDaysUntilPermanentDelete(
-                            item.deletedAt || item.date
-                          );
-                        return (
-                          <tr
-                            key={item.id}
-                            className={`border-t border-gray-200 hover:bg-white ${
-                              checked ? "bg-brand-50" : ""
-                            }`}
-                          >
-                            <td className="px-4 py-3">
-                              <input
+                            className="w-4 h-4 rounded border-gray-300 text-brand focus:ring-brand"
+                        />
+                    </div>
+                  </th>
+                  <th 
+                    className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-100/50 transition-colors select-none"
+                    style={{ width: isMobile ? "auto" : columnWidths.name }}
+                    onClick={() => handleTableSort("name")}
+                  >
+                    <div className="flex items-center gap-2">
+                      {t("table.name")} {getSortIcon("name")}
+                    </div>
+                  </th>
+                  <th 
+                    className="hidden md:table-cell px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-100/50 transition-colors select-none"
+                    style={{ width: columnWidths.size }}
+                    onClick={() => handleTableSort("size")}
+                  >
+                    <div className="flex items-center gap-2">
+                       {t("table.size")} {getSortIcon("size")}
+                    </div>
+                  </th>
+                  <th 
+                    className="hidden md:table-cell px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-100/50 transition-colors select-none"
+                    style={{ width: columnWidths.date }}
+                    onClick={() => handleTableSort("date")}
+                  >
+                     <div className="flex items-center gap-2">
+                       {t("table.deleted_at")} {getSortIcon("date")}
+                     </div>
+                  </th>
+                  <th 
+                    className="hidden md:table-cell px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-100/50 transition-colors select-none"
+                    style={{ width: columnWidths.daysLeft }}
+                    onClick={() => handleTableSort("daysLeft")}
+                  >
+                     <div className="flex items-center gap-2">
+                       {t("table.days_left")} {getSortIcon("daysLeft")}
+                     </div>
+                  </th>
+                  <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700" style={{ width: isMobile ? "auto" : columnWidths.actions }}>
+                     {t("table.actions")}
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {allItems.map((item, index) => {
+                  const checked = !!selectedItems.find((i) => i.id === item.id);
+                  const daysLeft = item.daysLeft || getDaysUntilPermanentDelete(item.deletedAt || item.date);
+                  
+                  return (
+                    <tr 
+                      key={item.id || index} 
+                      className={`group hover:bg-gray-50 transition-colors ${checked ? "bg-brand-50/30" : ""}`}
+                    >
+                      {/* Checkbox */}
+                      <td className="px-4 py-3">
+                         <div className="flex items-center justify-center">
+                            <input
                                 type="checkbox"
                                 checked={checked}
                                 onChange={() => handleSelectItem(item)}
-                                className="w-4 h-4"
-                              />
-                            </td>
-                            <td
-                              className={`px-4 py-3 text-sm text-gray-900 ${
-                                item.type === "folder"
-                                  ? "cursor-pointer hover:text-brand"
-                                  : ""
-                              }`}
-                              onClick={() =>
-                                item.type === "folder" &&
-                                handleFolderClick(item)
-                              }
+                                className="w-4 h-4 rounded border-gray-300 text-brand focus:ring-brand"
+                            />
+                         </div>
+                      </td>
+
+                      {/* Name */}
+                      <td className="px-4 py-3">
+                         <div 
+                            className={`flex items-center gap-3 ${item.type === "folder" ? "cursor-pointer" : ""}`}
+                            onClick={() => item.type === "folder" && handleFolderClick(item)}
+                         >
+                            <div className="relative flex-shrink-0">
+                               <Image
+                                  src={getFileIcon({ type: item.type, name: item.name })}
+                                  alt="icon"
+                                  className="w-8 h-8 object-contain"
+                                  width={32}
+                                  height={32}
+                               />
+                            </div>
+                            <span className={`text-sm font-medium truncate ${item.type === "folder" ? "text-gray-900 group-hover:text-brand" : "text-gray-900"}`} title={item.name}>
+                               {item.name}
+                            </span>
+                         </div>
+                      </td>
+
+                      {/* Size */}
+                      <td className="hidden md:table-cell px-4 py-3 text-sm text-gray-500">
+                         {item.type === "folder" ? "-" : formatSize(item.size)}
+                      </td>
+
+                      {/* Date */}
+                      <td className="hidden md:table-cell px-4 py-3 text-sm text-gray-500">
+                         {formatDate(item.deletedAt || item.date)}
+                      </td>
+
+                      {/* Days Left */}
+                      <td className="hidden md:table-cell px-4 py-3 text-sm">
+                         {daysLeft > 0 ? (
+                            <span className={`font-medium ${daysLeft <= 3 ? "text-red-500" : "text-orange-500"}`}>
+                               {daysLeft} ngày
+                            </span>
+                         ) : (
+                            <span className="text-red-600 font-bold">
+                               Sắp xóa
+                            </span>
+                         )}
+                      </td>
+
+                      {/* Actions */}
+                      <td className="px-4 py-3 text-right">
+                         <div className="flex items-center justify-end gap-1 opacity-100">
+                            <button
+                               onClick={(e) => { e.stopPropagation(); handleRestoreSingle(item); }}
+                               className="p-2 text-gray-500 hover:text-brand hover:bg-brand/10 rounded-lg transition-all"
+                               title={t("actions.restore")}
                             >
-                              {item.name}
-                            </td>
-                            <td className="px-4 py-3 text-sm text-gray-600">
-                              {item.type === "folder" ? "Thư mục" : "File"}
-                            </td>
-                            <td className="px-4 py-3 text-sm text-gray-600">
-                              {formatDate(item.deletedAt || item.date)}
-                            </td>
-                            <td className="px-4 py-3 text-sm">
-                              {daysLeft > 0 ? (
-                                <span className="text-orange-600 font-medium">
-                                  {daysLeft} ngày
-                                </span>
-                              ) : (
-                                <span className="text-red-600 font-medium">
-                                  Sắp xóa
-                                </span>
-                              )}
-                            </td>
-                            <td className="px-4 py-3">
-                              <div className="flex items-center gap-2">
-                                <button
-                                  onClick={() => handleRestoreSingle(item)}
-                                  className="p-2 text-green-500 hover:text-green-700 hover:bg-green-50 rounded-lg transition-colors"
-                                  title="Khôi phục"
-                                >
-                                  <FiRotateCw size={18} />
-                                </button>
-                                <button
-                                  onClick={() => handlePermanentDelete(item)}
-                                  className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
-                                  title="Xóa vĩnh viễn"
-                                >
-                                  <FiTrash2 size={18} />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                  {/* Pagination */}
-                  {totalPages > 1 && (
-                    <div className="flex items-center justify-center gap-2 py-4 border-t border-gray-200">
-                      <button
-                        onClick={() => setPage((p) => Math.max(1, p - 1))}
-                        disabled={page === 1}
-                        className="px-4 py-2 rounded-lg border border-gray-200 bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white"
-                      >
-                        Trước
-                      </button>
-                      <span className="px-4 py-2 text-sm text-gray-600">
-                        Trang {page} / {totalPages} ({total} mục)
-                      </span>
-                      <button
-                        onClick={() =>
-                          setPage((p) => Math.min(totalPages, p + 1))
-                        }
-                        disabled={page === totalPages}
-                        className="px-4 py-2 rounded-lg border border-gray-200 bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white"
-                      >
-                        Sau
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </>
+                               <FiRotateCw size={18} />
+                            </button>
+                            <button
+                               onClick={(e) => { e.stopPropagation(); handlePermanentDelete(item); }}
+                               className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                               title={t("actions.delete_forever")}
+                            >
+                               <FiTrash2 size={18} />
+                            </button>
+                         </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           )}
         </div>
+
+        {/* Pagination - Reuse existing logic */}
+        {totalPages > 1 && (
+            <div className="flex items-center justify-center w-full gap-2 mt-4">
+                <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="px-4 py-2 text-sm rounded-lg border border-gray-200 bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+                >
+                Trước
+                </button>
+                <span className="px-4 py-2 text-sm text-gray-600">
+                Trang {page} / {totalPages}
+                </span>
+                <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="px-4 py-2 text-sm rounded-lg border border-gray-200 bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+                >
+                Sau
+                </button>
+            </div>
+        )}
       </div>
 
-      {/* Action Zone */}
       <ActionZone
         isMobile={isMobile}
         selectedItems={selectedItems}
@@ -910,16 +667,11 @@ export default function TrashFileManager() {
         showPermanentDelete={true}
       />
 
-      {/* Confirm Dialog */}
       <ConfirmDialog
         open={confirmDialog.open}
         onClose={() => {
           setConfirmDialog({
-            open: false,
-            title: "",
-            message: "",
-            onConfirm: null,
-            loading: false,
+            open: false, title: "", message: "", onConfirm: null, loading: false,
           });
         }}
         onConfirm={confirmDialog.onConfirm}
@@ -930,7 +682,6 @@ export default function TrashFileManager() {
         cancelText={confirmDialog.cancelText}
       />
 
-      {/* Permanent Delete Status */}
       {permanentDeleteBatches.map((batch, idx) => (
         <MiniStatus
           key={batch.id}

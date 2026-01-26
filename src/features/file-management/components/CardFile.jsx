@@ -1,7 +1,6 @@
 import React from "react";
 import { getFileIcon } from "@/shared/utils/getFileIcon";
-import { FiEdit2, FiCheck, FiX, FiShare2, FiLock } from "react-icons/fi";
-import { FaStar, FaRegStar } from "react-icons/fa";
+import { FiCheck, FiX, FiMoreVertical, FiLock } from "react-icons/fi";
 import Image from "next/image";
 import axiosClient from "@/shared/lib/axiosClient";
 import toast from "react-hot-toast";
@@ -49,6 +48,8 @@ function Card_file({
   onToggleFavorite,
   favoriteLoading = false,
   isFileUploading,
+  onContextMenu,
+  tags = [],
 }) {
   const isFolder = data.type === "folder";
   const icon = getFileIcon({ type: data.type, name: data.name });
@@ -253,6 +254,7 @@ function Card_file({
       draggable={!data.locked}
       onDragStart={data.locked ? undefined : handleDragStart}
       onDragEnd={data.locked ? undefined : handleDragEnd}
+      onContextMenu={(e) => onContextMenu && onContextMenu(e, data)}
       onDragOver={(e) => {
         if (
           isFolder &&
@@ -274,25 +276,40 @@ function Card_file({
         }
       }}
     >
+      {/* Tag Badges */}
+      {!isFolder && data.tags && data.tags.length > 0 && (
+        <div className="absolute top-2 left-2 flex flex-col gap-1 z-10 pointer-events-none">
+          {data.tags.slice(0, 3).map(tagId => {
+            const tag = tags?.find(t => t._id === tagId);
+            if (!tag) return null;
+            return (
+              <div 
+                key={tagId} 
+                className="w-2 h-2 rounded-full shadow-sm ring-1 ring-white" 
+                style={{ backgroundColor: tag.color }}
+                title={tag.name}
+              />
+            );
+          })}
+        </div>
+      )}
       {/* Icon khóa nếu bị locked */}
       {data.locked && (
         <div className="absolute top-2 right-2 flex items-center gap-1 text-gray-400 text-xs z-10">
           <FiLock />
         </div>
       )}
-      {/* Icon chia sẻ / yêu thích desktop */}
+      {/* Icon dấu 3 chấm (more options) desktop */}
       {!isMobile && (
-        <div className="absolute top-3 right-3 flex flex-col gap-2 z-30 opacity-0 translate-x-3 pointer-events-none transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0 group-hover:pointer-events-auto">
+        <div className="absolute top-3 right-3 z-30 opacity-0 translate-x-3 pointer-events-none transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0 group-hover:pointer-events-auto">
           <button
-            className="text-blue-500 hover:text-blue-700 bg-white rounded-full p-1.5 shadow-sm transition-colors"
-            title="Chia sẻ file/thư mục"
+            className="text-gray-600 hover:text-brand bg-white rounded-full p-2 shadow-md hover:shadow-lg transition-all"
+            title="Thêm tùy chọn"
             onClick={(e) => {
               e.stopPropagation();
               e.preventDefault();
-              if (onShare) {
-                onShare(data);
-              } else {
-                console.warn("onShare prop is not provided");
+              if (onContextMenu) {
+                onContextMenu(e, data);
               }
             }}
             onMouseDown={(e) => {
@@ -300,45 +317,17 @@ function Card_file({
             }}
             type="button"
           >
-            <FiShare2 size={16} />
+            <FiMoreVertical size={16} />
           </button>
           {!isFolder && data.driveUploadStatus === "failed" && (
             <button
-              className="text-orange-500 hover:text-orange-700 bg-white rounded-full p-1.5 shadow-sm transition-colors"
+              className="mt-2 text-orange-500 hover:text-orange-700 bg-white rounded-full p-1.5 shadow-sm transition-colors"
               title="Retry upload lên Drive"
               onClick={handleRetryDriveUpload}
               onMouseDown={(e) => e.stopPropagation()}
               type="button"
             >
               ⟳
-            </button>
-          )}
-          {!isFolder && (
-            <button
-              className={`bg-white rounded-full p-1.5 shadow-sm transition-colors ${
-                isFavorite
-                  ? "text-amber-500"
-                  : "text-gray-400 hover:text-amber-500"
-              } ${favoriteLoading ? "opacity-60 cursor-wait" : ""}`}
-              title={isFavorite ? "Bỏ khỏi yêu thích" : "Thêm vào yêu thích"}
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                if (!favoriteLoading && onToggleFavorite) {
-                  onToggleFavorite(data);
-                }
-              }}
-              onMouseDown={(e) => e.stopPropagation()}
-              type="button"
-              disabled={favoriteLoading}
-            >
-              {favoriteLoading ? (
-                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></span>
-              ) : isFavorite ? (
-                <FaStar size={14} />
-              ) : (
-                <FaRegStar size={14} />
-              )}
             </button>
           )}
         </div>
@@ -503,13 +492,16 @@ function Card_file({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  startEdit(e);
+                  e.preventDefault();
+                  if (onContextMenu) {
+                    onContextMenu(e, data);
+                  }
                 }}
-                className="absolute top-2 right-2 text-gray-400 hover:text-primary bg-white rounded-full p-1"
-                title="Đổi tên"
+                className="absolute top-2 right-2 text-gray-600 hover:text-brand bg-white rounded-full p-1.5 shadow-sm hover:shadow-md transition-all"
+                title="Thêm tùy chọn"
                 style={{ zIndex: 20 }}
               >
-                <FiEdit2 size={16} />
+                <FiMoreVertical size={16} />
               </button>
             )}
           </>

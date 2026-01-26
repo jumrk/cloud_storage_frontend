@@ -98,17 +98,15 @@ export default function JobManagementChat({
       const conversationHistory = messages
         .slice(-10)
         .map((msg) => ({ role: msg.role, content: msg.content }));
-      const token =
-        typeof window !== "undefined" ? localStorage.getItem("token") : null;
       const baseURL =
         process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000";
       const response = await fetch(
         `${baseURL}/api/chat/job-management/stream`,
         {
           method: "POST",
+          credentials: "include", // ✅ Send cookies with request
           headers: {
             "Content-Type": "application/json",
-            Authorization: token ? `Bearer ${token}` : "",
           },
           body: JSON.stringify({
             message: messageText,

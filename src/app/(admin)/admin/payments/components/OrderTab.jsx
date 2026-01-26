@@ -59,12 +59,10 @@ export default function OrderTab({
     if (!modalOrder) return;
     setApproving(true);
     try {
-      const token =
-        typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      // ✅ Cookie sent automatically
       const res = await axiosClient.patch(
         "/api/admin/orders",
-        { orderId: modalOrder._id, action: "approve" },
-        { headers: token ? { Authorization: `Bearer ${token}` } : {} },
+        { orderId: modalOrder._id, action: "approve" }
       );
       if (res.data.success) {
         toast.success("Duyệt đơn thành công!");
@@ -83,12 +81,10 @@ export default function OrderTab({
     if (!modalOrder || !rejectReason.trim()) return;
     setRejecting(true);
     try {
-      const token =
-        typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      // ✅ Cookie sent automatically
       const res = await axiosClient.patch(
         "/api/admin/orders",
-        { orderId: modalOrder._id, action: "reject", reason: rejectReason },
-        { headers: token ? { Authorization: `Bearer ${token}` } : {} },
+        { orderId: modalOrder._id, action: "reject", reason: rejectReason }
       );
       if (res.data.success) {
         toast.success("Đã từ chối đơn hàng!");

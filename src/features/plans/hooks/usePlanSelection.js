@@ -10,10 +10,13 @@ import { decodeTokenGetUser } from "@/shared/lib/jwt";
 export function usePlanSelection(currentPlanSlug = "", onSelect = null) {
   const router = useRouter();
 
-  const handleSelect = (plan, selectedBilling) => {
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("token") : null;
-    const user = token ? decodeTokenGetUser(token) : null;
+  const handleSelect = async (plan, selectedBilling) => {
+    // ✅ Check authentication via API call (cookie sent automatically)
+    let user = null;
+    try {
+      const res = await axiosClient.get("/api/user");
+      user = res.data;
+    } catch {}
     const isAuthenticated = !!user;
     if (user?.role === "member") {
       return;

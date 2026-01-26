@@ -26,8 +26,7 @@ export default function useChat(updateUnreadCount) {
   const [loadingChats, setLoadingChats] = useState(false);
   const [initialChatsLoaded, setInitialChatsLoaded] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("token") : "";
+  // ✅ No need for token - cookie sent automatically
   const [myId, setMyId] = useState(null);
   const [pinnedMap, setPinnedMap] = useState({});
   const [attachmentState, setAttachmentState] = useState({

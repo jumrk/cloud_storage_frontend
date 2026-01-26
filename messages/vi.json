@@ -94,6 +94,20 @@
     "notifications": "Thông báo",
     "account_info": "Thông tin tài khoản"
   },
+  "notification": {
+    "title": "Thông báo",
+    "description": "Xem các thông báo mới nhất của bạn tại đây.",
+    "marked_all_read_success": "Đã đánh dấu tất cả là đã đọc",
+    "mark_all_read": "Đánh dấu tất cả đã đọc",
+    "empty": "Không có thông báo nào",
+    "new": "Mới",
+    "delete_tooltip": "Xóa thông báo",
+    "delete": "Xóa",
+    "load_more": "Tải thêm",
+    "loading": "Đang tải...",
+    "view_all": "Xem tất cả"
+  },
+  "upload_success": "Tải lên thành công!",
   "user_menu": {
     "total": "Tổng",
     "remaining": "Còn lại",
@@ -158,7 +172,8 @@
 
   "common": {
     "error": "Đã có lỗi xảy ra",
-    "server_error": "Lỗi máy chủ, vui lòng thử lại sau"
+    "server_error": "Lỗi máy chủ, vui lòng thử lại sau",
+    "cancel": "Hủy bỏ"
   },
   "auth": {
     "not_logged_in": "Bạn chưa đăng nhập, vui lòng đăng nhập",
@@ -368,7 +383,11 @@
       "create_folder_placeholder": "Tên thư mục",
       "move_folder_title": "Chọn thư mục đích",
       "move_outside_all": "Ra ngoài tất cả thư mục (Thư mục gốc)",
-      "move_folder_option": "📁 {folderName}"
+      "move_folder_option": "📁 {folderName}",
+      "manage_tags_title": "Quản lý nhãn",
+      "create_tag": "Tạo nhãn mới",
+      "tag_name_placeholder": "Tên nhãn...",
+      "existing_tags": "Danh sách nhãn"
     },
     "folder": {
       "root": "Thư mục gốc"
@@ -376,12 +395,22 @@
     "sidebar": {
       "close_filter": "Đóng bộ lọc",
       "open_filter": "Mở bộ lọc",
+      "filter_title": "Bộ lọc",
       "type": "Loại",
       "all": "Tất cả",
       "file": "Tệp",
       "folder": "Thư mục",
       "account": "Tài khoản",
-      "file_types": "Loại tệp"
+      "sort": "Sắp xếp",
+      "favorites": "Yêu thích",
+      "file_types": "Loại tệp",
+      "tags": "Nhãn",
+      "all_tags": "Tất cả nhãn",
+      "manage_tags": "Quản lý nhãn",
+      "no_tags": "Chưa có nhãn nào",
+      "storage": "Dung lượng",
+      "upgrade": "Nâng cấp bộ nhớ",
+      "trash_info": "Thùng rác: {size}"
     },
     "error": {
       "cannot_identify_permission_target": "Không thể xác định thư mục hoặc tệp để cấp quyền!"
@@ -393,6 +422,20 @@
     "select_all": "Chọn tất cả",
     "select_all_current": "Chọn tất cả hiện tại",
     "deselect_all": "Bỏ chọn tất cả",
+    "context": {
+      "preview": "Xem trước",
+      "download": "Tải xuống",
+      "share": "Chia sẻ nâng cao",
+      "rename": "Đổi tên",
+      "move": "Di chuyển",
+      "copy": "Tạo bản sao",
+      "tags": "Nhãn",
+      "unlock": "Mở khóa",
+      "lock": "Khóa tệp",
+      "versions": "Phiên bản cũ",
+      "activity": "Lịch sử hoạt động",
+      "delete": "Xóa tệp"
+    },
     "chat": {
       "open_chat": "Mở trợ lý AI"
     }
@@ -415,11 +458,36 @@
       "recipient": "Người nhận",
       "owner": "Người chia sẻ",
       "date": "Ngày chia sẻ",
-      "permission": "Quyền"
+      "permission": "Quyền",
+      "size": "Kích thước",
+      "actions": "Thao tác"
     },
     "empty": "Chưa có tệp nào trong mục này.",
     "actions": {
       "manage": "Quản lý chia sẻ"
+    }
+  },
+  "file_trash": {
+    "title": "Thùng rác",
+    "description": "Các tệp đã xóa sẽ được lưu ở đây trong 30 ngày trước khi xóa vĩnh viễn.",
+    "search_placeholder": "Tìm kiếm...",
+    "table": {
+      "name": "Tên tệp",
+      "size": "Kích thước",
+      "deleted_at": "Ngày xóa",
+      "days_left": "Còn lại",
+      "actions": "Thao tác"
+    },
+    "empty": "Thùng rác trống",
+    "actions": {
+      "restore": "Khôi phục",
+      "delete_forever": "Xóa vĩnh viễn"
+    },
+    "confirm": {
+      "delete_title": "Xóa vĩnh viễn",
+      "delete_message": "Bạn có chắc chắn muốn xóa vĩnh viễn {count} mục? Hành động này không thể hoàn tác.",
+      "restore_success": "Đã khôi phục {count} mục",
+      "delete_success": "Đã xóa vĩnh viễn {count} mục"
     }
   },
   "file_favorites": {
@@ -1030,18 +1098,7 @@
     }
   },
   "table_of_contents": "Mục lục",
-  "notification": {
-    "title": "Thông báo",
-    "description": "Xem các thông báo mới nhất của bạn tại đây.",
-    "mark_all_read": "Đánh dấu tất cả là đã đọc",
-    "empty": "Không có thông báo.",
-    "new": "Mới",
-    "delete_tooltip": "Xóa thông báo",
-    "delete": "Xóa",
-    "load_more": "Tải thêm",
-    "loading": "Đang tải...",
-    "view_all": "Xem tất cả"
-  },
+
   "change_password": {
     "title": "Đổi mật khẩu",
     "old_password_placeholder": "Mật khẩu hiện tại",
@@ -1205,7 +1262,9 @@
     "choose_file": "Chọn tệp",
     "choose_folder": "Chọn thư mục",
     "upload_count": "Tải lên {count} mục",
-    "processing": "Đang xử lý, vui lòng chờ..."
+    "processing": "Đang xử lý, vui lòng chờ...",
+    "support_text": "Hỗ trợ định dạng hình ảnh, video, tài liệu...",
+    "start_upload": "Bắt đầu tải lên"
   },
   "sidebar": {
     "logout_success": "Đăng xuất thành công!",

@@ -1,5 +1,6 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { FiMessageCircle, FiX, FiSend, FiLoader } from "react-icons/fi";
 import { useTranslations } from "next-intl";
 import axiosClient from "@/shared/lib/axiosClient";
@@ -115,10 +116,6 @@ export default function FileManagerChat({
         content: msg.content,
       }));
 
-      // Get token for authorization
-      const token =
-        typeof window !== "undefined" ? localStorage.getItem("token") : null;
-
       // Call streaming API
       const baseURL =
         process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000";
@@ -126,9 +123,9 @@ export default function FileManagerChat({
         `${baseURL}/api/chat/file-management/stream`,
         {
           method: "POST",
+          credentials: "include", // ✅ Send cookies with request
           headers: {
             "Content-Type": "application/json",
-            Authorization: token ? `Bearer ${token}` : "",
           },
           body: JSON.stringify({
             message: messageText,
@@ -391,6 +388,37 @@ export default function FileManagerChat({
     };
   }, []);
 
+  /* Touch handling for swipe-to-close */
+  const touchStartRef = useRef(null);
+  
+  const handleTouchStart = (e) => {
+    touchStartRef.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
+    };
+  };
+
+  const handleTouchEnd = (e) => {
+    if (!touchStartRef.current) return;
+    
+    const touchEnd = {
+      x: e.changedTouches[0].clientX,
+      y: e.changedTouches[0].clientY,
+    };
+    
+    const deltaX = touchEnd.x - touchStartRef.current.x;
+    const deltaY = touchEnd.y - touchStartRef.current.y;
+    
+    // Check if swipe is horizontal and rightwards
+    // Threshold: moved right at least 75px, and vertical movement is less than horizontal (to avoid closing while scrolling vertically)
+    if (deltaX > 75 && Math.abs(deltaX) > Math.abs(deltaY)) {
+      handleClose();
+    }
+    
+    // Reset reference
+    touchStartRef.current = null;
+  };
+
   if (!isVisible && !isClosing) return null;
 
   return (
@@ -404,7 +432,7 @@ export default function FileManagerChat({
       />
       {/* Chat Panel */}
       <div
-        className={`fixed right-0 top-0 h-screen w-full md:w-[420px] flex flex-col z-50 shadow-2xl transition-transform duration-300 ease-out ${
+        className={`fixed right-0 top-0 h-screen w-full md:w-[420px] flex flex-col z-[9999] shadow-2xl transition-transform duration-300 ease-out ${
           isClosing ? "translate-x-full" : "translate-x-0"
         }`}
         style={{
@@ -412,6 +440,8 @@ export default function FileManagerChat({
           transform:
             isVisible && !isClosing ? "translateX(0)" : "translateX(100%)",
         }}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
       >
         {/* Close Button - Only show on mobile */}
         <button
