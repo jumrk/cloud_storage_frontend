@@ -1301,7 +1301,10 @@
     "choose_file": "Choose file",
     "choose_folder": "Choose folder",
     "upload_count": "Upload {count} items",
-    "processing": "Processing, please wait..."
+    "processing": "Processing, please wait...",
+    "support_text": "Support images, videos, documents...",
+    "start_upload": "Start upload",
+    "file_size_error": "File {fileName} exceeds the {max} limit"
   },
   "sidebar": {
     "logout_success": "Logout successful!",

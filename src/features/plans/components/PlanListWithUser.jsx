@@ -10,6 +10,8 @@ import axiosClient from "@/shared/lib/axiosClient";
 export default function PlanListWithUser(props) {
   const currentPlanSlug = useCurrentPlanSlug();
   const [userRole, setUserRole] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // ✅ Fetch user role from API (cookie sent automatically)
@@ -17,20 +19,28 @@ export default function PlanListWithUser(props) {
       .then((res) => {
         if (!res.data) {
           setUserRole(null);
+          setIsLoggedIn(false);
           return;
         }
         setUserRole(res.data.role || null);
+        setIsLoggedIn(true);
       })
       .catch(() => {
         setUserRole(null);
+        setIsLoggedIn(false);
+      })
+      .finally(() => {
+        setIsLoading(false);
       });
   }, []);
 
   return (
     <PlanList
       {...props}
-      currentPlanSlug={currentPlanSlug}
+      currentPlanSlug={isLoggedIn ? currentPlanSlug : null}
       userRole={userRole}
+      isLoggedIn={isLoggedIn}
+      isAuthLoading={isLoading}
     />
   );
 }

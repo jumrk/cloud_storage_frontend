@@ -1264,7 +1264,8 @@
     "upload_count": "Tải lên {count} mục",
     "processing": "Đang xử lý, vui lòng chờ...",
     "support_text": "Hỗ trợ định dạng hình ảnh, video, tài liệu...",
-    "start_upload": "Bắt đầu tải lên"
+    "start_upload": "Bắt đầu tải lên",
+    "file_size_error": "File {fileName} vượt quá giới hạn {max}"
   },
   "sidebar": {
     "logout_success": "Đăng xuất thành công!",

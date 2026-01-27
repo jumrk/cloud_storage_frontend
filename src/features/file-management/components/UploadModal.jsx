@@ -10,7 +10,7 @@ import axiosClient from "@/shared/lib/axiosClient";
 import useDebounce from "@/hooks/useDebounce";
 import { motion, AnimatePresence } from "framer-motion";
 
-const MAC_FILE_SIZE = 10 * 1024 * 1024 * 1024; // 10GB
+// Không giới hạn file size
 const MAX_FILE_COUNT = 1000;
 
 const dropIn = {
@@ -224,12 +224,6 @@ const UploadModal = ({ isOpen, onClose, onStartUpload, parentId, isMember = fals
       );
       const toAdd = [];
       for (const file of files) {
-        // Validation: Check max file size
-        if (file.size > MAC_FILE_SIZE) {
-            toast.error(t("upload_modal.file_size_error", { fileName: file.name, max: "10GB" }) || `File ${file.name} vượt quá giới hạn 10GB.`);
-            continue;
-          }
-
         const relPathRaw =
           file._relativePath || file.webkitRelativePath || file.name;
         // Sanitize path here

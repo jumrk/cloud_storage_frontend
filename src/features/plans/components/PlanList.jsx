@@ -16,6 +16,8 @@ export default function PlanList({
   onSelect,
   defaultBilling = "annual",
   userRole = null,
+  isLoggedIn = false,
+  isAuthLoading = false,
 }) {
   const [billing, setBilling] = useState(
     defaultBilling === "monthly" ? "monthly" : "annual",
@@ -158,6 +160,7 @@ export default function PlanList({
                   onSelect={handleSelect}
                   selectionLockedReason={selectionLockedReason}
                   hasPendingOrder={hasPendingOrder}
+                  isLoggedIn={isLoggedIn}
                 />
               );
             })}

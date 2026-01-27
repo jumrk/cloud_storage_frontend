@@ -211,6 +211,8 @@ const MiniStatusBatch = ({
       uploadSpeedRef.current = {};
       lastStatusRef.current = {};
       networkRetryQueueRef.current = [];
+      pollErrorCountRef.current = {};
+      pollStartTimeRef.current = {};
 
       console.log("[MiniStatus] Cleanup completed on unmount");
     };
@@ -379,19 +381,68 @@ const MiniStatusBatch = ({
   const restartAttemptedRef = useRef({});
   const forcedChunkSizeRef = useRef({});
 
+  // Track polling errors per file
+  const pollErrorCountRef = useRef({});
+  const pollStartTimeRef = useRef({});
+  
   const pollStatusUntilDone = (uploadId, fileIndex, fileSize) => {
     if (statusPollersRef.current[fileIndex]) {
       clearInterval(statusPollersRef.current[fileIndex]);
       delete statusPollersRef.current[fileIndex];
     }
     
+    // Initialize error tracking
+    pollErrorCountRef.current[fileIndex] = 0;
+    pollStartTimeRef.current[fileIndex] = Date.now();
+    
+    const MAX_POLLING_DURATION = 10 * 60 * 1000; // 10 minutes max
+    const MAX_CONSECUTIVE_ERRORS = 10;
+    
     const tick = async () => {
+      // Check timeout
+      const elapsed = Date.now() - pollStartTimeRef.current[fileIndex];
+      if (elapsed > MAX_POLLING_DURATION) {
+        console.error(`[Upload] Polling timeout for file ${fileIndex} after ${elapsed / 1000}s`);
+        clearInterval(statusPollersRef.current[fileIndex]);
+        delete statusPollersRef.current[fileIndex];
+        setFileStates((prev) =>
+          prev.map((f, idx) =>
+            idx === fileIndex && f.status !== "success" && f.status !== "error"
+              ? { ...f, status: "error", error: "Upload timeout - không nhận được phản hồi từ server" }
+              : f
+          )
+        );
+        return;
+      }
+      
       try {
         const res = await axiosClient.get("/api/upload/status", {
           params: { uploadId },
+          timeout: 15000, // 15s timeout per request
         });
         const data = res.data;
-        if (!data?.success) return;
+        
+        if (!data?.success) {
+          pollErrorCountRef.current[fileIndex]++;
+          console.warn(`[Upload] Poll returned success=false, error count: ${pollErrorCountRef.current[fileIndex]}`);
+          
+          if (pollErrorCountRef.current[fileIndex] >= MAX_CONSECUTIVE_ERRORS) {
+            clearInterval(statusPollersRef.current[fileIndex]);
+            delete statusPollersRef.current[fileIndex];
+            setFileStates((prev) =>
+              prev.map((f, idx) =>
+                idx === fileIndex && f.status !== "success" && f.status !== "error"
+                  ? { ...f, status: "error", error: "Không thể lấy trạng thái upload từ server" }
+                  : f
+              )
+            );
+          }
+          return;
+        }
+        
+        // Reset error count on success
+        pollErrorCountRef.current[fileIndex] = 0;
+        
         lastStatusRef.current[fileIndex] = {
           assembledBytes: data.contiguousWatermark,
           driveBytes: data.nextDriveOffset,
@@ -400,27 +451,12 @@ const MiniStatusBatch = ({
           state: data.state,
         };
         
-        // ================= RESEND MISSING CHUNKS (WITH LOCK) =================
-        // CRITICAL: With in-order validation, resending missing chunks is tricky.
-        // We can only resend if backend is waiting for those specific chunks.
-        // If all chunks were sent but bitmap shows missing, it's likely a race condition
-        // or bitmap read bug. In that case, we should NOT resend (would cause OUT_OF_ORDER).
-        //
-        // For now, we DISABLE automatic resend from polling to avoid conflicts.
-        // The main upload loop already handles retries with proper ordering.
-        // Polling should only detect state changes (COMPLETED, FAILED), not trigger resends.
-        //
-        // NOTE: If chunks are truly missing (network error mid-upload), the main upload
-        // loop should have failed and triggered proper retry. Polling-based resend
-        // cannot work correctly with in-order validation since we don't know the
-        // exact chunk backend expects next.
+        // Log missing chunks for debugging (don't resend)
         if (data.missingChunks && Array.isArray(data.missingChunks) && data.missingChunks.length > 0) {
           console.warn(
             `[Upload] Polling detected ${data.missingChunks.length} missing chunks, but NOT resending.`,
             `With in-order validation, only the main upload loop can resend. Chunks: ${data.missingChunks.slice(0, 5).join(", ")}${data.missingChunks.length > 5 ? "..." : ""}`
           );
-          // Log for debugging - if this appears frequently, there may be a real issue
-          // that needs investigation (e.g., network drops, backend errors)
         }
         
         // Handle FAILED state - stop polling and show error
@@ -475,11 +511,24 @@ const MiniStatusBatch = ({
           return next;
         });
       } catch (e) {
-        console.log("[FE] status poll error:", e?.message);
+        pollErrorCountRef.current[fileIndex]++;
+        console.error(`[FE] status poll error (${pollErrorCountRef.current[fileIndex]}/${MAX_CONSECUTIVE_ERRORS}):`, e?.message);
+        
+        if (pollErrorCountRef.current[fileIndex] >= MAX_CONSECUTIVE_ERRORS) {
+          clearInterval(statusPollersRef.current[fileIndex]);
+          delete statusPollersRef.current[fileIndex];
+          setFileStates((prev) =>
+            prev.map((f, idx) =>
+              idx === fileIndex && f.status !== "success" && f.status !== "error"
+                ? { ...f, status: "error", error: `Lỗi kết nối: ${e?.message || "Không thể kiểm tra trạng thái upload"}` }
+                : f
+            )
+          );
+        }
       }
     };
     tick();
-    statusPollersRef.current[fileIndex] = setInterval(tick, 3000); // Tăng từ 1.5s lên 3s để giảm load
+    statusPollersRef.current[fileIndex] = setInterval(tick, 3000);
   };
 
   // Helper function để retry với exponential backoff
@@ -794,16 +843,16 @@ const MiniStatusBatch = ({
 
       return true;
     } catch (error) {
-      console.warn(`[Upload] Complete request failed: ${error.message}`);
-      // Vẫn set processing để không block file tiếp theo
+      console.error(`[Upload] Complete request failed: ${error.message}`);
+      // ✅ FIX: Set error status instead of processing when complete fails
       setFileStates((prev) =>
         prev.map((f, idx) =>
           idx === fileIndex && f.status !== "success" && f.status !== "error"
-            ? { ...f, status: "processing", progress: 100 }
+            ? { ...f, status: "error", error: `Không thể hoàn tất upload: ${error.message}` }
             : f
         )
       );
-      return true;
+      return false; // Return false to indicate failure
     }
   };
 

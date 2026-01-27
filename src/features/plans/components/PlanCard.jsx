@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import { useRouter } from "next/navigation";
 import { FiCheck } from "react-icons/fi";
 import { formatSize } from "@/shared/utils/driveUtils";
 
@@ -25,7 +26,9 @@ export default function PlanCard({
   onSelect,
   selectionLockedReason = "",
   hasPendingOrder = false, // Có order pending không
+  isLoggedIn = false, // User đã đăng nhập chưa
 }) {
+  const router = useRouter();
   const isAnnual = billing === "annual";
   const isFreePlan = plan.slug?.toLowerCase() === "free";
   // Free plan luôn có giá 0
@@ -44,29 +47,30 @@ export default function PlanCard({
       ? pricePerMonth * 12
       : pricePerMonth;
 
-  // Normalize currentPlanSlug: nếu empty/null thì coi như đang dùng Free plan
-  const normalizedCurrentSlug = (currentPlanSlug || "").toLowerCase() || "free";
+  // Normalize slugs
+  const normalizedCurrentSlug = (currentPlanSlug || "").toLowerCase();
   const normalizedPlanSlug = (plan.slug || "").toLowerCase();
 
-  // Kiểm tra xem đây có phải là plan hiện tại không
-  const isCurrent = normalizedCurrentSlug === normalizedPlanSlug;
+  // Kiểm tra xem đây có phải là plan hiện tại không (chỉ khi đã login)
+  const isCurrent = isLoggedIn && normalizedCurrentSlug === normalizedPlanSlug;
 
   // Kiểm tra xem user có đang dùng gói khác (không phải Free) không
   const hasOtherPlan =
+    isLoggedIn &&
     normalizedCurrentSlug &&
     normalizedCurrentSlug !== "free" &&
     normalizedCurrentSlug !== normalizedPlanSlug;
 
-  // Disabled logic:
+  // Disabled logic (chỉ áp dụng khi đã login):
   // 1. Nếu đây là plan hiện tại → disabled
   // 2. Nếu đây là Free plan và user đang dùng gói khác → disabled
   // 3. Nếu có order pending → disabled (trừ khi đang renew plan hiện tại)
-  const baseDisabled = isCurrent || (isFreePlan && hasOtherPlan);
+  const baseDisabled = isLoggedIn && (isCurrent || (isFreePlan && hasOtherPlan));
   const allowRenew =
     isCurrent && daysUntilExpiry !== null && daysUntilExpiry <= 3;
-  const lockedByRole = Boolean(selectionLockedReason);
+  const lockedByRole = isLoggedIn && Boolean(selectionLockedReason);
   const isDisabled =
-    lockedByRole || hasPendingOrder || (baseDisabled && !allowRenew);
+    isLoggedIn && (lockedByRole || hasPendingOrder || (baseDisabled && !allowRenew));
 
   const formatStorage = (storage) => {
     if (!storage && storage !== 0) return "0 GB";
@@ -145,6 +149,11 @@ export default function PlanCard({
             : "bg-brand text-[var(--color-surface-50)] hover:opacity-90"
         }`}
         onClick={() => {
+          // Chưa login → redirect về login
+          if (!isLoggedIn) {
+            router.push("/login");
+            return;
+          }
           if (lockedByRole || hasPendingOrder) return;
           if (allowRenew) {
             onSelect && onSelect(plan, billing);
@@ -154,17 +163,19 @@ export default function PlanCard({
         }}
         disabled={isDisabled}
       >
-        {lockedByRole
-          ? selectionLockedReason
-          : hasPendingOrder
-            ? "Đang chờ duyệt đơn"
-            : isCurrent
-              ? allowRenew
-                ? "Gia hạn"
-                : "Đang sử dụng"
-              : isFreePlan && hasOtherPlan
-                ? "Không thể chọn gói Free"
-                : `Nâng cấp ${plan.name}`}
+        {!isLoggedIn
+          ? `Nâng cấp ${plan.name}`
+          : lockedByRole
+            ? selectionLockedReason
+            : hasPendingOrder
+              ? "Đang chờ duyệt đơn"
+              : isCurrent
+                ? allowRenew
+                  ? "Gia hạn"
+                  : "Đang sử dụng"
+                : isFreePlan && hasOtherPlan
+                  ? "Không thể chọn gói Free"
+                  : `Nâng cấp ${plan.name}`}
       </button>
     </div>
   );
