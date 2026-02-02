@@ -1,5 +1,5 @@
 "use client";
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useMemo, useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import Skeleton from "react-loading-skeleton";
@@ -16,6 +16,8 @@ import {
 import { usePendingOrder } from "@/features/plans/hooks";
 import { formatMoney } from "@/features/pricing/utils";
 
+import publicPaymentService from "@/features/pricing/services/publicPaymentService";
+
 function CheckoutContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -29,6 +31,22 @@ function CheckoutContent() {
   const credisParam = searchParams.get("credis");
   const [cycle, setCycle] = useState(cycleParam === "year" ? "year" : "month");
   const [paymentOption, setPaymentOption] = useState("bank_transfer");
+  const [vnpayEnabled, setVnpayEnabled] = useState(false);
+
+  // Check VNPay status
+  useEffect(() => {
+    const checkPaymentSettings = async () => {
+      try {
+        const response = await publicPaymentService.getPublicSettings();
+        if (response.success && response.data) {
+          setVnpayEnabled(response.data.vnpayEnabled);
+        }
+      } catch (error) {
+        console.error("Failed to load payment settings", error);
+      }
+    };
+    checkPaymentSettings();
+  }, []);
 
   // Hooks
   const { isAuthenticated, currentUser, orderType } =
@@ -141,10 +159,37 @@ function CheckoutContent() {
       return;
     }
     const result = await submitOrder();
+
     if (!result.success) {
       const errorMessage = result.error || "Có lỗi xảy ra khi tạo đơn hàng.";
       toast.error(errorMessage);
       setErrors((prev) => ({ ...prev, form: errorMessage }));
+    } else {
+      // Handle VNPay redirect logic (2-step)
+      if (paymentOption === 'vnpay') {
+         // Step 1: Order created, now get the payment URL
+         // Note: result.data usually contains the full order object. 
+         // Adjust based on your API response structure. 
+         // Assuming result.data.data._id based on docs.
+         const orderId = result.data?.data?._id || result.data?._id; 
+         
+         if (orderId) {
+             try {
+                 const urlResponse = await publicPaymentService.createVnpayUrl(orderId);
+                 if (urlResponse.success && urlResponse.data?.paymentUrl) {
+                     window.location.href = urlResponse.data.paymentUrl;
+                     return;
+                 } else {
+                     toast.error("Không thể tạo link thanh toán VNPay.");
+                 }
+             } catch (err) {
+                 console.error("Error creating VNPay URL:", err);
+                 toast.error("Lỗi kết nối khi tạo link thanh toán.");
+             }
+         } else {
+             toast.error("Không tìm thấy mã đơn hàng để thanh toán.");
+         }
+      }
     }
   };
 
@@ -616,11 +661,19 @@ function CheckoutContent() {
               <div className="grid sm:grid-cols-2 gap-3">
                 <button
                   type="button"
-                  className="rounded-2xl border border-dashed border-[var(--color-border)] px-4 py-4 text-left space-y-1 opacity-60 cursor-not-allowed"
+                  disabled={!vnpayEnabled}
+                  onClick={() => vnpayEnabled && setPaymentOption("vnpay")}
+                  className={`rounded-2xl px-4 py-4 text-left space-y-1 border transition ${
+                      !vnpayEnabled
+                        ? "border-dashed border-[var(--color-border)] opacity-60 cursor-not-allowed"
+                        : paymentOption === "vnpay"
+                          ? "border-[var(--color-brand-400)] bg-[var(--color-accent-50)]"
+                          : "border-[var(--color-border)] hover:border-[var(--color-brand-200)]"
+                  }`}
                 >
                   <p className="text-sm font-semibold">VNPay QR</p>
                   <p className="text-xs text-[var(--color-text-muted)]">
-                    Đang phát triển
+                    {vnpayEnabled ? "Thanh toán nhanh qua ví VNPay" : "Đang bảo trì"}
                   </p>
                 </button>
                 <button
@@ -703,48 +756,61 @@ function CheckoutContent() {
                       <span>{amountDisplay}</span>
                     </div>
                   </div>
-                  <div className="rounded-2xl border border-[var(--color-border)] p-4 space-y-2 bg-[var(--color-surface-50)]">
-                    <div className="text-sm text-[var(--color-text-muted)]">
-                      <p>
-                        Ngân hàng:
-                        <strong>{summary.payment.bankTransfer.bankName}</strong>
-                      </p>
-                      <p>
-                        Số tài khoản:
-                        <strong>
-                          {summary.payment.bankTransfer.accountNumber}
-                        </strong>
-                      </p>
-                      <p>
-                        Chủ TK:
-                        <strong>
-                          {summary.payment.bankTransfer.accountName}
-                        </strong>
-                      </p>
-                      <p>
-                        Nội dung chuyển khoản: <br />
-                        <span className="text-sm font-semibold">
-                          {summary.payment.bankTransfer.transferContent}
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-center gap-3">
-                    {summary.payment.bankTransfer.qrImageUrl ? (
-                      <Image
-                        src={summary.payment.bankTransfer.qrImageUrl}
-                        alt="QR chuyển khoản"
-                        width={220}
-                        height={220}
-                        className="rounded-3xl border border-[var(--color-border)] shadow"
-                      />
-                    ) : (
-                      <Skeleton width={220} height={220} />
-                    )}
-                    <p className="text-xs text-[var(--color-text-muted)] text-center">
-                      Quét QR để điền sẵn số tiền và nội dung chuyển khoản.
-                    </p>
-                  </div>
+
+                  {/* Bank Transfer Details - Only show if Bank Transfer is selected */}
+                  {paymentOption === "bank_transfer" && (
+                    <>
+                      <div className="rounded-2xl border border-[var(--color-border)] p-4 space-y-2 bg-[var(--color-surface-50)]">
+                        <div className="text-sm text-[var(--color-text-muted)]">
+                          <p>
+                            Ngân hàng:
+                            <strong>{summary.payment.bankTransfer.bankName}</strong>
+                          </p>
+                          <p>
+                            Số tài khoản:
+                            <strong>
+                              {summary.payment.bankTransfer.accountNumber}
+                            </strong>
+                          </p>
+                          <p>
+                            Chủ TK:
+                            <strong>
+                              {summary.payment.bankTransfer.accountName}
+                            </strong>
+                          </p>
+                          <p>
+                            Nội dung chuyển khoản: <br />
+                            <span className="text-sm font-semibold">
+                              {summary.payment.bankTransfer.transferContent}
+                            </span>
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-center gap-3">
+                        {summary.payment.bankTransfer.qrImageUrl ? (
+                          <Image
+                            src={summary.payment.bankTransfer.qrImageUrl}
+                            alt="QR chuyển khoản"
+                            width={220}
+                            height={220}
+                            className="rounded-3xl border border-[var(--color-border)] shadow"
+                          />
+                        ) : (
+                          <Skeleton width={220} height={220} />
+                        )}
+                        <p className="text-xs text-[var(--color-text-muted)] text-center">
+                          Quét QR để điền sẵn số tiền và nội dung chuyển khoản.
+                        </p>
+                      </div>
+                    </>
+                  )}
+
+                  {/* VNPay Helper Message */}
+                  {paymentOption === "vnpay" && (
+                     <div className="rounded-2xl border border-[var(--color-brand-200)] bg-[var(--color-brand-50)] p-4 text-sm text-[var(--color-brand-800)] text-center">
+                        Nhấn nút <strong>"Thanh toán ngay"</strong> bên dưới để chuyển đến cổng thanh toán VNPay.
+                     </div>
+                  )}
                 </div>
               ) : (
                 <div className="rounded-2xl border border-dashed border-[var(--color-border)] p-6 text-center text-sm text-[var(--color-text-muted)]">
@@ -785,8 +851,10 @@ function CheckoutContent() {
                 {hasPendingOrder
                   ? "Đang chờ duyệt đơn"
                   : submitting
-                    ? "Đang gửi yêu cầu..."
-                    : "Xác nhận đã chuyển khoản"}
+                    ? "Đang xử lý..."
+                    : paymentOption === "vnpay"
+                      ? "Thanh toán ngay"
+                      : "Xác nhận đã chuyển khoản"}
               </button>
               {success && (
                 <div className="rounded-2xl border border-[var(--color-success-300)] bg-[var(--color-success-50)] text-[var(--color-success-700)] text-sm px-4 py-3">

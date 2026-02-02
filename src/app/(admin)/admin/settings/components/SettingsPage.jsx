@@ -7,17 +7,21 @@ import {
   FiEye,
   FiMic,
   FiVolume2,
+  FiCreditCard,
 } from "react-icons/fi";
 import useSettingsPage from "../hooks/useSettingsPage";
 import AISettingsTab from "./AISettingsTab";
 import AIOCRSettingsTab from "./AIOCRSettingsTab";
 import AIASRSettingsTab from "./AIASRSettingsTab";
 import AIVoiceSettingsTab from "./AIVoiceSettingsTab";
+import PaymentSettingsTab from "./PaymentSettingsTab";
+
 const TABS = [
   { id: "chat", label: "AI Chat", icon: FiMessageCircle },
   { id: "ocr", label: "AI OCR", icon: FiEye },
   { id: "asr", label: "AI ASR", icon: FiVolume2 },
   { id: "voice", label: "AI Lồng tiếng", icon: FiMic },
+  { id: "payment", label: "Thanh toán", icon: FiCreditCard },
 ];
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("chat");
@@ -39,6 +43,10 @@ export default function SettingsPage() {
     setVoiceSettings,
     voiceSettingsLoading,
     handleSaveVoiceSettings,
+    paymentSettings,
+    setPaymentSettings,
+    paymentSettingsLoading,
+    handleSavePaymentSettings,
   } = useSettingsPage();
   return (
     <div className="w-full max-w-6xl mx-auto px-4 py-6">
@@ -113,6 +121,14 @@ export default function SettingsPage() {
                 setSettings={setVoiceSettings}
                 loading={voiceSettingsLoading}
                 onSave={handleSaveVoiceSettings}
+              />
+            )}
+            {activeTab === "payment" && (
+              <PaymentSettingsTab
+                settings={paymentSettings}
+                setSettings={setPaymentSettings}
+                loading={paymentSettingsLoading}
+                onSave={handleSavePaymentSettings}
               />
             )}
           </>

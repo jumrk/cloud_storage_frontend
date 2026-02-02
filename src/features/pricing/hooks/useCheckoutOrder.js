@@ -13,9 +13,10 @@ export function useCheckoutOrder(buildPayload) {
   const submitOrder = async () => {
     setSubmitting(true);
     try {
-      await axiosClient.post("/api/orders", buildPayload());
+      const response = await axiosClient.post("/api/orders", buildPayload());
       setSuccess(true);
-      return { success: true };
+      // Return response data to handle redirect if needed
+      return { success: true, data: response?.data };
     } catch (err) {
       setSuccess(false);
       return {

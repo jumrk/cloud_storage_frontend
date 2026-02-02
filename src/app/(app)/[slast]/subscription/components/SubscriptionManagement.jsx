@@ -137,11 +137,12 @@ export default function SubscriptionManagement() {
         </div>
       )}
 
-      {/* Plans List */}
+      {/* Plans List - isLoggedIn=true vì user đang ở trang subscription = đã đăng nhập */}
       <PlanList
         currentPlanSlug={user?.plan?.slug || ""}
         daysUntilExpiry={daysUntilExpiry}
         userRole={user?.role}
+        isLoggedIn={!!user}
       />
     </div>
   );

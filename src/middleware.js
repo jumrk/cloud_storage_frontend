@@ -267,7 +267,8 @@ export async function middleware(request) {
 
   if (role === "leader" && slast) {
     const leaderBase = `/${slast}`.toLowerCase();
-    if (path.startsWith("/pricing")) {
+    // Cho phép leader truy cập /pricing/checkout để nâng cấp gói; redirect trang /pricing về home
+    if (path.startsWith("/pricing") && !path.startsWith("/pricing/checkout")) {
       return redirectWithLocale(leaderHomePath);
     }
     // Allow all paths that start with leader base

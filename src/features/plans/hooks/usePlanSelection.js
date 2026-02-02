@@ -1,5 +1,5 @@
 import { useRouter } from "next/navigation";
-import { decodeTokenGetUser } from "@/shared/lib/jwt";
+import axiosClient from "@/shared/lib/axiosClient";
 
 /**
  * Hook để xử lý logic chọn plan và điều hướng

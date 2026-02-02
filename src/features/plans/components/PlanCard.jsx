@@ -73,11 +73,17 @@ export default function PlanCard({
     isLoggedIn && (lockedByRole || hasPendingOrder || (baseDisabled && !allowRenew));
 
   const formatStorage = (storage) => {
-    if (!storage && storage !== 0) return "0 GB";
-    if (storage > 1073741824) {
-      return formatSize(storage);
+    if (storage === undefined || storage === null) return "0 GB";
+    if (storage === 0) return "0 GB";
+    // Plan.storage: bytes (>= 1073741824) hoặc GB (1, 5, 20...)
+    const oneGbBytes = 1024 * 1024 * 1024;
+    const bytes = storage >= oneGbBytes ? Number(storage) : Number(storage) * oneGbBytes;
+    try {
+      const result = formatSize(bytes);
+      return typeof result === "string" && !result.includes("undefined") ? result : "0 GB";
+    } catch {
+      return "0 GB";
     }
-    return formatSize(storage * 1024 * 1024 * 1024);
   };
 
   return (

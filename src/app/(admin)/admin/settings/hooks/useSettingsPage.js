@@ -5,6 +5,7 @@ import aiChatSettingsService from "../services/aiChatSettingsService";
 import aiAsrSettingsService from "../services/aiAsrSettingsService";
 import aiOcrSettingsService from "../services/aiOcrSettingsService";
 import aiVoiceSettingsService from "../services/aiVoiceSettingsService";
+import paymentSettingsService from "../services/paymentSettingsService";
 import toast from "react-hot-toast";
 
 export default function useSettingsPage() {
@@ -49,6 +50,18 @@ export default function useSettingsPage() {
     providers: [], // Array of provider configs
   });
   const [voiceSettingsLoading, setVoiceSettingsLoading] = useState(false);
+
+  // Payment Settings state
+  const [paymentSettings, setPaymentSettings] = useState({
+    vnpayEnabled: false,
+    vnpayTmnCode: "",
+    vnpayHashSecret: "",
+    vnpayUrl: "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html",
+    vnpayReturnUrl: "",
+    vnpayCancelUrl: "",
+    vnpayApiUrl: "",
+  });
+  const [paymentSettingsLoading, setPaymentSettingsLoading] = useState(false);
 
   const [loadingSettings, setLoadingSettings] = useState(true);
 
@@ -106,6 +119,26 @@ export default function useSettingsPage() {
             providers: voiceResponse.data.providers || [],
           });
         }
+
+        // Load Payment settings
+        try {
+          const paymentResponse = await paymentSettingsService.getSettings();
+          if (paymentResponse.success && paymentResponse.data) {
+            setPaymentSettings({
+              vnpayEnabled: paymentResponse.data.vnpayEnabled ?? false,
+              vnpayTmnCode: paymentResponse.data.vnpayTmnCode || "",
+              vnpayHashSecret: paymentResponse.data.vnpayHashSecret || "",
+              vnpayUrl: paymentResponse.data.vnpayUrl || "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html",
+              vnpayReturnUrl: paymentResponse.data.vnpayReturnUrl || "",
+              vnpayCancelUrl: paymentResponse.data.vnpayCancelUrl || "",
+              vnpayApiUrl: paymentResponse.data.vnpayApiUrl || "",
+            });
+          }
+        } catch (err) {
+            console.error("Error loading payment settings:", err);
+            // Don't toast here to avoid spam if one service fails
+        }
+
       } catch (error) {
         console.error("Error loading settings:", error);
         toast.error("Không thể tải cài đặt");
@@ -185,6 +218,35 @@ export default function useSettingsPage() {
     }
   };
 
+  const handleSavePaymentSettings = async () => {
+    setPaymentSettingsLoading(true);
+    try {
+      const dataToSave = { ...paymentSettings };
+      // Handle the hash secret logic: if "***" or empty and hasn't changed, we might send it as is.
+      // But the requirement says: if not changing secret, send "***" or don't send field.
+      // If the frontend receives encrypted secret, it likely comes as "encrypted_hash_..." or similar?
+      // Or maybe it comes as "***". If the user didn't touch it, it remains the initial value.
+      // If the user clears it, it becomes empty string?
+      // Let's stick to sending whatever is in the state. The backend handle "***" logic.
+      
+      const response = await paymentSettingsService.updateSettings(dataToSave);
+      if (response.success) {
+         // Update state with returned data (useful if backend sanitized/modified fields)
+         if (response.data) {
+             setPaymentSettings(prev => ({ ...prev, ...response.data }));
+         }
+        toast.success(response.message || "Đã lưu cài đặt Thanh toán thành công!");
+      } else {
+        toast.error(response.error || "Lỗi khi lưu cài đặt Thanh toán");
+      }
+    } catch (error) {
+      console.error("Error saving Payment settings:", error);
+      toast.error(error.response?.data?.error || "Lỗi khi lưu cài đặt Thanh toán");
+    } finally {
+        setPaymentSettingsLoading(false);
+    }
+  };
+
   return {
     aiSettings,
     setAiSettings,
@@ -198,11 +260,15 @@ export default function useSettingsPage() {
     voiceSettings,
     setVoiceSettings,
     voiceSettingsLoading,
+    paymentSettings,
+    setPaymentSettings,
+    paymentSettingsLoading,
     loadingSettings,
     handleSaveAiSettings,
     handleSaveOcrSettings,
     handleSaveAsrSettings,
     handleSaveVoiceSettings,
+    handleSavePaymentSettings,
   };
 }
 

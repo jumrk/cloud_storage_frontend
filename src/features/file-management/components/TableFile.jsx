@@ -569,469 +569,476 @@ const Table = ({
             overflowY: "auto",
           }}
         >
-          <div
-            className="flex gap-2 items-start"
-            style={{
-              width: hasOverflow ? "max-content" : "100%",
-              minWidth: "100%",
-            }}
+          <table
+            className="border-separate border-spacing-y-2"
+            style={{ tableLayout: "auto", minWidth: "100%" }}
           >
-            <table className="border-separate border-spacing-y-2 flex-shrink-0">
-              <thead>
-                <tr>
-                  <th
-                    className="px-4 py-3 text-center align-middle"
+            <thead className="bg-white border-b border-gray-200 sticky top-0 z-10 transition-shadow duration-200">
+              <tr>
+                {/* Checkbox Column Header */}
+                <th
+                  className="px-4 py-3 text-center align-middle bg-white group"
+                  style={{ width: 48, position: 'relative' }}
+                >
+                  <div className="flex items-center justify-center relative">
+                    {/* Select All Checkbox */}
+                     <input
+                      type="checkbox"
+                      id="check_all"
+                      className="peer hidden"
+                      // Logic for "checked" or "indeterminate" could go here
+                      // But the original code didn't actually show a checked state for the header checkbox in UI
+                      // Just an empty space usually, or a custom implementation.
+                      // If you want a "Select All" checkbox here:
+                      checked={allChecked}
+                      onChange={handleCheckAll}
+                    />
+                     <label
+                        htmlFor="check_all"
+                        className={`w-4 h-4 inline-block rounded-sm cursor-pointer transition-colors ${
+                          allChecked 
+                          ? "bg-brand peer-checked:after:content-['✔'] peer-checked:after:text-white peer-checked:after:text-[10px] peer-checked:after:absolute peer-checked:after:top-[2px] peer-checked:after:left-[3px]"
+                          : "bg-gray-200 hover:bg-gray-300"
+                        }`}
+                        title="Chọn tất cả"
+                      ></label>
+                  </div>
+                </th>
+                
+                {header.map((value, idx) => {
+                  let columnKey = "";
+                  let width = 200;
+                  if (value === "Tên tệp" || value === "Tên") {
+                    columnKey = "name";
+                    width = columnWidths.name;
+                  } else if (value === "Kích thước" || value === "Size") {
+                    columnKey = "size";
+                    width = columnWidths.size;
+                  } else if (
+                    value === "Tổng số file" ||
+                    value === "File Count" ||
+                    value === "Total Files"
+                  ) {
+                    columnKey = "fileCount";
+                    width = columnWidths.fileCount;
+                  } else if (value === "Ngày" || value === "Date") {
+                    columnKey = "date";
+                    width = columnWidths.date;
+                  } else if (
+                    value === "Lượt tải" ||
+                    value === "Chia sẻ" ||
+                    value === "Thao tác" ||
+                    value === "Actions" ||
+                    value === "Share"
+                  ) {
+                    columnKey = "actions";
+                    width = columnWidths.actions;
+                  }
+
+                  // Xác định column có thể sort không (không sort cột Actions)
+                  const isSortable = columnKey && columnKey !== "actions";
+
+                  const handleSortClick = () => {
+                    if (!isSortable) return;
+                    let newDirection = "asc";
+                    if (sortColumn === columnKey) {
+                      newDirection =
+                        sortDirection === "asc" ? "desc" : "asc";
+                    }
+                    setSortColumn(columnKey);
+                    setSortDirection(newDirection);
+                    // Gọi callback nếu có
+                    if (onSort) {
+                      onSort(columnKey, newDirection);
+                    }
+                  };
+
+                  const getSortIcon = () => {
+                    if (!isSortable) return null;
+                    if (sortColumn !== columnKey) {
+                      return (
+                        <div className="flex flex-col -space-y-1 ml-2">
+                          <FiChevronUp
+                            className="text-gray-300"
+                            size={10}
+                          />
+                          <FiChevronDown
+                            className="text-gray-300"
+                            size={10}
+                          />
+                        </div>
+                      );
+                    }
+                    return sortDirection === "asc" ? (
+                      <FiChevronUp className="text-brand ml-2" size={14} />
+                    ) : (
+                      <FiChevronDown
+                        className="text-brand ml-2"
+                        size={14}
+                      />
+                    );
+                  };
+
+                  return (
+                    <th
+                      key={value}
+                      className={`font-semibold text-gray-900 text-sm px-4 py-3 text-left relative bg-white ${
+                        isSortable
+                          ? "cursor-pointer hover:bg-gray-50 transition-colors"
+                          : ""
+                      }`}
+                      style={{
+                        width: width,
+                        position: "relative",
+                        minWidth: width,
+                      }}
+                      onClick={isSortable ? handleSortClick : undefined}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <span className="text-gray-900">
+                            {value === "Lượt tải" ||
+                            value === "Chia sẻ" ||
+                            value === "Share"
+                              ? "Thao tác"
+                              : value}
+                          </span>
+                          {getSortIcon()}
+                        </div>
+                      </div>
+                      {columnKey && (
+                        <div
+                          className="absolute top-0 right-0 h-full cursor-col-resize hover:bg-brand/20 transition-colors group"
+                          style={{
+                            width: "6px",
+                            cursor: "col-resize",
+                            zIndex: 10,
+                            marginRight: "-3px",
+                          }}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleResizeStart(e, columnKey);
+                          }}
+                          title="Kéo để điều chỉnh độ rộng cột"
+                        />
+                      )}
+                    </th>
+                  );
+                })}
+              </tr>
+            </thead>
+            <tbody>
+              {sortedData.map((value, index) => {
+                // Check if file is uploading
+                const isUploading = value.type === "file" && (
+                  value.driveUploadStatus === "uploading" || 
+                  value.driveUploadStatus === "pending" ||
+                  (!value.driveFileId && (value.tempDownloadUrl || value.tempFilePath))
+                );
+                
+                return (
+                <tr
+                  key={value.id}
+                  className={`text-sm transition-all duration-200 ${
+                    selectedItems.find((i) => i.id === value.id)
+                      ? "bg-brand/10 border-l-4 border-brand"
+                      : "bg-white hover:bg-white border-l-4 border-transparent"
+                  } rounded-lg h-[56px]${
+                    value.locked
+                      ? " cursor-not-allowed opacity-60"
+                      : " cursor-pointer"
+                  }${isUploading ? " opacity-75" : ""}`}
+                  onDoubleClick={() => handleRowDoubleClick(value)}
+                  draggable={!value.locked}
+                  onDragStart={
+                    value.locked
+                      ? undefined
+                      : (e) => handleRowDragStart(e, value)
+                  }
+                  onDragEnd={value.locked ? undefined : handleRowDragEnd}
+                  onDragOver={(e) => handleDragOver(e, value)}
+                  onDrop={(e) => handleDrop(e, value)}
+                  onContextMenu={(e) => onContextMenu && onContextMenu(e, value)}
+                >
+                  {/* Checkbox Column */}
+                   <td
+                    className="px-4 py-3 text-center align-middle rounded-l-lg"
                     style={{ width: 48 }}
                   >
-                    <div style={{ height: 22 }}>&nbsp;</div>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedData.map((item, index) => (
-                  <tr key={index} className="h-[48px]">
-                    <td
-                      className="px-4 py-3 text-center align-middle"
-                      style={{ width: 48 }}
+                    <div
+                      className="flex items-center justify-center"
+                      style={{ width: 24, height: 16, margin: "0 auto" }}
                     >
-                      <div
-                        className="flex items-center justify-center"
-                        style={{ width: 24, height: 16, margin: "0 auto" }}
-                      >
-                        <input
-                          type="checkbox"
-                          id={`check_${index}`}
-                          className="peer hidden"
-                          checked={
-                            !!selectedItems.find((i) => i.id === item.id)
-                          }
-                          onChange={() => handleCheckItem(item)}
-                        />
-                        <label
-                          htmlFor={`check_${index}`}
-                          className="w-4 h-4 inline-block rounded-sm bg-[#C7C7C7] cursor-pointer peer-checked:bg-primary peer-checked:after:content-['✔'] peer-checked:after:text-white peer-checked:after:text-[10px] peer-checked:after:absolute peer-checked:after:top-[2px] peer-checked:after:left-[3px]"
-                        ></label>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {loadingMore && (
-                  <tr>
-                    <td
-                      colSpan={header.length + 1}
-                      className="text-center py-4 text-gray-500"
-                    >
-                      Đang tải thêm...
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-            <div className="flex-1 min-w-0">
-              <table
-                className="border-separate border-spacing-y-2"
-                style={{ tableLayout: "auto", minWidth: "100%" }}
-              >
-                <thead className="bg-white border-b border-gray-200 sticky top-0 z-10">
-                  <tr>
-                    {header.map((value, idx) => {
-                      let columnKey = "";
-                      let width = 200;
-                      if (value === "Tên tệp" || value === "Tên") {
-                        columnKey = "name";
-                        width = columnWidths.name;
-                      } else if (value === "Kích thước" || value === "Size") {
-                        columnKey = "size";
-                        width = columnWidths.size;
-                      } else if (
-                        value === "Tổng số file" ||
-                        value === "File Count" ||
-                        value === "Total Files"
-                      ) {
-                        columnKey = "fileCount";
-                        width = columnWidths.fileCount;
-                      } else if (value === "Ngày" || value === "Date") {
-                        columnKey = "date";
-                        width = columnWidths.date;
-                      } else if (
-                        value === "Lượt tải" ||
-                        value === "Chia sẻ" ||
-                        value === "Thao tác" ||
-                        value === "Actions" ||
-                        value === "Share"
-                      ) {
-                        columnKey = "actions";
-                        width = columnWidths.actions;
-                      }
-
-                      // Xác định column có thể sort không (không sort cột Actions)
-                      const isSortable = columnKey && columnKey !== "actions";
-
-                      const handleSortClick = () => {
-                        if (!isSortable) return;
-                        let newDirection = "asc";
-                        if (sortColumn === columnKey) {
-                          newDirection =
-                            sortDirection === "asc" ? "desc" : "asc";
+                      <input
+                        type="checkbox"
+                        id={`check_${index}`}
+                        className="peer hidden"
+                        checked={
+                          !!selectedItems.find((i) => i.id === value.id)
                         }
-                        setSortColumn(columnKey);
-                        setSortDirection(newDirection);
-                        // Gọi callback nếu có
-                        if (onSort) {
-                          onSort(columnKey, newDirection);
-                        }
-                      };
+                        onChange={() => handleCheckItem(value)}
+                        onClick={(e) => e.stopPropagation()} // Prevent row click
+                      />
+                      <label
+                        htmlFor={`check_${index}`}
+                        className="w-4 h-4 inline-block rounded-sm bg-[#C7C7C7] cursor-pointer peer-checked:bg-primary peer-checked:after:content-['✔'] peer-checked:after:text-white peer-checked:after:text-[10px] peer-checked:after:absolute peer-checked:after:top-[2px] peer-checked:after:left-[3px]"
+                        onClick={(e) => e.stopPropagation()} 
+                      ></label>
+                    </div>
+                  </td>
 
-                      const getSortIcon = () => {
-                        if (!isSortable) return null;
-                        if (sortColumn !== columnKey) {
+                  {/* Name Column */}
+                  <td
+                    className="px-4 py-3 flex items-center gap-3"
+                    style={{
+                      width: columnWidths.name,
+                      overflow: "hidden",
+                      minWidth: columnWidths.name,
+                    }}
+                  >
+                    <div className="relative flex-shrink-0">
+                    <Image
+                      src={getFileIcon({
+                        type: value.type,
+                        name: value.name,
+                      })}
+                      alt="icon"
+                        className="w-6 h-6 object-contain mr-2"
+                      style={{ minWidth: 24 }}
+                      width={24}
+                      height={24}
+                      placeholder="blur"
+                      blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mN8/+F9PQAI8wNPvd7POQAAAABJRU5ErkJggg=="
+                      priority
+                    />
+                      {isUploading && (
+                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full animate-pulse border-2 border-white"></div>
+                      )}
+                    </div>
+                    {editingId === value.id ? (
+                      value.type === "file" ? (
+                        (() => {
+                          const { base, ext } = splitFileName(value.name);
                           return (
-                            <div className="flex flex-col -space-y-1 ml-2">
-                              <FiChevronUp
-                                className="text-gray-300"
-                                size={10}
+                            <div className="flex items-center gap-1 w-full min-w-0">
+                              <input
+                                type="text"
+                                value={newName}
+                                autoFocus
+                                onChange={(e) => setNewName(e.target.value)}
+                                onBlur={cancelEditName}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") confirmEditName();
+                                  if (e.key === "Escape") cancelEditName();
+                                }}
+                                className="bg-white px-2 py-1 text-black rounded border border-gray-300 flex-1 min-w-0"
                               />
-                              <FiChevronDown
-                                className="text-gray-300"
-                                size={10}
-                              />
+                              <span className="text-xs text-gray-500 select-none flex-shrink-0">
+                                {ext}
+                              </span>
+                              <button
+                                onClick={confirmEditName}
+                                className="ml-1 text-green-600 flex-shrink-0"
+                              >
+                                {/* loading is handled by parent */}
+                                <svg
+                                  width="16"
+                                  height="16"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path d="M5 13l4 4L19 7" />
+                                </svg>
+                              </button>
                             </div>
                           );
-                        }
-                        return sortDirection === "asc" ? (
-                          <FiChevronUp className="text-brand ml-2" size={14} />
-                        ) : (
-                          <FiChevronDown
-                            className="text-brand ml-2"
-                            size={14}
-                          />
-                        );
-                      };
-
-                      return (
-                        <th
-                          key={value}
-                          className={`font-semibold text-gray-900 text-sm px-4 py-3 text-left relative bg-white ${
-                            isSortable
-                              ? "cursor-pointer hover:bg-gray-50 transition-colors"
-                              : ""
-                          }`}
-                          style={{
-                            width: width,
-                            position: "relative",
-                            minWidth: width,
+                        })()
+                      ) : (
+                        <input
+                          type="text"
+                          value={newName}
+                          autoFocus
+                          onChange={(e) => setNewName(e.target.value)}
+                          onBlur={cancelEditName}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") confirmEditName();
+                            if (e.key === "Escape") cancelEditName();
                           }}
-                          onClick={isSortable ? handleSortClick : undefined}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center">
-                              <span className="text-gray-900">
-                                {value === "Lượt tải" ||
-                                value === "Chia sẻ" ||
-                                value === "Share"
-                                  ? "Thao tác"
-                                  : value}
-                              </span>
-                              {getSortIcon()}
-                            </div>
-                          </div>
-                          {columnKey && (
-                            <div
-                              className="absolute top-0 right-0 h-full cursor-col-resize hover:bg-brand/20 transition-colors group"
-                              style={{
-                                width: "6px",
-                                cursor: "col-resize",
-                                zIndex: 10,
-                                marginRight: "-3px",
-                              }}
-                              onMouseDown={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                handleResizeStart(e, columnKey);
-                              }}
-                              title="Kéo để điều chỉnh độ rộng cột"
-                            />
-                          )}
-                        </th>
-                      );
-                    })}
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedData.map((value, index) => {
-                    // Check if file is uploading
-                    const isUploading = value.type === "file" && (
-                      value.driveUploadStatus === "uploading" || 
-                      value.driveUploadStatus === "pending" ||
-                      (!value.driveFileId && (value.tempDownloadUrl || value.tempFilePath))
-                    );
-                    
-                    return (
-                    <tr
-                      key={value.id}
-                      className={`text-sm transition-all duration-200 ${
-                        selectedItems.find((i) => i.id === value.id)
-                          ? "bg-brand/10 border-l-4 border-brand"
-                          : "bg-white hover:bg-white border-l-4 border-transparent"
-                      } rounded-lg h-[56px]${
-                        value.locked
-                          ? " cursor-not-allowed opacity-60"
-                          : " cursor-pointer"
-                      }${isUploading ? " opacity-75" : ""}`}
-                      onDoubleClick={() => handleRowDoubleClick(value)}
-                      draggable={!value.locked}
-                      onDragStart={
-                        value.locked
-                          ? undefined
-                          : (e) => handleRowDragStart(e, value)
-                      }
-                      onDragEnd={value.locked ? undefined : handleRowDragEnd}
-                      onDragOver={(e) => handleDragOver(e, value)}
-                      onDrop={(e) => handleDrop(e, value)}
-                      onContextMenu={(e) => onContextMenu && onContextMenu(e, value)}
-                    >
-                      <td
-                        className="px-4 py-3 rounded-l-lg flex items-center gap-3"
-                        style={{
-                          width: columnWidths.name,
-                          overflow: "hidden",
-                          minWidth: columnWidths.name,
-                        }}
-                      >
-                        <div className="relative flex-shrink-0">
-                        <Image
-                          src={getFileIcon({
-                            type: value.type,
-                            name: value.name,
-                          })}
-                          alt="icon"
-                            className="w-6 h-6 object-contain mr-2"
-                          style={{ minWidth: 24 }}
-                          width={24}
-                          height={24}
-                          placeholder="blur"
-                          blurDataURL="data:image/png;base64,..."
-                          priority
+                          className="bg-white px-2 py-1 text-black rounded border border-gray-300 w-full"
                         />
-                          {isUploading && (
-                            <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full animate-pulse border-2 border-white"></div>
-                          )}
-                        </div>
-                        {editingId === value.id ? (
-                          value.type === "file" ? (
-                            (() => {
-                              const { base, ext } = splitFileName(value.name);
-                              return (
-                                <div className="flex items-center gap-1 w-full min-w-0">
-                                  <input
-                                    type="text"
-                                    value={newName}
-                                    autoFocus
-                                    onChange={(e) => setNewName(e.target.value)}
-                                    onBlur={cancelEditName}
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter") confirmEditName();
-                                      if (e.key === "Escape") cancelEditName();
-                                    }}
-                                    className="bg-white px-2 py-1 text-black rounded border border-gray-300 flex-1 min-w-0"
-                                  />
-                                  <span className="text-xs text-gray-500 select-none flex-shrink-0">
-                                    {ext}
-                                  </span>
-                                  <button
-                                    onClick={confirmEditName}
-                                    className="ml-1 text-green-600 flex-shrink-0"
-                                  >
-                                    {/* loading is handled by parent */}
-                                    <svg
-                                      width="16"
-                                      height="16"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      strokeWidth="2"
-                                      viewBox="0 0 24 24"
-                                    >
-                                      <path d="M5 13l4 4L19 7" />
-                                    </svg>
-                                  </button>
-                                </div>
-                              );
-                            })()
-                          ) : (
-                            <input
-                              type="text"
-                              value={newName}
-                              autoFocus
-                              onChange={(e) => setNewName(e.target.value)}
-                              onBlur={cancelEditName}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") confirmEditName();
-                                if (e.key === "Escape") cancelEditName();
-                              }}
-                              className="bg-white px-2 py-1 text-black rounded border border-gray-300 w-full"
-                            />
-                          )
-                        ) : (
-                          <div className="flex items-center gap-2 min-w-0 flex-1">
-                          <span
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              startEditName(
-                                value.id,
-                                value.type,
-                                value.type === "file"
-                                  ? splitFileName(value.name).base
-                                  : value.name,
-                              );
-                            }}
-                            title={value.name}
-                            className={`overflow-hidden text-ellipsis whitespace-nowrap inline-block align-middle cursor-pointer min-w-0 flex-1 ${
-                              selectedItems.find((i) => i.id === value.id)
-                                ? "text-white"
-                                : "text-gray-900"
-                            }`}
-                            style={{ maxWidth: "100%" }}
-                          >
-                            {value.type === "file"
+                      )
+                    ) : (
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <span
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          startEditName(
+                            value.id,
+                            value.type,
+                            value.type === "file"
                               ? splitFileName(value.name).base
-                              : value.name}
-                            {value.type === "file" && (
-                              <span
-                                className={`text-xs ${
-                                  selectedItems.find((i) => i.id === value.id)
-                                    ? "text-white/70"
-                                    : "text-gray-600"
-                                }`}
+                              : value.name,
+                          );
+                        }}
+                        title={value.name}
+                        className={`overflow-hidden text-ellipsis whitespace-nowrap inline-block align-middle cursor-pointer min-w-0 flex-1 ${
+                          selectedItems.find((i) => i.id === value.id)
+                            ? "text-white"
+                            : "text-gray-900"
+                        }`}
+                        style={{ maxWidth: "100%" }}
+                      >
+                        {value.type === "file"
+                          ? splitFileName(value.name).base
+                          : value.name}
+                        {value.type === "file" && (
+                          <span
+                            className={`text-xs ${
+                              selectedItems.find((i) => i.id === value.id)
+                                ? "text-white/70"
+                                : "text-gray-600"
+                            }`}
+                          >
+                            {splitFileName(value.name).ext}
+                          </span>
+                        )}
+                        {value.locked && (
+                          <FiLock
+                            className={`inline ml-1 ${
+                              selectedItems.find((i) => i.id === value.id)
+                                ? "text-white/70"
+                                : "text-gray-600"
+                            }`}
+                            title="Bị khóa"
+                          />
+                        )}
+                      </span>
+                      {/* Tag Badges */}
+                      {value.tags && value.tags.length > 0 && (
+                        <div className="flex gap-1 ml-2 flex-wrap">
+                          {value.tags.map(tagId => {
+                            const tag = tags?.find(t => t._id === tagId);
+                            if (!tag) return null;
+                            return (
+                              <span 
+                                key={tagId}
+                                className="px-1.5 py-0.5 rounded text-[10px] font-bold text-white shadow-sm"
+                                style={{ backgroundColor: tag.color }}
+                                title={tag.name}
                               >
-                                {splitFileName(value.name).ext}
+                                {tag.name}
                               </span>
-                            )}
-                            {value.locked && (
-                              <FiLock
-                                className={`inline ml-1 ${
-                                  selectedItems.find((i) => i.id === value.id)
-                                    ? "text-white/70"
-                                    : "text-gray-600"
-                                }`}
-                                title="Bị khóa"
-                              />
+                            );
+                          })}
+                        </div>
+                      )}
+                        {isUploading && (
+                          <span className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full flex-shrink-0">
+                            <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
+                            Drive pending
+                            {driveProgressMap[value.id || value._id] != null && (
+                              <span className="ml-1 text-gray-600">
+                                ({driveProgressMap[value.id || value._id]}%)
+                              </span>
                             )}
                           </span>
-                          {/* Tag Badges */}
-                          {value.tags && value.tags.length > 0 && (
-                            <div className="flex gap-1 ml-2 flex-wrap">
-                              {value.tags.map(tagId => {
-                                const tag = tags?.find(t => t._id === tagId);
-                                if (!tag) return null;
-                                return (
-                                  <span 
-                                    key={tagId}
-                                    className="px-1.5 py-0.5 rounded text-[10px] font-bold text-white shadow-sm"
-                                    style={{ backgroundColor: tag.color }}
-                                    title={tag.name}
-                                  >
-                                    {tag.name}
-                                  </span>
-                                );
-                              })}
-                            </div>
-                          )}
-                            {isUploading && (
-                              <span className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full flex-shrink-0">
-                                <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
-                                Drive pending
-                                {driveProgressMap[value.id || value._id] != null && (
-                                  <span className="ml-1 text-gray-600">
-                                    ({driveProgressMap[value.id || value._id]}%)
-                                  </span>
-                                )}
-                              </span>
-                            )}
-                            {value.type === "file" &&
-                              value.driveUploadStatus === "failed" && (
-                                <span className="flex items-center gap-1 text-xs text-red-600 bg-red-50 px-2 py-0.5 rounded-full flex-shrink-0">
-                                  <span className="w-2 h-2 bg-red-500 rounded-full"></span>
-                                  Upload lỗi
-                                </span>
-                              )}
-                          </div>
                         )}
-                      </td>
-                      <td
-                        className="px-4 py-3 text-gray-600"
-                        style={{
-                          width: columnWidths.size,
-                          minWidth: columnWidths.size,
-                        }}
-                      >
-                        {formatSize(value.size)}
-                      </td>
-                      <td
-                        className="px-4 py-3 text-gray-600 text-center"
-                        style={{
-                          width: columnWidths.fileCount,
-                          minWidth: columnWidths.fileCount,
-                        }}
-                      >
-                        {value.type === "folder"
-                          ? value.fileCount !== undefined &&
-                            value.fileCount !== null
-                            ? value.fileCount
-                            : 0
-                          : "-"}
-                      </td>
-                      <td
-                        className="px-4 py-3 text-gray-600"
-                        style={{
-                          width: columnWidths.date,
-                          minWidth: columnWidths.date,
-                        }}
-                      >
-                        {formatDate(value.date)}
-                      </td>
-                      <td
-                        className="px-4 py-3 rounded-r-lg"
-                        style={{
-                          position: "relative",
-                          width: columnWidths.actions,
-                          minWidth: columnWidths.actions,
-                        }}
-                      >
-                        <div className="flex items-center gap-3">
-                          {value.type === "file" &&
-                            value.driveUploadStatus === "failed" && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleRetryDriveUpload(value);
-                                }}
-                                title="Retry upload lên Drive"
-                                className="text-orange-600 hover:text-orange-700 transition-colors text-sm"
-                              >
-                                ⟳ Retry
-                              </button>
-                            )}
+                        {value.type === "file" &&
+                          value.driveUploadStatus === "failed" && (
+                            <span className="flex items-center gap-1 text-xs text-red-600 bg-red-50 px-2 py-0.5 rounded-full flex-shrink-0">
+                              <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                              Upload lỗi
+                            </span>
+                          )}
+                      </div>
+                    )}
+                  </td>
+                  <td
+                    className="px-4 py-3 text-gray-600"
+                    style={{
+                      width: columnWidths.size,
+                      minWidth: columnWidths.size,
+                    }}
+                  >
+                    {formatSize(value.size)}
+                  </td>
+                  <td
+                    className="px-4 py-3 text-gray-600 text-center"
+                    style={{
+                      width: columnWidths.fileCount,
+                      minWidth: columnWidths.fileCount,
+                    }}
+                  >
+                    {value.type === "folder"
+                      ? value.fileCount !== undefined &&
+                        value.fileCount !== null
+                        ? value.fileCount
+                        : 0
+                      : "-"}
+                  </td>
+                  <td
+                    className="px-4 py-3 text-gray-600"
+                    style={{
+                      width: columnWidths.date,
+                      minWidth: columnWidths.date,
+                    }}
+                  >
+                    {formatDate(value.date)}
+                  </td>
+                  <td
+                    className="px-4 py-3 rounded-r-lg"
+                    style={{
+                      position: "relative",
+                      width: columnWidths.actions,
+                      minWidth: columnWidths.actions,
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      {value.type === "file" &&
+                        value.driveUploadStatus === "failed" && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (onContextMenu) {
-                                onContextMenu(e, value);
-                              }
+                              handleRetryDriveUpload(value);
                             }}
-                            title="Thêm tùy chọn"
-                            className="text-gray-600 hover:text-brand bg-white rounded-lg p-2 hover:bg-gray-50 transition-all"
+                            title="Retry upload lên Drive"
+                            className="text-orange-600 hover:text-orange-700 transition-colors text-sm"
                           >
-                            <FiMoreVertical size={18} />
+                            ⟳ Retry
                           </button>
-                        </div>
-                      </td>
-                    </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
+                        )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onContextMenu) {
+                            onContextMenu(e, value);
+                          }
+                        }}
+                        title="Thêm tùy chọn"
+                        className="text-gray-600 hover:text-brand bg-white rounded-lg p-2 hover:bg-gray-50 transition-all"
+                      >
+                        <FiMoreVertical size={18} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                );
+              })}
+              {loadingMore && (
+                <tr>
+                  <td
+                    colSpan={header.length + 1}
+                    className="text-center py-4 text-gray-500"
+                  >
+                    Đang tải thêm...
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       ) : null}
     </div>
