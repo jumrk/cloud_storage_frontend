@@ -81,11 +81,11 @@ export default function ChecklistBlock({
       setLoading(false);
     }
   };
-  const handleCreateCheckListItem = async ({ text }) => {
+  const handleCreateCheckListItem = async ({ text, assignee }) => {
     try {
       const res = await createItem(checklistsId, {
         text,
-        assignee: null,
+        assignee: assignee || null,
         dueAt: null,
       });
       const payload = res?.data;
@@ -268,7 +268,11 @@ export default function ChecklistBlock({
           </button>
         )}
         {openAddItem && (
-          <AddItemRow onClose={onClose} onAdd={handleCreateCheckListItem} />
+          <AddItemRow
+            onClose={onClose}
+            onAdd={handleCreateCheckListItem}
+            members={members}
+          />
         )}
       </div>
     </div>

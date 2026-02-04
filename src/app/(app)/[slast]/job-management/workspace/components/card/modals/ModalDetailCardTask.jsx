@@ -71,6 +71,8 @@ function ModalDetailCardTask({ open, card, onClose, onSave, boardId }) {
     setAddComment,
     moveCheckList,
   } = useModalDetailCardTask(card, onSave, boardMembers);
+  const quickMemRef = useRef(null);
+  const actionMemRef = useRef(null);
   const [startOpen, setStartOpen] = useState(false);
   useEffect(() => {
     if (!open) return;
@@ -249,6 +251,7 @@ function ModalDetailCardTask({ open, card, onClose, onSave, boardId }) {
                       {!hasMembers && (
                         <div className="relative">
                           <button
+                            ref={quickMemRef}
                             type="button"
                             onClick={() => setMembersOpen(true)}
                             className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white hover:bg-white px-3 py-1.5 text-gray-900"
@@ -256,6 +259,7 @@ function ModalDetailCardTask({ open, card, onClose, onSave, boardId }) {
                             <IoPersonAddOutline /> Thành viên
                           </button>
                           <MembersPopover
+                            anchorEl={quickMemRef.current}
                             open={membersOpen}
                             onClose={() => setMembersOpen(false)}
                             members={boardMembers}
@@ -324,6 +328,7 @@ function ModalDetailCardTask({ open, card, onClose, onSave, boardId }) {
                           {renderMemberChips()}
                           <div className="relative">
                             <button
+                              ref={actionMemRef}
                               type="button"
                               onClick={() => setMembersOpen(true)}
                               className="h-7 w-7 rounded-md bg-white hover:bg-white border border-gray-200 flex items-center justify-center"
@@ -332,6 +337,7 @@ function ModalDetailCardTask({ open, card, onClose, onSave, boardId }) {
                               <IoAdd className="text-gray-600" />
                             </button>
                             <MembersPopover
+                              anchorEl={actionMemRef.current}
                               open={membersOpen}
                               onClose={() => setMembersOpen(false)}
                               members={boardMembers}

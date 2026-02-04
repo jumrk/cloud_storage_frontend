@@ -44,6 +44,11 @@ export default function boardService() {
   const getRecentBoards = (params = {}) => {
     return axiosClient.get("/api/job-management/boards/recent", { params });
   };
+  const searchUsers = (query) => {
+    return axiosClient.get("/api/job-management/users/search", {
+      params: { q: query },
+    });
+  };
   return {
     getBoard,
     postBoard,
@@ -58,5 +63,6 @@ export default function boardService() {
     getPinnedBoards,
     recordVisit,
     getRecentBoards,
+    searchUsers,
   };
 }

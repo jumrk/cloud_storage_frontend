@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import ReactDOM from "react-dom";
 import { IoClose } from "react-icons/io5";
 import { useTranslations } from "next-intl";
 import getAvatarUrl from "@/shared/utils/getAvatarUrl";
@@ -10,6 +11,7 @@ export default function MembersPopover({
   selectedIds = [],
   onChange,
   className = "",
+  anchorEl,
 }) {
   const panelRef = useRef(null);
   const [query, setQuery] = useState("");
@@ -41,11 +43,41 @@ export default function MembersPopover({
       : [...selectedIds, id];
     onChange?.(next);
   };
+  const [coords, setCoords] = useState({ top: 0, left: 0 });
+
+  useEffect(() => {
+    if (!open || !anchorEl) return;
+    const updatePosition = () => {
+      const rect = anchorEl.getBoundingClientRect();
+      const scrollY = window.scrollY;
+      const scrollX = window.scrollX;
+      // Position below the anchor
+      let top = rect.bottom + scrollY + 8;
+      let left = rect.left + scrollX;
+      
+      // Basic bounds check (optional, but good for UX)
+      if (left + 320 > window.innerWidth) {
+        left = window.innerWidth - 330; 
+      }
+      
+      setCoords({ top, left });
+    };
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [open, anchorEl]);
+
   if (!open) return null;
-  return (
+
+  const content = (
     <div
       ref={panelRef}
-      className={`absolute z-50 top-full mt-2 w-80 rounded-xl border border-gray-200 bg-white shadow-xl ${className}`}
+      className={`fixed z-[9999] w-80 rounded-xl border border-gray-200 bg-white shadow-xl ${className}`}
+      style={{ top: coords.top, left: coords.left }}
       onClick={(e) => e.stopPropagation()}
       role="dialog"
       aria-label={t("job_management.card.members")}
@@ -112,4 +144,7 @@ export default function MembersPopover({
       </div>
     </div>
   );
+  
+  if (typeof document === 'undefined') return null;
+  return ReactDOM.createPortal(content, document.body);
 }

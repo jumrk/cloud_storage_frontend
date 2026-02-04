@@ -9,6 +9,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useBoardContext } from "./context/BoardContext";
 import { useTranslations } from "next-intl";
 import boardService from "../../services/boardService";
+import axiosClient from "@/shared/lib/axiosClient";
 
 export default function HeaderDetailBoard() {
   const { boardId } = useBoardContext();
@@ -40,21 +41,13 @@ export default function HeaderDetailBoard() {
       if (!userRes.data) return;
 
       const userId = userRes.data.id || userRes.data._id;
-      let currentUserId = null;
-      try {
-        const payload = JSON.parse(atob(token.split(".")[1]));
-        currentUserId = String(payload.userId || payload.id || "");
-      } catch (e) {
-        console.error("Error decoding token:", e);
-        return;
-      }
 
       // Get board info to check owner
       const res = await boardService().getBoardById(boardId);
       if (res.data?.success) {
         const board = res.data.data;
         const ownerId = String(board.createdBy?._id || board.createdBy || "");
-        setIsOwner(currentUserId === ownerId);
+        setIsOwner(String(userId) === ownerId);
       }
     } catch (error) {
       console.error("Error checking owner:", error);

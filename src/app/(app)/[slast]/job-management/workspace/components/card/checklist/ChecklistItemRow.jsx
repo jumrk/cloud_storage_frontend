@@ -1,5 +1,5 @@
 "use client";
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useRef } from "react";
 import {
   IoTrashOutline,
   IoTimeOutline,
@@ -39,6 +39,7 @@ export default function ChecklistItemRow({
     () => members.find((m) => (m.id ?? m._id) === assignee) || null,
     [members, assignee]
   );
+  const memberBtnRef = useRef(null);
   const commitText = async () => {
     const patch = { text: text.trim() };
     await onUpdate?.(item._id, patch);
@@ -112,6 +113,7 @@ export default function ChecklistItemRow({
       {assigneeObj ? (
         <button
           type="button"
+          ref={memberBtnRef}
           onClick={() => setMemOpen((v) => !v)}
           className="h-8 w-8 rounded-full bg-accent-500 text-white grid place-items-center font-semibold overflow-hidden shadow-sm hover:brightness-95"
           title={assigneeObj.fullName ?? t("job_management.card.members")}
@@ -131,6 +133,7 @@ export default function ChecklistItemRow({
       ) : (
         <button
           type="button"
+          ref={memberBtnRef}
           onClick={() => setMemOpen((v) => !v)}
           className="h-9 w-9 grid place-items-center rounded-lg border border-gray-200 bg-white hover:bg-white"
           title={t("job_management.checklist.assign")}
@@ -146,6 +149,7 @@ export default function ChecklistItemRow({
         members={members}
         selectedIds={assignee ? [assignee] : []}
         onChange={applyAssignee}
+        anchorEl={memberBtnRef.current}
       />
       <button
         type="button"
