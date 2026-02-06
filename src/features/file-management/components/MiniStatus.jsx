@@ -29,6 +29,12 @@ const calculateOptimalChunkSize = (fileSize) => {
 const getAdaptiveChunkSize = (fileSize, measuredBandwidthKbps = null) => {
   return FIXED_CHUNK_SIZE;
 };
+// Đóng MiniStatus khi chunks đã gửi lên server thành công (status = "processing")
+// Backend đã có đủ cơ chế đảm bảo Drive upload:
+// - Bull queue retry 5 lần với backoff
+// - removeOnFail giữ failed jobs 24h để retry
+// - Circuit breaker đánh dấu failed đúng cách
+// → Không cần giữ MiniStatus mở để theo dõi Drive upload nữa
 const CLOSE_ON_PROCESSING = true;
 const MIN_CHUNK_SIZE = 25 * 1024 * 1024; // 25MB minimum (match backend)
 const MAX_TOTAL_RETRIES = 30;
@@ -131,6 +137,9 @@ const MiniStatusBatch = ({
   const cancelledRef = useRef({});
   const abortControllersRef = useRef({});
   const isUploadingRef = useRef(false);
+  // FIX C4: Lưu uploadId vào ref để cancelUpload luôn đọc được giá trị mới nhất
+  // Trước đây đọc từ fileStates (React state) → stale closure → bỏ lỡ backend cancel
+  const uploadIdRefs = useRef({});
   const hasCompletedRef = useRef(false);
   const statusPollersRef = useRef({});
   // Store file states ref để có thể access trong pollStatusUntilDone
@@ -147,6 +156,16 @@ const MiniStatusBatch = ({
       // Direct state update
       dispatchFileStates({ type: "RESET", newState: updater });
     }
+  };
+
+  // FIX C1: Atomic update helpers - dùng UPDATE_FILE thay vì RESET
+  // Tránh race condition khi 2 updates đồng thời (WebSocket + polling) ghi đè lẫn nhau
+  const updateFileState = (fileIndex, updates) => {
+    dispatchFileStates({ type: "UPDATE_FILE", index: fileIndex, updates });
+  };
+
+  const updateMultipleFileStates = (updatesMap) => {
+    dispatchFileStates({ type: "UPDATE_MULTIPLE", updates: updatesMap });
   };
 
   // Sync fileStatesRef mỗi khi fileStates thay đổi
@@ -189,9 +208,9 @@ const MiniStatusBatch = ({
   // Fix memory leak: clear all intervals and abort controllers when component unmounts
   useEffect(() => {
     return () => {
-      // Clear all polling intervals
-      Object.values(statusPollersRef.current).forEach((interval) => {
-        if (interval) clearInterval(interval);
+      // Clear all polling timeouts (FIX C2: changed from clearInterval to clearTimeout)
+      Object.values(statusPollersRef.current).forEach((timerId) => {
+        if (timerId) clearTimeout(timerId);
       });
       statusPollersRef.current = {};
 
@@ -268,7 +287,7 @@ const MiniStatusBatch = ({
           ) {
             // Clear polling interval khi nhận WebSocket success event
             if (statusPollersRef.current[idx]) {
-              clearInterval(statusPollersRef.current[idx]);
+              clearTimeout(statusPollersRef.current[idx]);
               delete statusPollersRef.current[idx];
             }
             return { ...f, status: "success", progress: 100 };
@@ -387,7 +406,7 @@ const MiniStatusBatch = ({
   
   const pollStatusUntilDone = (uploadId, fileIndex, fileSize) => {
     if (statusPollersRef.current[fileIndex]) {
-      clearInterval(statusPollersRef.current[fileIndex]);
+      clearTimeout(statusPollersRef.current[fileIndex]);
       delete statusPollersRef.current[fileIndex];
     }
     
@@ -403,7 +422,7 @@ const MiniStatusBatch = ({
       const elapsed = Date.now() - pollStartTimeRef.current[fileIndex];
       if (elapsed > MAX_POLLING_DURATION) {
         console.error(`[Upload] Polling timeout for file ${fileIndex} after ${elapsed / 1000}s`);
-        clearInterval(statusPollersRef.current[fileIndex]);
+        clearTimeout(statusPollersRef.current[fileIndex]);
         delete statusPollersRef.current[fileIndex];
         setFileStates((prev) =>
           prev.map((f, idx) =>
@@ -427,7 +446,7 @@ const MiniStatusBatch = ({
           console.warn(`[Upload] Poll returned success=false, error count: ${pollErrorCountRef.current[fileIndex]}`);
           
           if (pollErrorCountRef.current[fileIndex] >= MAX_CONSECUTIVE_ERRORS) {
-            clearInterval(statusPollersRef.current[fileIndex]);
+            clearTimeout(statusPollersRef.current[fileIndex]);
             delete statusPollersRef.current[fileIndex];
             setFileStates((prev) =>
               prev.map((f, idx) =>
@@ -461,7 +480,7 @@ const MiniStatusBatch = ({
         
         // Handle FAILED state - stop polling and show error
         if (data.state === "FAILED" || data.state === "ERROR") {
-          clearInterval(statusPollersRef.current[fileIndex]);
+          clearTimeout(statusPollersRef.current[fileIndex]);
           delete statusPollersRef.current[fileIndex];
           setFileStates((prev) =>
             prev.map((f, idx) =>
@@ -488,7 +507,7 @@ const MiniStatusBatch = ({
           );
           return;
         }
-        clearInterval(statusPollersRef.current[fileIndex]);
+        clearTimeout(statusPollersRef.current[fileIndex]);
         delete statusPollersRef.current[fileIndex];
         setFileStates((prev) => {
           const next = prev.map((f, idx) =>
@@ -515,7 +534,7 @@ const MiniStatusBatch = ({
         console.error(`[FE] status poll error (${pollErrorCountRef.current[fileIndex]}/${MAX_CONSECUTIVE_ERRORS}):`, e?.message);
         
         if (pollErrorCountRef.current[fileIndex] >= MAX_CONSECUTIVE_ERRORS) {
-          clearInterval(statusPollersRef.current[fileIndex]);
+          clearTimeout(statusPollersRef.current[fileIndex]);
           delete statusPollersRef.current[fileIndex];
           setFileStates((prev) =>
             prev.map((f, idx) =>
@@ -527,8 +546,19 @@ const MiniStatusBatch = ({
         }
       }
     };
+    // FIX C2: Dùng setTimeout chain thay vì setInterval
+    // setInterval gọi mỗi 3s bất kể tick trước đã xong chưa
+    // Nếu server chậm (15s timeout), 5 tick chạy đồng thời → corrupt state
+    const scheduleNextTick = () => {
+      statusPollersRef.current[fileIndex] = setTimeout(async () => {
+        await tick();
+        if (!cancelledRef.current[fileIndex]) {
+          scheduleNextTick();
+        }
+      }, 3000);
+    };
     tick();
-    statusPollersRef.current[fileIndex] = setInterval(tick, 3000);
+    scheduleNextTick();
   };
 
   // Helper function để retry với exponential backoff
@@ -935,6 +965,8 @@ const MiniStatusBatch = ({
       )
     );
     let uploadId = fileState.uploadId;
+    // FIX C4: Lưu uploadId vào ref ngay khi có
+    if (uploadId) uploadIdRefs.current[fileIndex] = uploadId;
     if (fileState.resumeUpload && uploadId) {
       setFileStates((prev) =>
         prev.map((f, idx) =>
@@ -981,6 +1013,8 @@ const MiniStatusBatch = ({
         uploadId = `${batchId}-${fileIndex}-${Date.now()}-${Math.random()
           .toString(36)
           .slice(2, 11)}`;
+        // FIX C4: Lưu uploadId vào ref ngay khi tạo, để cancelUpload luôn có thể đọc
+        uploadIdRefs.current[fileIndex] = uploadId;
         const firstHeaders = {
           "Content-Type": "application/octet-stream",
           "X-Upload-Id": encodeURIComponent(uploadId),
@@ -1473,17 +1507,18 @@ const MiniStatusBatch = ({
   const cancelUpload = async (fileIndex) => {
     cancelledRef.current[fileIndex] = true;
     if (statusPollersRef.current[fileIndex]) {
-      clearInterval(statusPollersRef.current[fileIndex]);
+      clearTimeout(statusPollersRef.current[fileIndex]);
       delete statusPollersRef.current[fileIndex];
     }
     if (abortControllersRef.current[fileIndex]) {
       abortControllersRef.current[fileIndex].abort();
     }
-    const fileState = fileStates[fileIndex];
-    if (fileState.uploadId) {
+    // FIX C4: Đọc uploadId từ ref (luôn mới nhất) thay vì từ fileStates (có thể stale)
+    const uploadId = uploadIdRefs.current[fileIndex] || fileStates[fileIndex]?.uploadId;
+    if (uploadId) {
       try {
         const response = await axiosClient.post("/api/upload/cancel", {
-          uploadId: fileState.uploadId,
+          uploadId: uploadId,
         });
         const data = response.data;
         if (data?.success || response.status === 200) {
@@ -1928,7 +1963,7 @@ const MiniStatusBatch = ({
             timedOut: true, // Flag to indicate forced completion
           });
         }
-      }, 30000); // 30 second timeout
+      }, 120000); // 2 phút timeout - đủ cho Drive upload hoàn thành (trước đây 30s quá ngắn)
       
       return () => clearTimeout(timeoutId);
     }

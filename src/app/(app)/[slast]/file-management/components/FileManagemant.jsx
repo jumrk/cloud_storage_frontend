@@ -1140,32 +1140,51 @@ export default function FileManagement({
   const traverseFileTree = async (item, path = "") => {
     if (item.isFile) {
       return new Promise((resolve) => {
-        item.file((file) => {
-          resolve([{ file, relativePath: path + file.name }]);
-        });
+        item.file(
+          (file) => {
+            resolve([{ file, relativePath: path + file.name }]);
+          },
+          // FIX C3: Thêm error callback để tránh Promise treo vĩnh viễn
+          // Nếu file bị xóa/inaccessible giữa drag-drop, Promise sẽ resolve rỗng thay vì treo
+          (err) => {
+            console.warn("[traverseFileTree] Failed to read file entry:", err);
+            resolve([]); // Skip file, không để promise treo
+          },
+        );
       });
     }
     if (item.isDirectory) {
       const dirReader = item.createReader();
       return new Promise((resolve) => {
-        dirReader.readEntries(async (entries) => {
-          let files = [];
-          const isEmpty = entries.length === 0;
-          for (const entry of entries) {
-            const entryFiles = await traverseFileTree(
-              entry,
-              path + item.name + "/",
-            );
-            files = files.concat(entryFiles);
-          }
-          if (isEmpty) {
-            resolve([
-              { emptyFolder: true, relativePath: path + item.name + "/" },
-            ]);
-          } else {
-            resolve(files);
-          }
-        });
+        // CRITICAL FIX: readEntries() có thể không trả về hết entries trong 1 lần gọi
+        // (đặc biệt với folder >100 files). Phải gọi lặp lại cho đến khi trả về mảng rỗng.
+        const allEntries = [];
+        const readBatch = () => {
+          dirReader.readEntries(async (entries) => {
+            if (entries.length === 0) {
+              // Đã đọc hết tất cả entries
+              let files = [];
+              for (const entry of allEntries) {
+                const entryFiles = await traverseFileTree(
+                  entry,
+                  path + item.name + "/",
+                );
+                files = files.concat(entryFiles);
+              }
+              if (allEntries.length === 0) {
+                resolve([
+                  { emptyFolder: true, relativePath: path + item.name + "/" },
+                ]);
+              } else {
+                resolve(files);
+              }
+            } else {
+              allEntries.push(...entries);
+              readBatch(); // Đọc batch tiếp theo
+            }
+          });
+        };
+        readBatch();
       });
     }
     return [];
@@ -1870,11 +1889,15 @@ export default function FileManagement({
               // For upload operations, add files optimistically without refetching
               // Add each uploaded file to data state (even if uploadIds is empty, files might still be processing)
               if (result?.uploadIds && result.uploadIds.length > 0) {
-                // If multiple files, add them in batch to avoid race conditions
-                if (result.uploadIds.length > 1) {
-                  // For multiple files, fetch all new files from the folder immediately
-                  // This is more reliable than calling addUploadedFile for each file individually
-                  (async () => {
+                // ✅ FIX: Add small delay to ensure File doc is committed to MongoDB
+                // With CLOSE_ON_PROCESSING=true, onComplete fires right after chunks sent
+                // The backend may still be committing the File doc to DB
+                (async () => {
+                  // Wait 500ms for File doc to be committed to MongoDB
+                  await new Promise((resolve) => setTimeout(resolve, 500));
+                  
+                  if (result.uploadIds.length > 1) {
+                    // For multiple files, fetch all new files from the folder immediately
                     try {
                       await addUploadedFilesBatch(result.uploadIds);
                     } catch (error) {
@@ -1883,15 +1906,15 @@ export default function FileManagement({
                         error,
                       );
                       // Fallback: try individual files
-                      result.uploadIds.forEach((uploadId) => {
-                        addUploadedFile(uploadId);
-                      });
+                      for (const uploadId of result.uploadIds) {
+                        await addUploadedFile(uploadId);
+                      }
                     }
-                  })();
-                } else {
-                  // Single file, call addUploadedFile immediately
-                  addUploadedFile(result.uploadIds[0]);
-                }
+                  } else {
+                    // Single file
+                    await addUploadedFile(result.uploadIds[0]);
+                  }
+                })();
               }
               // IMPORTANT: Don't reload even if uploadIds is empty or result.success is false
               // Files might still be processing or being created in the database
@@ -1907,6 +1930,9 @@ export default function FileManagement({
                 // Folders will be rendered via "file:created" events from backend
                 // Note: Optimistic folders are already added when batch is created
                 (async () => {
+                  // ✅ FIX: Add delay for folder uploads too
+                  await new Promise((resolve) => setTimeout(resolve, 500));
+                  
                   try {
                     await addUploadedFilesBatch(result.uploadIds);
                   } catch (error) {
@@ -1915,9 +1941,9 @@ export default function FileManagement({
                       error,
                     );
                     // Fallback: try individual files
-                    result.uploadIds.forEach((uploadId) => {
-                      addUploadedFile(uploadId);
-                    });
+                    for (const uploadId of result.uploadIds) {
+                      await addUploadedFile(uploadId);
+                    }
                   }
                 })();
               }

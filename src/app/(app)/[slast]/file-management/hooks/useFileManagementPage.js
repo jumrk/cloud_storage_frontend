@@ -355,8 +355,30 @@ const useFileManagementPage = ({
             // Cache is valid, use it
             // If requesting page 1, restore all cached data
             if (pageNum === 1) {
-              // Set data and states synchronously for smooth transition
-              setData(cached.data);
+              // ✅ SAFETY FIX: Use functional setData to prevent overwriting items
+              // that were added by WebSocket handlers during race conditions.
+              // Non-functional setData(value) can overwrite pending functional updates,
+              // causing files added by handleFileUploaded to "disappear".
+              setData((prevData) => {
+                // If no existing data (initial load), just use cached data
+                if (!prevData || prevData.length === 0) return cached.data;
+                
+                // Merge: keep all cached items, but also preserve any items
+                // in prevData that aren't in cache (added by WebSocket handlers)
+                const cachedIds = new Set(
+                  cached.data.map((item) => String(item.id || item._id))
+                );
+                const extraFromPrev = prevData.filter(
+                  (item) => !cachedIds.has(String(item.id || item._id))
+                );
+                
+                if (extraFromPrev.length > 0) {
+                  // Items exist in prevData that aren't in cache - merge them
+                  console.log(`[fetchData] Merging ${extraFromPrev.length} extra items from prevData into cache restore`);
+                  return [...extraFromPrev, ...cached.data];
+                }
+                return cached.data;
+              });
               setHasMore(cached.hasMore || false);
               setLoading(false);
               setLoadingMore(false);
@@ -517,7 +539,27 @@ const useFileManagementPage = ({
           // For member, data is already transformed, set it directly
           const finalData = [...folders, ...files];
           if (pageNum === 1) {
-            setData(finalData);
+            // ✅ SAFETY FIX: Use functional setData to merge with any items
+            // added by WebSocket handlers during race conditions
+            setData((prevData) => {
+              // If no existing data or this is forceRefresh, use API data
+              if (!prevData || prevData.length === 0 || forceRefresh) {
+                return finalData;
+              }
+              // Merge: use API data as base, but preserve items from prevData
+              // that aren't in the API response (recently added by WebSocket)
+              const apiIds = new Set(
+                finalData.map((item) => String(item.id || item._id))
+              );
+              const extraFromPrev = prevData.filter(
+                (item) => !apiIds.has(String(item.id || item._id))
+              );
+              if (extraFromPrev.length > 0) {
+                console.log(`[fetchData-member] Merging ${extraFromPrev.length} extra items from prevData`);
+                return [...extraFromPrev, ...finalData];
+              }
+              return finalData;
+            });
             setLoading(false);
             setLoadingMore(false); // Ensure loadingMore is false for first page
             // Cache the data for this folder
@@ -842,7 +884,8 @@ const useFileManagementPage = ({
           type: file.type || "file",
           size: file.size,
           date: file.createdAt,
-          folderId: file.folderId ? String(file.folderId) : null,
+          // ✅ FIX: Use top-level payload folderId as fallback when file.folderId is missing
+          folderId: file.folderId ? String(file.folderId) : (folderId ? String(folderId) : null),
           parentId: file.parentId ? String(file.parentId) : null,
           permissions: file.permissions || [],
           mimeType: file.mimeType,
@@ -871,13 +914,21 @@ const useFileManagementPage = ({
           return [fileData, ...prevData];
         });
 
-        // Update cache
+        // ✅ FIX: Update cache consistently with setData (avoid duplicates in cache)
         const cacheKey = currentFolder;
         const cached = folderDataCache.current.get(cacheKey);
         if (cached) {
+          const existsInCache = cached.data.some(
+            (item) => String(item.id || item._id) === String(fileData.id)
+          );
+          const updatedCacheData = existsInCache
+            ? cached.data.map((item) =>
+                String(item.id || item._id) === String(fileData.id) ? fileData : item
+              )
+            : [fileData, ...cached.data];
           folderDataCache.current.set(cacheKey, {
             ...cached,
-            data: [fileData, ...cached.data],
+            data: updatedCacheData,
             timestamp: Date.now(),
           });
         }
@@ -1247,16 +1298,22 @@ const useFileManagementPage = ({
     const handleStatsUpdate = async (data) => {
       console.log("[Socket] stats:updated received:", data);
       
-      // Dispatch window event to notify other components
+      // Dispatch window event to notify other components (storage bar, file count, etc.)
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("stats:updated", { detail: data }));
       }
       
-      // Also trigger a data refresh to ensure UI is in sync
-      // This helps catch any missed updates or race conditions
-      setTimeout(() => {
-        resetAndReload(false); // Soft reload without clearing cache
-      }, 500);
+      // ⚠️ DO NOT call resetAndReload here!
+      // The stats:updated event fires during upload completion (maybeCreateFileDoc).
+      // Calling resetAndReload causes a race condition:
+      //   1. file:uploaded handler adds new file via functional setData
+      //   2. resetAndReload calls fetchData which uses NON-functional setData(cached.data)
+      //   3. The non-functional setData overwrites the functional update, replacing the
+      //      data array and causing files to "disappear"
+      // Data updates after upload are handled by:
+      //   - file:uploaded WebSocket event (handleFileUploaded)
+      //   - addUploadedFile (called from onComplete)
+      //   - file:driveUploadCompleted (when Drive upload finishes)
     };
 
     // Register event listeners
@@ -1467,23 +1524,38 @@ const useFileManagementPage = ({
               }
             );
 
-            if (listRes.data?.success) {
+            // ✅ FIX: Member API returns { folders: tree } (no success field)
+            // Leader API returns { success: true, files: [], folders: [] }
+            const memberHasData = isMember && listRes.data?.folders;
+            const leaderHasData = !isMember && listRes.data?.success;
+            
+            if (memberHasData || leaderHasData) {
               let allFiles = [];
 
               if (isMember) {
-                // Member API returns different structure
-                const sourceItems = listRes.data.sourceItems || [];
-                allFiles = sourceItems
+                // ✅ FIX: Member API returns tree structure { folders: [...] }
+                // Need to flatten tree to find files in the current folder
+                const foldersTree = listRes.data.folders || [];
+                let sourceItems = foldersTree;
+                if (currentFolderId) {
+                  const targetFolder = findFolderById(foldersTree, currentFolderId);
+                  if (targetFolder) {
+                    sourceItems = targetFolder.children || [];
+                  } else {
+                    sourceItems = [];
+                  }
+                }
+                allFiles = (sourceItems || [])
                   .filter((item) => item.type === "file")
                   .map((item) => ({
                     _id: item._id,
                     id: item._id,
-                    originalName: item.name,
-                    name: item.name,
+                    originalName: item.originalName || item.name,
+                    name: item.originalName || item.name,
                     size: item.size,
                     mimeType: item.mimeType,
                     createdAt: item.createdAt,
-                    folderId: item.folderId,
+                    folderId: item.folderId || (currentFolderId ? String(currentFolderId) : null),
                     url: item.url,
                     driveUrl: item.driveUrl,
                     tempDownloadUrl: item.tempDownloadUrl,
@@ -1761,9 +1833,10 @@ const useFileManagementPage = ({
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [currentFolderId, isMember, t, filter.sortBy, folderDataCache, setData]
+    [currentFolderId, isMember, t, filter.sortBy, folderDataCache, setData, findFolderById]
     // Note: startPollingFileStatus được define sau nên không thể thêm vào deps
     // Nhưng nó là stable function (useCallback) nên safe để exclude
+    // findFolderById is stable (useCallback with []) so it won't cause re-renders
   );
 
   const addOptimisticFolders = useCallback(
@@ -1929,47 +2002,65 @@ const useFileManagementPage = ({
             // Try to get file by fileId instead
             if (error.response?.status === 404 && fileId) {
               try {
-                // Use the file list API to get file by ID
-                const listRes = await axiosClient.get("/api/upload", {
-                  params: {
-                    page: 1,
-                    limit: 1000,
-                    parentId: currentFolderId || null,
-                  },
-                  headers: tokenRef.current
-                    ? { Authorization: `Bearer ${tokenRef.current}` }
-                    : {},
-                });
+                // ✅ FIX: Use correct API endpoint for members vs leaders
+                const listRes = await axiosClient.get(
+                  isMember ? "/api/member/folders" : "/api/upload",
+                  {
+                    params: {
+                      page: 1,
+                      limit: 1000,
+                      parentId: currentFolderId || null,
+                    },
+                    headers: tokenRef.current
+                      ? { Authorization: `Bearer ${tokenRef.current}` }
+                      : {},
+                  }
+                );
 
-                if (listRes.data?.success) {
-                  const allFiles = [
+                let allFiles = [];
+                if (isMember) {
+                  // ✅ FIX: Member API returns tree { folders: [...] }
+                  const foldersTree = listRes.data?.folders || [];
+                  let sourceItems = foldersTree;
+                  if (currentFolderId) {
+                    const targetFolder = findFolderById(foldersTree, currentFolderId);
+                    if (targetFolder) {
+                      sourceItems = targetFolder.children || [];
+                    } else {
+                      sourceItems = [];
+                    }
+                  }
+                  allFiles = (sourceItems || []).filter((item) => item.type === "file");
+                } else if (listRes.data?.success) {
+                  allFiles = [
                     ...(listRes.data.files || []),
                     ...(listRes.data.folders || []),
                   ];
-                  file = allFiles.find(
-                    (f) => String(f._id || f.id) === String(fileId)
-                  );
+                }
 
-                  if (file) {
-                    // Transform to match expected format
-                    file = {
-                      _id: file._id || file.id,
-                      id: file._id || file.id,
-                      originalName: file.name || file.originalName,
-                      name: file.name || file.originalName,
-                      size: file.size,
-                      mimeType: file.mimeType,
-                      createdAt: file.createdAt,
-                      folderId: file.folderId,
-                      url: file.url,
-                      driveUrl: file.driveUrl,
-                      tempDownloadUrl: file.tempDownloadUrl,
-                      tempFileStatus: file.tempFileStatus,
-                      driveUploadStatus: file.driveUploadStatus,
-                      driveFileId: file.driveFileId,
-                      permissions: file.permissions || [],
-                    };
-                  }
+                file = allFiles.find(
+                  (f) => String(f._id || f.id) === String(fileId)
+                );
+
+                if (file) {
+                  // Transform to match expected format
+                  file = {
+                    _id: file._id || file.id,
+                    id: file._id || file.id,
+                    originalName: file.originalName || file.name,
+                    name: file.originalName || file.name,
+                    size: file.size,
+                    mimeType: file.mimeType,
+                    createdAt: file.createdAt,
+                    folderId: file.folderId || (currentFolderId ? String(currentFolderId) : null),
+                    url: file.url,
+                    driveUrl: file.driveUrl,
+                    tempDownloadUrl: file.tempDownloadUrl,
+                    tempFileStatus: file.tempFileStatus,
+                    driveUploadStatus: file.driveUploadStatus,
+                    driveFileId: file.driveFileId,
+                    permissions: file.permissions || [],
+                  };
                 }
               } catch (listError) {
                 // If still can't find, stop polling
@@ -2048,7 +2139,7 @@ const useFileManagementPage = ({
         fileId,
       });
     },
-    [currentFolderId]
+    [currentFolderId, isMember, findFolderById]
   );
 
   // Restore upload status for files that are still uploading to Drive
@@ -2124,7 +2215,12 @@ const useFileManagementPage = ({
           }
         );
 
-        if (!listRes.data?.success) {
+        // ✅ FIX: Member API returns { folders: tree } (no success field)
+        // Leader API returns { success: true, files: [], folders: [] }
+        const memberHasData = isMember && listRes.data?.folders;
+        const leaderHasData = !isMember && listRes.data?.success;
+        
+        if (!memberHasData && !leaderHasData) {
           console.warn(
             "[addUploadedFilesBatch] Failed to fetch files from list API"
           );
@@ -2138,19 +2234,29 @@ const useFileManagementPage = ({
         let allFiles = [];
 
         if (isMember) {
-          // Member API returns different structure
-          const sourceItems = listRes.data.sourceItems || [];
-          allFiles = sourceItems
+          // ✅ FIX: Member API returns tree structure { folders: [...] }
+          // Need to flatten tree to find files in the current folder
+          const foldersTree = listRes.data.folders || [];
+          let sourceItems = foldersTree;
+          if (currentFolderId) {
+            const targetFolder = findFolderById(foldersTree, currentFolderId);
+            if (targetFolder) {
+              sourceItems = targetFolder.children || [];
+            } else {
+              sourceItems = [];
+            }
+          }
+          allFiles = (sourceItems || [])
             .filter((item) => item.type === "file")
             .map((item) => ({
               _id: item._id,
               id: item._id,
-              originalName: item.name,
-              name: item.name,
+              originalName: item.originalName || item.name,
+              name: item.originalName || item.name,
               size: item.size,
               mimeType: item.mimeType,
               createdAt: item.createdAt,
-              folderId: item.folderId,
+              folderId: item.folderId || (currentFolderId ? String(currentFolderId) : null),
               url: item.url,
               driveUrl: item.driveUrl,
               tempDownloadUrl: item.tempDownloadUrl,
@@ -2324,6 +2430,7 @@ const useFileManagementPage = ({
       tokenRef,
       startPollingFileStatus,
       addUploadedFile,
+      findFolderById,
     ]
   );
 
