@@ -192,6 +192,16 @@ export default function DownloadStatus({
           headerColor="text-brand"
         >
           <div className="space-y-2 mt-1">
+             {isDownloading && onCancel && (
+               <div className="flex justify-end mb-2">
+                 <button
+                   onClick={() => onCancel("all")}
+                   className="text-xs font-medium px-3 py-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center gap-1"
+                 >
+                   <FiX size={12} /> Hủy tất cả
+                 </button>
+               </div>
+             )}
              {folderName && (
                <div className="flex items-center gap-2 text-xs mb-2 pb-2 border-b border-gray-50">
                    <div className="p-1.5 rounded bg-yellow-100/50 text-yellow-600">

@@ -23,11 +23,13 @@ const shareService = {
   },
 
   // Tải xuống một file cụ thể qua share token (public)
-  downloadShareFile: (token, fileId, onDownloadProgress, password) => {
+  // signal: AbortSignal từ AbortController để hỗ trợ hủy tải xuống
+  downloadShareFile: (token, fileId, onDownloadProgress, password, signal) => {
     return axiosClient.get(`/api/share/${token}/file/${fileId}`, {
       responseType: "blob",
       params: password ? { password } : undefined,
       onDownloadProgress: onDownloadProgress || undefined,
+      signal: signal || undefined,
     });
   },
 

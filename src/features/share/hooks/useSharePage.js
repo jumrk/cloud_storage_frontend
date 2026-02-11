@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useParams } from "next/navigation";
 import toast from "react-hot-toast";
 import shareService from "../services/shareService";
@@ -15,7 +15,7 @@ function formatSize(size) {
 
 export default function useSharePage() {
   const { id } = useParams(); // This is the share token
-  
+
   const [item, setItem] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -30,65 +30,81 @@ export default function useSharePage() {
   const [passwordError, setPasswordError] = useState("");
   const sharePasswordRef = useRef("");
   const downloadBatchIdRef = useRef(0);
+  const abortControllerRef = useRef(null);
+  const cancelledFileIdsRef = useRef(new Set());
+  const downloadBatchRef = useRef(null);
 
   const setSharePassword = useCallback((value) => {
     sharePasswordRef.current = value;
     setSharePasswordState(value);
   }, []);
 
+  // Sync downloadBatch to ref để handleCancelDownload luôn có dữ liệu mới nhất
+  useEffect(() => {
+    downloadBatchRef.current = downloadBatch;
+  }, [downloadBatch]);
+
   const getSharePasswordValue = useCallback(
-    (override) => (override !== undefined ? override : sharePasswordRef.current),
-    []
+    (override) =>
+      override !== undefined ? override : sharePasswordRef.current,
+    [],
   );
 
   // Fetch share info or subfolder info
-  const fetchShareInfo = useCallback(async (subfolderId = null, passwordOverride) => {
-    if (!id) return;
-    setLoading(true);
-    const passwordValue = getSharePasswordValue(passwordOverride);
-    try {
-      let res;
-      if (subfolderId) {
-        // Fetch subfolder content
-        res = await shareService.getShareSubfolderInfo(id, subfolderId, passwordValue);
-      } else {
-        // Fetch root share info
-        res = await shareService.getShareInfo(id, passwordValue);
-      }
-      
-      const data = res.data;
-      setItem(data);
-      setCurrentFolderId(subfolderId);
-      setPasswordRequired(false);
-      setPasswordError("");
-      
-      if (data.type === "folder") {
-        // Set root folder ID if this is the first load
-        if (!subfolderId) {
-          setRootFolderId(data.id);
-          setBreadcrumb([{ id: data.id, name: data.name }]);
+  const fetchShareInfo = useCallback(
+    async (subfolderId = null, passwordOverride) => {
+      if (!id) return;
+      setLoading(true);
+      const passwordValue = getSharePasswordValue(passwordOverride);
+      try {
+        let res;
+        if (subfolderId) {
+          // Fetch subfolder content
+          res = await shareService.getShareSubfolderInfo(
+            id,
+            subfolderId,
+            passwordValue,
+          );
+        } else {
+          // Fetch root share info
+          res = await shareService.getShareInfo(id, passwordValue);
         }
+
+        const data = res.data;
+        setItem(data);
+        setCurrentFolderId(subfolderId);
+        setPasswordRequired(false);
+        setPasswordError("");
+
+        if (data.type === "folder") {
+          // Set root folder ID if this is the first load
+          if (!subfolderId) {
+            setRootFolderId(data.id);
+            setBreadcrumb([{ id: data.id, name: data.name }]);
+          }
+        }
+      } catch (err) {
+        let msg = "Không tìm thấy file hoặc thư mục";
+        if (err.response && err.response.data && err.response.data.error) {
+          msg = err.response.data.error;
+        } else if (err.message) {
+          msg = err.message;
+        }
+        const code = err?.response?.data?.code;
+        if (code === "PASSWORD_REQUIRED" || code === "PASSWORD_INVALID") {
+          setPasswordRequired(true);
+          setPasswordError(code === "PASSWORD_INVALID" ? msg : "");
+          setError("");
+        } else {
+          setError(msg);
+          toast.error(msg);
+        }
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      let msg = "Không tìm thấy file hoặc thư mục";
-      if (err.response && err.response.data && err.response.data.error) {
-        msg = err.response.data.error;
-      } else if (err.message) {
-        msg = err.message;
-      }
-      const code = err?.response?.data?.code;
-      if (code === "PASSWORD_REQUIRED" || code === "PASSWORD_INVALID") {
-        setPasswordRequired(true);
-        setPasswordError(code === "PASSWORD_INVALID" ? msg : "");
-        setError("");
-      } else {
-        setError(msg);
-        toast.error(msg);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [id, getSharePasswordValue]);
+    },
+    [id, getSharePasswordValue],
+  );
 
   // Enter a subfolder
   const handleEnterFolder = useCallback(
@@ -98,14 +114,17 @@ export default function useSharePage() {
         const res = await shareService.getShareSubfolderInfo(
           id,
           folder.id,
-          getSharePasswordValue()
+          getSharePasswordValue(),
         );
         const data = res.data;
         setItem(data);
         setCurrentFolderId(folder.id);
-        
+
         // Update breadcrumb
-        setBreadcrumb((prev) => [...prev, { id: folder.id, name: folder.name }]);
+        setBreadcrumb((prev) => [
+          ...prev,
+          { id: folder.id, name: folder.name },
+        ]);
       } catch (err) {
         let msg = "Không thể mở thư mục";
         if (err.response && err.response.data && err.response.data.error) {
@@ -122,17 +141,17 @@ export default function useSharePage() {
         setLoading(false);
       }
     },
-    [id, getSharePasswordValue]
+    [id, getSharePasswordValue],
   );
 
   // Navigate via breadcrumb
   const handleBreadcrumbClick = useCallback(
     async (idx) => {
       if (idx === breadcrumb.length - 1) return; // Already at this folder
-      
+
       const target = breadcrumb[idx];
       setLoading(true);
-      
+
       try {
         let res;
         if (idx === 0) {
@@ -144,11 +163,11 @@ export default function useSharePage() {
           res = await shareService.getShareSubfolderInfo(
             id,
             target.id,
-            getSharePasswordValue()
+            getSharePasswordValue(),
           );
           setCurrentFolderId(target.id);
         }
-        
+
         const data = res.data;
         setItem(data);
         setBreadcrumb(breadcrumb.slice(0, idx + 1));
@@ -168,7 +187,7 @@ export default function useSharePage() {
         setLoading(false);
       }
     },
-    [breadcrumb, id, getSharePasswordValue]
+    [breadcrumb, id, getSharePasswordValue],
   );
 
   const copyShareLink = useCallback(async () => {
@@ -193,66 +212,90 @@ export default function useSharePage() {
     if (!file) return null;
     const driveUrl = file.driveUrl || file.url;
     if (!driveUrl) return null;
-    
+
     const patterns = [
       /\/d\/([\w-]+)\//,
       /[?&]id=([\w-]+)/,
       /\/file\/d\/([\w-]+)/,
     ];
-    
+
     for (const pattern of patterns) {
       const match = driveUrl.match(pattern);
       if (match && match[1]) {
         return `https://drive.google.com/uc?export=download&id=${match[1]}`;
       }
     }
-    
+
     return driveUrl;
   }, []);
 
   // Download a single file with timeout and fallback
+  // signal: AbortSignal để hủy tải (từ handleCancelDownload)
   const downloadSingleFile = useCallback(
-    async (file, relativePath = "", onProgress) => {
+    async (file, relativePath = "", onProgress, signal) => {
+      if (signal?.aborted) return { success: false, cancelled: true };
       try {
         const fileSize = file.size || 0;
-        const timeoutMs = fileSize > 100 * 1024 * 1024 ? 5 * 60 * 1000 : 2 * 60 * 1000;
-        
+        const timeoutMs =
+          fileSize > 100 * 1024 * 1024 ? 5 * 60 * 1000 : 2 * 60 * 1000;
+
         let lastProgressTime = Date.now();
         let lastProgressValue = 0;
         let progressStalledTimeout = null;
 
-        // Create abort controller for timeout
+        // Merge user cancel signal + timeout + stalled progress vào 1 controller
         const downloadController = new AbortController();
-        const timeout = setTimeout(() => {
-          downloadController.abort();
-        }, timeoutMs);
+        const timeout = setTimeout(() => downloadController.abort(), timeoutMs);
+
+        if (signal) {
+          signal.addEventListener("abort", () => {
+            clearTimeout(timeout);
+            if (progressStalledTimeout) clearInterval(progressStalledTimeout);
+            downloadController.abort();
+          });
+        }
 
         // Monitor for stalled progress
         const checkProgressStall = () => {
           const now = Date.now();
           const timeSinceLastProgress = now - lastProgressTime;
-          const currentProgress = typeof onProgress === 'function' ? lastProgressValue : 0;
-          
-          if (timeSinceLastProgress > 30000 && currentProgress > 0 && currentProgress < 100) {
+          const currentProgress =
+            typeof onProgress === "function" ? lastProgressValue : 0;
+          if (
+            timeSinceLastProgress > 30000 &&
+            currentProgress > 0 &&
+            currentProgress < 100
+          ) {
             downloadController.abort();
           }
         };
 
         progressStalledTimeout = setInterval(checkProgressStall, 5000);
 
-        const res = await shareService.downloadShareFile(id, file.id, (progressEvent) => {
-          lastProgressTime = Date.now();
-          if (onProgress && progressEvent.total) {
-            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-            lastProgressValue = percentCompleted;
-            // ✅ Pass both progress % and loaded bytes
-            onProgress(percentCompleted, progressEvent.loaded, progressEvent.total);
-          }
-        }, getSharePasswordValue());
-        
+        const res = await shareService.downloadShareFile(
+          id,
+          file.id,
+          (progressEvent) => {
+            lastProgressTime = Date.now();
+            if (onProgress && progressEvent.total) {
+              const percentCompleted = Math.round(
+                (progressEvent.loaded * 100) / progressEvent.total,
+              );
+              lastProgressValue = percentCompleted;
+              onProgress(
+                percentCompleted,
+                progressEvent.loaded,
+                progressEvent.total,
+              );
+            }
+          },
+          getSharePasswordValue(),
+          downloadController.signal,
+        );
+
         clearTimeout(timeout);
         if (progressStalledTimeout) clearInterval(progressStalledTimeout);
-        
+
         const blob = new Blob([res.data]);
         const link = document.createElement("a");
         link.href = window.URL.createObjectURL(blob);
@@ -265,11 +308,22 @@ export default function useSharePage() {
         }, 200);
         return { success: true };
       } catch (err) {
-        // Check if we should fallback to Google Drive URL
+        // User đã hủy tải xuống
+        const isUserCancel = signal && signal.aborted;
+        const isAbort =
+          err?.code === "ERR_CANCELED" ||
+          err?.name === "AbortError" ||
+          err?.message?.includes("abort");
+        if (isUserCancel || (isAbort && signal?.aborted)) {
+          return { success: false, cancelled: true };
+        }
+
+        // Check if we should fallback to Google Drive URL (timeout/network error)
         const driveUrl = getDriveDownloadUrl(file);
-        const isTimeout = err?.code === "ECONNABORTED" || 
-                          err?.name === "AbortError" ||
-                          err?.message?.includes("timeout");
+        const isTimeout =
+          err?.code === "ECONNABORTED" ||
+          err?.name === "AbortError" ||
+          err?.message?.includes("timeout");
 
         if (driveUrl && (isTimeout || err?.response?.status >= 500)) {
           // Fallback to Google Drive direct download
@@ -294,7 +348,7 @@ export default function useSharePage() {
         return { success: false, error: errorMsg };
       }
     },
-    [id, getDriveDownloadUrl, getSharePasswordValue]
+    [id, getDriveDownloadUrl, getSharePasswordValue],
   );
 
   // Download folder (all files)
@@ -302,9 +356,13 @@ export default function useSharePage() {
     async (folderItem) => {
       try {
         setDownloadingId(folderItem.id);
+        cancelledFileIdsRef.current.clear();
 
         // Get list of files in folder
-        const res = await shareService.getShareFolderFiles(id, getSharePasswordValue());
+        const res = await shareService.getShareFolderFiles(
+          id,
+          getSharePasswordValue(),
+        );
         if (
           !res.data?.success ||
           !res.data?.files ||
@@ -347,18 +405,38 @@ export default function useSharePage() {
         // Download each file
         let successCount = 0;
         let errorCount = 0;
+        let cancelledByUser = false;
 
         await new Promise((resolve) => setTimeout(resolve, 100));
 
         for (let i = 0; i < downloadFiles.length; i++) {
+          if (cancelledByUser) break;
+
           const fileState = downloadFiles[i];
+
+          // Kiểm tra file đã bị user hủy trước đó (pending)
+          if (cancelledFileIdsRef.current.has(fileState.id)) {
+            setDownloadBatch((prev) => {
+              if (!prev) return prev;
+              return {
+                ...prev,
+                files: prev.files.map((f, idx) =>
+                  idx === i ? { ...f, status: "cancelled", progress: 0 } : f,
+                ),
+              };
+            });
+            continue;
+          }
+
+          abortControllerRef.current = new AbortController();
+          const signal = abortControllerRef.current.signal;
 
           setDownloadBatch((prev) => {
             if (!prev) return prev;
             return {
               ...prev,
               files: prev.files.map((f, idx) =>
-                idx === i ? { ...f, status: "downloading", progress: 0 } : f
+                idx === i ? { ...f, status: "downloading", progress: 0 } : f,
               ),
             };
           });
@@ -367,7 +445,7 @@ export default function useSharePage() {
           const fileSize = fileState.size || 0;
           const isLargeFile = fileSize > 100 * 1024 * 1024; // > 100MB
           let simulatedProgressInterval = null;
-          
+
           if (isLargeFile) {
             // Simulate initial progress (0-5%) to show that download is starting
             let simulatedProgress = 0;
@@ -378,7 +456,7 @@ export default function useSharePage() {
                 return {
                   ...prev,
                   files: prev.files.map((f, idx) =>
-                    idx === i ? { ...f, progress: simulatedProgress } : f
+                    idx === i ? { ...f, progress: simulatedProgress } : f,
                   ),
                 };
               });
@@ -403,17 +481,38 @@ export default function useSharePage() {
                   return {
                     ...prev,
                     files: prev.files.map((f, idx) =>
-                      idx === i ? { 
-                        ...f, 
-                        progress: progress,
-                        loadedBytes: loadedBytes || 0, // ✅ Add loaded bytes
-                        totalBytes: totalBytes || f.size, // ✅ Add total bytes
-                      } : f
+                      idx === i
+                        ? {
+                            ...f,
+                            progress: progress,
+                            loadedBytes: loadedBytes || 0,
+                            totalBytes: totalBytes || f.size,
+                          }
+                        : f,
                     ),
                   };
                 });
-              }
+              },
+              signal,
             );
+
+            if (result.cancelled) {
+              cancelledByUser = true;
+              setDownloadBatch((prev) => {
+                if (!prev) return prev;
+                return {
+                  ...prev,
+                  files: prev.files.map((f, idx) =>
+                    idx === i ||
+                    (idx > i &&
+                      (f.status === "pending" || f.status === "downloading"))
+                      ? { ...f, status: "cancelled", progress: 0 }
+                      : f,
+                  ),
+                };
+              });
+              break;
+            }
 
             if (result.success) {
               successCount++;
@@ -422,7 +521,7 @@ export default function useSharePage() {
                 return {
                   ...prev,
                   files: prev.files.map((f, idx) =>
-                    idx === i ? { ...f, status: "success", progress: 100 } : f
+                    idx === i ? { ...f, status: "success", progress: 100 } : f,
                   ),
                 };
               });
@@ -440,7 +539,7 @@ export default function useSharePage() {
                           error: result.error,
                           progress: 0,
                         }
-                      : f
+                      : f,
                   ),
                 };
               });
@@ -454,7 +553,7 @@ export default function useSharePage() {
                 files: prev.files.map((f, idx) =>
                   idx === i
                     ? { ...f, status: "error", error: err.message, progress: 0 }
-                    : f
+                    : f,
                 ),
               };
             });
@@ -470,14 +569,14 @@ export default function useSharePage() {
           setDownloadingId(null);
           if (successCount > 0) {
             toast.success(
-              `Đã tải xuống ${successCount} file${successCount > 1 ? "s" : ""}`
+              `Đã tải xuống ${successCount} file${successCount > 1 ? "s" : ""}`,
             );
           }
           if (errorCount > 0) {
             toast.error(
               `${errorCount} file${
                 errorCount > 1 ? "s" : ""
-              } tải xuống thất bại`
+              } tải xuống thất bại`,
             );
           }
         }, 2000);
@@ -495,7 +594,7 @@ export default function useSharePage() {
         setDownloadingId(null);
       }
     },
-    [id, downloadSingleFile, getSharePasswordValue]
+    [id, downloadSingleFile, getSharePasswordValue],
   );
 
   // Download via URL (open in new tab)
@@ -516,10 +615,10 @@ export default function useSharePage() {
         const res = await shareService.getShareFileUrl(
           id,
           targetItem.id,
-          getSharePasswordValue()
+          getSharePasswordValue(),
         );
         const downloadUrl = res.data?.url || res.data?.originalUrl;
-        
+
         if (downloadUrl) {
           window.open(downloadUrl, "_blank");
           toast.success("Đã mở link tải xuống trong tab mới!");
@@ -527,7 +626,8 @@ export default function useSharePage() {
           toast.error("Không thể lấy URL tải xuống");
         }
       } catch (err) {
-        const errorMsg = err?.response?.data?.error || "Lỗi lấy URL: " + err.message;
+        const errorMsg =
+          err?.response?.data?.error || "Lỗi lấy URL: " + err.message;
         const code = err?.response?.data?.code;
         if (code === "PASSWORD_REQUIRED" || code === "PASSWORD_INVALID") {
           setPasswordRequired(true);
@@ -539,7 +639,7 @@ export default function useSharePage() {
         setDownloadingId(null);
       }
     },
-    [id, item?.canDownload, getSharePasswordValue]
+    [id, item?.canDownload, getSharePasswordValue],
   );
 
   const handleDownload = useCallback(
@@ -576,6 +676,9 @@ export default function useSharePage() {
 
           await new Promise((resolve) => setTimeout(resolve, 100));
 
+          abortControllerRef.current = new AbortController();
+          const signal = abortControllerRef.current.signal;
+
           setDownloadBatch((prev) => {
             if (!prev) return prev;
             return {
@@ -592,7 +695,7 @@ export default function useSharePage() {
           const fileSize = targetItem.size || 0;
           const isLargeFile = fileSize > 100 * 1024 * 1024; // > 100MB
           let simulatedProgressInterval = null;
-          
+
           if (isLargeFile) {
             // Simulate initial progress (0-5%) to show that download is starting
             let simulatedProgress = 0;
@@ -614,25 +717,47 @@ export default function useSharePage() {
             }, 200);
           }
 
-          const result = await downloadSingleFile(targetItem, "", (progress) => {
-            // Clear simulated progress when real progress starts
-            if (simulatedProgressInterval) {
-              clearInterval(simulatedProgressInterval);
-              simulatedProgressInterval = null;
-            }
+          const result = await downloadSingleFile(
+            targetItem,
+            "",
+            (progress, loadedBytes, totalBytes) => {
+              if (simulatedProgressInterval) {
+                clearInterval(simulatedProgressInterval);
+                simulatedProgressInterval = null;
+              }
+              setDownloadBatch((prev) => {
+                if (!prev) return prev;
+                return {
+                  ...prev,
+                  files: prev.files.map((f) => ({
+                    ...f,
+                    progress,
+                    loadedBytes: loadedBytes || 0,
+                    totalBytes: totalBytes || f.size,
+                  })),
+                };
+              });
+            },
+            signal,
+          );
+
+          if (result.cancelled) {
             setDownloadBatch((prev) => {
               if (!prev) return prev;
               return {
                 ...prev,
                 files: prev.files.map((f) => ({
                   ...f,
-                  progress: progress,
+                  status: "cancelled",
+                  progress: 0,
                 })),
               };
             });
-          });
-
-          if (result.success) {
+            setTimeout(() => {
+              setDownloadBatch(null);
+              setDownloadingId(null);
+            }, 1500);
+          } else if (result.success) {
             setDownloadBatch((prev) => {
               if (!prev) return prev;
               return {
@@ -677,11 +802,56 @@ export default function useSharePage() {
         }
       }
     },
-    [downloadFolder, downloadSingleFile, item?.canDownload]
+    [downloadFolder, downloadSingleFile, item?.canDownload],
   );
 
   const clearDownloadBatch = useCallback(() => {
     setDownloadBatch(null);
+    setDownloadingId(null);
+    cancelledFileIdsRef.current.clear();
+    abortControllerRef.current = null;
+  }, []);
+
+  // Hủy tải xuống file (hoặc tất cả nếu fileId là "all")
+  const handleCancelDownload = useCallback((fileId) => {
+    const batch = downloadBatchRef.current;
+    if (fileId === "all") {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      cancelledFileIdsRef.current.clear();
+      setDownloadBatch((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          files: prev.files.map((f) =>
+            f.status === "downloading" || f.status === "pending"
+              ? { ...f, status: "cancelled", progress: 0 }
+              : f,
+          ),
+        };
+      });
+    } else if (batch?.files) {
+      const currentFile = batch.files.find((f) => (f.id || f.name) === fileId);
+      if (currentFile?.status === "downloading") {
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+        }
+      } else if (currentFile?.status === "pending") {
+        cancelledFileIdsRef.current.add(fileId);
+        setDownloadBatch((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            files: prev.files.map((f) =>
+              (f.id || f.name) === fileId
+                ? { ...f, status: "cancelled", progress: 0 }
+                : f,
+            ),
+          };
+        });
+      }
+    }
   }, []);
 
   return {
@@ -707,6 +877,7 @@ export default function useSharePage() {
     copyShareLink,
     handleDownload,
     handleDownloadUrl,
+    handleCancelDownload,
     clearDownloadBatch,
   };
 }

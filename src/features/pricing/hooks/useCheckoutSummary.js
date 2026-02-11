@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import pricingService from "@/shared/services/pricingService";
 
 /**
@@ -41,9 +42,14 @@ export function useCheckoutSummary({
       formEmail
     ) {
       generateSummaryAuto().catch((err) => {
-        // Gọi callback nếu có
+        const message =
+          err?.message ||
+          err?.response?.data?.message ||
+          err?.response?.data?.error ||
+          "Không thể tính toán giá. Vui lòng thử lại.";
+        toast.error(message);
         if (onError) {
-          onError(err.message || err);
+          onError(message);
         }
         console.error("Auto load summary error:", err);
       });

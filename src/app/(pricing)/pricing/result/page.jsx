@@ -64,16 +64,16 @@ function ResultContent() {
 
         <div className="flex flex-col gap-3">
           <Link
-            href="/admin"
+            href={success ? "/login" : "/pricing/checkout"}
             className="w-full rounded-2xl bg-[var(--color-brand-500)] text-white font-semibold py-3 hover:bg-[var(--color-brand-600)] transition"
           >
-            Quay về trang quản trị
+            {success ? "Đăng nhập" : "Thử lại thanh toán"}
           </Link>
           <Link
-            href="/pricing"
+            href="/"
             className="w-full rounded-2xl border border-[var(--color-border)] text-[var(--color-text-strong)] font-semibold py-3 hover:bg-[var(--color-surface-soft)] transition"
           >
-            Xem bảng giá
+            Về trang chủ
           </Link>
         </div>
       </div>

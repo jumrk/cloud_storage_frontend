@@ -103,9 +103,8 @@ function CheckoutContent() {
     planSlug,
     buildPayload,
     formEmail: form.email,
-    onError: (errorMessage) => {
-      // Hiển thị toast và quay về khi có lỗi từ auto-load
-      toast.error(errorMessage || "Có lỗi xảy ra khi tính toán giá.");
+    onError: () => {
+      // Toast đã hiển thị trong hook; chỉ xử lý quay về
       setTimeout(() => {
         router.back();
       }, 2000);

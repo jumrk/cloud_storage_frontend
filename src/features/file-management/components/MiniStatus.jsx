@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useReducer } from "react";
 import Loader from "@/shared/ui/Loader";
-import { FiCheck, FiX, FiUpload, FiClock, FiFile, FiFolder, FiTrash2, FiMove } from "react-icons/fi";
+import { FiCheck, FiX, FiUpload, FiClock, FiFile, FiFolder, FiTrash2, FiMove, FiPause, FiPlay } from "react-icons/fi";
 import StatusCard from "@/shared/ui/StatusCard";
 import axiosClient from "@/shared/lib/axiosClient";
 import {
@@ -104,6 +104,9 @@ const MiniStatusBatch = ({
   moveItems = [],
   moveTargetFolderId,
   useChunkedUpload = false,
+  pausedAllRef: pausedAllRefProp,
+  resumeTrigger = 0,
+  onResumeAll,
 }) => {
   const t = useTranslations();
   // ✅ No need for token - cookie sent automatically
@@ -133,6 +136,8 @@ const MiniStatusBatch = ({
   const [result, setResult] = useState(null);
   const [eta, setEta] = useState(null); // Estimated time of arrival in seconds
   const [speed, setSpeed] = useState(0); // Upload speed in bytes per second
+  const [localResumeTrigger, setLocalResumeTrigger] = useState(0);
+  const effectiveResumeTrigger = onResumeAll ? resumeTrigger : localResumeTrigger;
   const hasUploaded = useRef(false);
   const cancelledRef = useRef({});
   const abortControllersRef = useRef({});
@@ -144,6 +149,9 @@ const MiniStatusBatch = ({
   const statusPollersRef = useRef({});
   // Store file states ref để có thể access trong pollStatusUntilDone
   const fileStatesRef = useRef(fileStates);
+  // Pause All only
+  const pausedAllRefInternal = useRef(false);
+  const pausedAllRef = pausedAllRefProp || pausedAllRefInternal;
 
   // ✅ FIX #5: Wrapper function to maintain backward compatibility with reducer
   const setFileStates = (updater) => {
@@ -707,12 +715,14 @@ const MiniStatusBatch = ({
           headers["X-Chunk-Checksum"] = checksum;
           headers["X-Chunk-Checksum-Alg"] = "sha256";
         }
-        await axiosClient.post("/api/upload", buf, {
+        const resp = await axiosClient.post("/api/upload", buf, {
           headers,
           signal: abortControllersRef.current[fileIndex]?.signal,
           timeout: 300000,
         });
-        return true;
+        const data = resp?.data || null;
+        const assembledBytes = data?.success ? Number(data.assembledBytes || 0) : null;
+        return { success: true, assembledBytes };
       } catch (error) {
         recordRetryAttempt(fileIndex);
         if (isChecksumMismatch(error)) {
@@ -733,7 +743,7 @@ const MiniStatusBatch = ({
         await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
       }
     }
-    return true;
+    return { success: false, assembledBytes: null };
   };
 
   // ================= RESEND MISSING CHUNKS (SEQUENTIAL + IN-ORDER) =================
@@ -782,17 +792,48 @@ const MiniStatusBatch = ({
     }
     
     // ✅ Send chunks STRICTLY SEQUENTIALLY (concurrency = 1)
+    const fileSize = fileState.file?.size || 0;
     for (const chunkIdx of sortedList) {
       if (cancelledRef.current[fileIndex]) return false;
+      if (pausedAllRef.current) return false;
       
       try {
-        await sendChunkByIndex({
+        const result = await sendChunkByIndex({
           fileState,
           fileIndex,
           chunkIdx,
           uploadId,
           chunks,
         });
+        
+        // Cập nhật progress sau mỗi chunk để progress chạy mượt khi resume
+        if (result?.success && result?.assembledBytes != null && fileSize > 0) {
+          const assembledBytes = Number(result.assembledBytes);
+          const pct = Math.max(0, Math.min(100, Math.round((assembledBytes / fileSize) * 100)));
+          const now = Date.now();
+          let currentSpeed = 0;
+          if (!uploadSpeedRef.current[fileIndex]) {
+            uploadSpeedRef.current[fileIndex] = { bytes: 0, time: now - 100 };
+          }
+          const speedData = uploadSpeedRef.current[fileIndex];
+          const timeDiff = (now - speedData.time) / 1000;
+          if (timeDiff > 0) {
+            const bytesDiff = assembledBytes - speedData.bytes;
+            currentSpeed = bytesDiff / timeDiff;
+            setSpeed(currentSpeed);
+            uploadSpeedRef.current[fileIndex] = { bytes: assembledBytes, time: now };
+          }
+          setFileStates((prev) => {
+            const next = prev.map((f, idx) =>
+              idx === fileIndex ? { ...f, progress: pct, status: "uploading" } : f
+            );
+            const overall = calculateOverallProgress(next);
+            setProgress(overall);
+            const completedFiles = next.filter((f) => f.status === "success").length;
+            setEta(calculateETA(overall, currentSpeed || speed, next.length, completedFiles, next));
+            return next;
+          });
+        }
         
         // OPTIMIZED: Giảm delay từ 100ms xuống 10ms
         await new Promise((resolve) => setTimeout(resolve, 10));
@@ -824,6 +865,7 @@ const MiniStatusBatch = ({
   // KHÔNG đợi Drive upload hoàn thành - để file tiếp theo bắt đầu ngay
   const triggerUploadComplete = async (fileState, fileIndex, uploadId, chunks) => {
     if (cancelledRef.current[fileIndex]) return false;
+    if (pausedAllRef.current) return false;
 
     try {
       const res = await axiosClient.post("/api/upload/complete", { uploadId });
@@ -898,6 +940,7 @@ const MiniStatusBatch = ({
 
     while (round < maxRounds) {
       if (cancelledRef.current[fileIndex]) return false;
+      if (pausedAllRef.current) return false;
 
       let data = null;
       try {
@@ -988,8 +1031,22 @@ const MiniStatusBatch = ({
             missingChunks,
           });
         }
-        await completeUploadWithRetry(fileState, fileIndex, uploadId, chunks);
+        // Dùng triggerUploadComplete thay vì completeUploadWithRetry để:
+        // - Set status "processing" và progress 100
+        // - Start pollStatusUntilDone (cập nhật Drive % và success)
+        // - Đảm bảo MiniStatus đóng khi xong
+        const completed = await triggerUploadComplete(fileState, fileIndex, uploadId, chunks);
+        if (!completed && !cancelledRef.current[fileIndex] && pausedAllRef.current) {
+          updateFileState(fileIndex, { status: "paused" });
+        }
       } catch (error) {
+        if (error?.response?.status === 404) {
+          updateFileState(fileIndex, {
+            status: "error",
+            error: "Phiên upload đã hết hạn. Vui lòng tải lên lại.",
+          });
+          return;
+        }
         const msg =
           error?.response?.data?.error ||
           error?.message ||
@@ -1048,6 +1105,10 @@ const MiniStatusBatch = ({
               idx === fileIndex ? { ...f, status: "cancelled" } : f
             )
           );
+          return;
+        }
+        if (pausedAllRef.current) {
+          updateFileState(fileIndex, { status: "paused" });
           return;
         }
         // Tăng timeout lên 5 phút (300000ms) cho mạng chậm (77-242 KB/s)
@@ -1192,6 +1253,10 @@ const MiniStatusBatch = ({
         );
         return;
       }
+      if (pausedAllRef.current) {
+        updateFileState(fileIndex, { status: "paused" });
+        return;
+      }
 
       // ================= WAIT FOR PREVIOUS CHUNK TO COMPLETE =================
       // CRITICAL: Only send next chunk after previous is fully uploaded + confirmed by backend
@@ -1215,29 +1280,44 @@ const MiniStatusBatch = ({
             )
           );
           
-          const waitForNetwork = () =>
+          const waitForNetworkOrPaused = () =>
             new Promise((resolve, reject) => {
               const timeout = setTimeout(() => {
+                clearInterval(intervalId);
                 window.removeEventListener("online", onOnline);
                 reject(new Error("Network timeout - offline too long"));
-              }, 60000); // 60s timeout
+              }, 60000);
 
               const onOnline = () => {
                 clearTimeout(timeout);
+                clearInterval(intervalId);
                 window.removeEventListener("online", onOnline);
                 resolve();
               };
 
+              if (pausedAllRef.current) {
+                clearTimeout(timeout);
+                reject(new Error("PAUSED"));
+                return;
+              }
               if (navigator.onLine) {
                 clearTimeout(timeout);
                 resolve();
-              } else {
-                window.addEventListener("online", onOnline);
+                return;
               }
+              window.addEventListener("online", onOnline);
+              const intervalId = setInterval(() => {
+                if (pausedAllRef.current) {
+                  clearInterval(intervalId);
+                  clearTimeout(timeout);
+                  window.removeEventListener("online", onOnline);
+                  reject(new Error("PAUSED"));
+                }
+              }, 500);
             });
 
           try {
-            await waitForNetwork();
+            await waitForNetworkOrPaused();
             console.log(`[Upload] Network restored, resuming chunk ${i}`);
             setFileStates((prev) =>
               prev.map((f, idx) =>
@@ -1245,6 +1325,11 @@ const MiniStatusBatch = ({
               )
             );
           } catch (networkError) {
+            if (networkError?.message === "PAUSED") {
+              updateFileState(fileIndex, { status: "paused", error: null });
+              uploadingChunk = false;
+              return;
+            }
             console.error(`[Upload] Network timeout at chunk ${i}`);
             setFileStates((prev) =>
               prev.map((f, idx) =>
@@ -1253,10 +1338,16 @@ const MiniStatusBatch = ({
                   : f
               )
             );
+            uploadingChunk = false;
             return;
           }
         }
 
+        if (pausedAllRef.current) {
+          updateFileState(fileIndex, { status: "paused" });
+          uploadingChunk = false;
+          return;
+        }
         const ch = chunks[i];
         const buf = await readFileChunk(file, ch.start, ch.end);
         const checksum = await getChunkChecksum(buf);
@@ -1266,6 +1357,12 @@ const MiniStatusBatch = ({
               idx === fileIndex ? { ...f, status: "cancelled" } : f
             )
           );
+          uploadingChunk = false;
+          return;
+        }
+        if (pausedAllRef.current) {
+          updateFileState(fileIndex, { status: "paused" });
+          uploadingChunk = false;
           return;
         }
         const headers = {
@@ -1500,7 +1597,23 @@ const MiniStatusBatch = ({
       // ✅ FIX: Dùng triggerUploadComplete (non-blocking) thay vì completeUploadWithRetry
       // Điều này cho phép file tiếp theo bắt đầu ngay khi chunks đã gửi xong
       // Drive upload sẽ chạy background và track qua WebSocket/polling
-      await triggerUploadComplete(fileState, fileIndex, uploadId, chunks);
+      const completed = await triggerUploadComplete(fileState, fileIndex, uploadId, chunks);
+      if (!completed && pausedAllRef.current) {
+        updateFileState(fileIndex, { status: "paused" });
+      }
+    }
+  };
+
+  const pauseAllUploads = () => {
+    pausedAllRef.current = true;
+  };
+
+  const resumeAllUploads = () => {
+    pausedAllRef.current = false;
+    if (onResumeAll) {
+      onResumeAll();
+    } else {
+      setLocalResumeTrigger((prev) => prev + 1);
     }
   };
 
@@ -1576,7 +1689,8 @@ const MiniStatusBatch = ({
       batchType === "permanent-delete" ||
       batchType === "move" ||
       batchType === "create_folder";
-    if (!isNonUploadBatch && (hasUploaded.current || isUploadingRef.current)) {
+    const isResuming = effectiveResumeTrigger > 0;
+    if (!isNonUploadBatch && (hasUploaded.current || isUploadingRef.current) && !isResuming) {
       return;
     }
     if (!isNonUploadBatch) {
@@ -1829,11 +1943,15 @@ const MiniStatusBatch = ({
         // Upload TUẦN TỰ (sequential) - đợi file đầu xong rồi mới upload file tiếp theo
         // Điều này giúp tránh chunks bị mất khi upload nhiều files cùng lúc
         for (let i = 0; i < fileStates.length; i++) {
+          if (pausedAllRef.current) break;
           const fileIndex = i;
-          const fileState = fileStates[fileIndex];
+          const fileState = fileStatesRef.current[fileIndex] ?? fileStates[fileIndex];
           const f = fileState.file;
-          
-          if (!f || f.size === 0) {
+          if (!f) continue;
+          if (isResuming && !["pending", "paused"].includes(fileState.status)) {
+            continue;
+          }
+          if (f.size === 0) {
             setFileStates((prev) =>
               prev.map((ff, idx) =>
                 idx === fileIndex
@@ -1848,10 +1966,14 @@ const MiniStatusBatch = ({
             continue; // Bỏ qua file này, tiếp tục file tiếp theo
           }
 
-          // Upload file này - triggerUploadComplete sẽ set status = "processing" ngay
-          // và KHÔNG đợi Drive upload hoàn thành
-          await uploadFileWithChunks(fileState, fileIndex);
+          // Với file paused có uploadId: dùng resume path (resendMissingChunks + complete)
+          const stateToUse =
+            fileState.status === "paused" && fileState.uploadId
+              ? { ...fileState, resumeUpload: true }
+              : fileState;
+          await uploadFileWithChunks(stateToUse, fileIndex);
 
+          if (pausedAllRef.current) break;
           // Đợi ngắn để state update (setFileStates là async)
           await new Promise(resolve => setTimeout(resolve, 100));
 
@@ -1870,7 +1992,7 @@ const MiniStatusBatch = ({
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [batchId]);
+  }, [batchId, effectiveResumeTrigger]);
 
   // ✅ FIX #1: Add timeout mechanism to force completion if stuck
   useEffect(() => {
@@ -1889,6 +2011,7 @@ const MiniStatusBatch = ({
       s === "error" ||
       s === "cancelled" ||
       (CLOSE_ON_PROCESSING && s === "processing");
+    // paused and pending are NOT done - keep MiniStatus visible
     
     const allDone = fileStates.every((f) => isDoneStatus(f.status));
     
@@ -1926,7 +2049,10 @@ const MiniStatusBatch = ({
     // ✅ FIX: Timeout mechanism - if all files uploaded but some stuck in "processing"
     // Force completion after 30 seconds to prevent UI stuck
     const allUploaded = fileStates.every(
-      (f) => f.status !== "pending" && f.status !== "uploading"
+      (f) =>
+        f.status !== "pending" &&
+        f.status !== "uploading" &&
+        f.status !== "paused"
     );
     
     if (allUploaded && fileStates.length > 0 && !hasCompletedRef.current) {
@@ -2047,13 +2173,21 @@ const MiniStatusBatch = ({
             // Default: Upload Status
              <StatusCard
                 title={
-                   progress < 100
+                   fileStates.some((f) => f.status === "paused")
+                    ? "Đã tạm dừng"
+                    : progress < 100
                     ? t("upload_status.uploading", { progress })
                     : fileStates.some((f) => f.status === "error")
                       ? t("upload_status.has_error")
                       : t("upload_status.upload_success")
                 }
-                status={status}
+                status={
+                  fileStates.some((f) => f.status === "paused")
+                    ? "paused"
+                    : fileStates.some((f) => f.status === "uploading" || f.status === "processing")
+                    ? "uploading"
+                    : status
+                }
                 progress={progress}
                 speed={formatSpeed(speed)}
                 eta={formatETA(eta)}
@@ -2062,6 +2196,26 @@ const MiniStatusBatch = ({
                 style={style}
              >
                 <div className="space-y-2 mt-1">
+                    {(fileStates.some((f) => f.status === "uploading") || fileStates.some((f) => f.status === "paused")) && (
+                      <div className="flex justify-end gap-1 mb-2 pb-2 border-b border-gray-100">
+                        {fileStates.some((f) => f.status === "uploading") && (
+                          <button
+                            onClick={pauseAllUploads}
+                            className="text-xs font-medium px-2.5 py-1.5 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors flex items-center gap-1"
+                          >
+                            <FiPause size={12} /> Tạm dừng tất cả
+                          </button>
+                        )}
+                        {fileStates.some((f) => f.status === "paused") && (
+                          <button
+                            onClick={resumeAllUploads}
+                            className="text-xs font-medium px-2.5 py-1.5 text-brand hover:bg-brand/5 rounded-lg transition-colors flex items-center gap-1"
+                          >
+                            <FiPlay size={12} /> Tiếp tục tất cả
+                          </button>
+                        )}
+                      </div>
+                    )}
                     {isFolder ? (
                          <div className="flex items-center gap-2 text-xs">
                              <div className="p-1.5 rounded bg-yellow-100/50 text-yellow-600">
@@ -2070,7 +2224,27 @@ const MiniStatusBatch = ({
                              <div className="flex-1 min-w-0">
                                 <p className="truncate font-medium text-gray-700">{folderName}</p>
                              </div>
-                             {fileStates.some((f) => f.status === "error") ? <FiX className="text-danger"/> : progress < 100 ? <Loader size="small"/> : <FiCheck className="text-success"/>}
+                             <div className="flex items-center gap-0.5">
+                               {fileStates.some((f) => f.status === "uploading") && (
+                                 <button onClick={pauseAllUploads} className="p-1 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-full" title="Tạm dừng"><FiPause size={14} /></button>
+                               )}
+                               {fileStates.some((f) => f.status === "paused") && (
+                                 <button onClick={resumeAllUploads} className="p-1 text-gray-400 hover:text-brand hover:bg-brand/10 rounded-full" title="Tiếp tục"><FiPlay size={14} /></button>
+                               )}
+                               {(fileStates.some((f) => f.status === "uploading") || fileStates.some((f) => f.status === "processing")) && (
+                                 <button
+                                   onClick={() => {
+                                     const idx = fileStates.findIndex((f) => f.status === "uploading" || f.status === "processing");
+                                     if (idx >= 0) cancelUpload(idx);
+                                   }}
+                                   className="p-1 text-gray-400 hover:text-danger hover:bg-danger/10 rounded-full"
+                                   title="Hủy"
+                                 >
+                                   <FiX size={14} />
+                                 </button>
+                               )}
+                               {fileStates.some((f) => f.status === "error") && !fileStates.some((f) => f.status === "uploading" || f.status === "processing") ? <FiX className="text-danger"/> : fileStates.some((f) => f.status === "paused") ? <FiPause className="text-amber-600"/> : progress < 100 && !fileStates.some((f) => f.status === "paused") ? <Loader size="small"/> : <FiCheck className="text-success"/>}
+                             </div>
                         </div>
                     ) : (
                         fileStates.map((f, idx) => {
@@ -2085,6 +2259,7 @@ const MiniStatusBatch = ({
                                             <p className={`truncate text-xs font-medium ${
                                                 f.status === 'success' ? 'text-success-700' :
                                                 f.status === 'error' ? 'text-danger-700' :
+                                                f.status === 'paused' ? 'text-amber-700' :
                                                 'text-gray-700'
                                             }`}>
                                                 {f.name}
@@ -2095,6 +2270,7 @@ const MiniStatusBatch = ({
                                                 {f.status === 'processing' && drivePct != null ? `Drive: ${drivePct}%` :
                                                  f.status === 'success' ? 'Hoàn tất' :
                                                  f.status === 'error' ? 'Thất bại' :
+                                                 f.status === 'paused' ? 'Đã tạm dừng' :
                                                  f.status === 'uploading' ? 'Đang tải lên...' :
                                                  'Đang chờ...'}
                                              </p>
@@ -2107,8 +2283,17 @@ const MiniStatusBatch = ({
                                          {f.error && <p className="text-[10px] text-danger mt-1 bg-danger/5 p-1 rounded truncate" title={f.error}>{f.error}</p>}
                                      </div>
 
-                                     <div className="shrink-0 flex items-center">
+                                     <div className="shrink-0 flex items-center gap-0.5">
                                          {(f.status === "uploading" || f.status === "processing") && (
+                                              <button
+                                                onClick={() => cancelUpload(idx)}
+                                                className="p-1 text-gray-400 hover:text-danger hover:bg-danger/10 rounded-full transition-colors"
+                                                title="Hủy"
+                                              >
+                                                <FiX size={14} />
+                                              </button>
+                                         )}
+                                         {f.status === "paused" && (
                                               <button
                                                 onClick={() => cancelUpload(idx)}
                                                 className="p-1 text-gray-400 hover:text-danger hover:bg-danger/10 rounded-full transition-colors"
@@ -2155,6 +2340,11 @@ const MiniStatus = ({
   moveTargetFolderId,
   useChunkedUpload = false,
 }) => {
+  const sharedPausedAllRef = useRef(false);
+  const [sharedResumeTrigger, setSharedResumeTrigger] = useState(0);
+  const sharedResumeTriggerValue = batchType === "delete" || batchType === "permanent-delete" || batchType === "move" || batchType === "create_folder" ? 0 : sharedResumeTrigger;
+  const handleResumeAll = () => setSharedResumeTrigger((p) => p + 1);
+
   return (
     <>
       {batchType === "create_folder" ? (
@@ -2194,6 +2384,9 @@ const MiniStatus = ({
               style={style}
               parentId={parentId}
               useChunkedUpload={useChunkedUpload}
+              pausedAllRef={sharedPausedAllRef}
+              resumeTrigger={sharedResumeTriggerValue}
+              onResumeAll={handleResumeAll}
             />
           )}
           {folders && folders.length > 0 && (
@@ -2207,6 +2400,9 @@ const MiniStatus = ({
               folderName={folders[0]?.relativePath?.split("/")[0] || "Thư mục"}
               parentId={parentId}
               useChunkedUpload={useChunkedUpload}
+              pausedAllRef={sharedPausedAllRef}
+              resumeTrigger={sharedResumeTriggerValue}
+              onResumeAll={handleResumeAll}
             />
           )}
         </>

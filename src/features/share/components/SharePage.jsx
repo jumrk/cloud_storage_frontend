@@ -34,6 +34,7 @@ export default function SharePage() {
     copyShareLink,
     handleDownload,
     handleDownloadUrl,
+    handleCancelDownload,
     clearDownloadBatch,
     passwordRequired,
     sharePassword,
@@ -370,6 +371,7 @@ export default function SharePage() {
           files={downloadBatch.files}
           folderName={downloadBatch.folderName}
           onComplete={clearDownloadBatch}
+          onCancel={handleCancelDownload}
         />
       )}
     </div>

@@ -4,7 +4,7 @@ const withNextIntl = createNextIntlPlugin();
 
 /** @type {import('next').NextConfig} */
 const extraPatterns = [];
-const apiBase = process.env.NEXT_PUBLIC_API_BASE || process.env.API_BASE_URL;
+const apiBase = process.env.NEXT_PUBLIC_API_BASE;
 if (apiBase) {
   try {
     const url = new URL(apiBase);

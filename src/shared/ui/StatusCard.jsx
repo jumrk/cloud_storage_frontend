@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { FiCheck, FiX, FiLoader } from "react-icons/fi";
+import { FiCheck, FiX, FiLoader, FiPause } from "react-icons/fi";
 
 const StatusCard = ({
   title,
@@ -35,6 +35,7 @@ const StatusCard = ({
             {status === 'error' && <div className="text-xs font-medium px-2 py-1 bg-red-50 text-red-600 rounded-full flex items-center gap-1"><FiX size={12}/> Lỗi</div>}
             {(status === 'uploading' || status === 'processing' || status === 'downloading') && <div className="text-xs font-medium px-2 py-1 bg-blue-50 text-blue-600 rounded-full flex items-center gap-1"><FiLoader className="animate-spin" size={12}/> {status === 'processing' ? 'Xử lý' : status === 'downloading' ? 'Đang tải' : 'Đang gửi'}</div>}
             {status === 'cancelled' && <div className="text-xs font-medium px-2 py-1 bg-gray-100 text-gray-500 rounded-full flex items-center gap-1"><FiX size={12}/> Đã hủy</div>}
+            {status === 'paused' && <div className="text-xs font-medium px-2 py-1 bg-amber-50 text-amber-600 rounded-full flex items-center gap-1"><FiPause size={12}/> Tạm dừng</div>}
         </div>
       </div>
 
@@ -47,7 +48,7 @@ const StatusCard = ({
         <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
           <motion.div
             className={`h-full rounded-full ${
-              status === 'error' ? 'bg-red-500' : status === 'success' ? 'bg-green-500' : status === 'cancelled' ? 'bg-gray-400' : 'bg-blue-500'
+              status === 'error' ? 'bg-red-500' : status === 'success' ? 'bg-green-500' : status === 'cancelled' ? 'bg-gray-400' : status === 'paused' ? 'bg-amber-400' : 'bg-blue-500'
             }`}
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}

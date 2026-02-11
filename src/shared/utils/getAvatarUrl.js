@@ -1,5 +1,4 @@
-const apiBase =
-  process.env.NEXT_PUBLIC_API_BASE || process.env.API_BASE_URL || "";
+const apiBase = process.env.NEXT_PUBLIC_API_BASE || "";
 const normalizedApiBase = apiBase.replace(/\/$/, "");
 
 export default function getAvatarUrl(path) {

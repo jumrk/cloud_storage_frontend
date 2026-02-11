@@ -126,65 +126,8 @@ export default function PaymentSettingsTab({
                 placeholder="https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
               />
-            </div>
-
-            {/* Return URL */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Return URL (Sau khi thanh toán)
-              </label>
-              <input
-                type="text"
-                value={settings.vnpayReturnUrl}
-                onChange={(e) =>
-                  setSettings({
-                    ...settings,
-                    vnpayReturnUrl: e.target.value,
-                  })
-                }
-                placeholder="https://yourdomain.com/payment/return"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-              />
-            </div>
-
-             {/* Cancel URL */}
-             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Cancel URL (Khi hủy thanh toán)
-              </label>
-              <input
-                type="text"
-                value={settings.vnpayCancelUrl}
-                onChange={(e) =>
-                  setSettings({
-                    ...settings,
-                    vnpayCancelUrl: e.target.value,
-                  })
-                }
-                placeholder="https://yourdomain.com/payment/cancel"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-              />
-            </div>
-
-            {/* API URL (Optional) */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                VNPay API URL (Optional)
-              </label>
-              <input
-                type="text"
-                value={settings.vnpayApiUrl}
-                onChange={(e) =>
-                  setSettings({
-                    ...settings,
-                    vnpayApiUrl: e.target.value,
-                  })
-                }
-                placeholder="URL API VNPay (IPN/callback)..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-              />
               <p className="text-xs text-gray-500 mt-1">
-                Dành cho cấu hình nâng cao hoặc IPN
+                Return URL và IPN URL được tự động tạo từ backend (API_PUBLIC_ORIGIN).
               </p>
             </div>
           </>

@@ -57,9 +57,6 @@ export default function useSettingsPage() {
     vnpayTmnCode: "",
     vnpayHashSecret: "",
     vnpayUrl: "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html",
-    vnpayReturnUrl: "",
-    vnpayCancelUrl: "",
-    vnpayApiUrl: "",
   });
   const [paymentSettingsLoading, setPaymentSettingsLoading] = useState(false);
 
@@ -129,9 +126,6 @@ export default function useSettingsPage() {
               vnpayTmnCode: paymentResponse.data.vnpayTmnCode || "",
               vnpayHashSecret: paymentResponse.data.vnpayHashSecret || "",
               vnpayUrl: paymentResponse.data.vnpayUrl || "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html",
-              vnpayReturnUrl: paymentResponse.data.vnpayReturnUrl || "",
-              vnpayCancelUrl: paymentResponse.data.vnpayCancelUrl || "",
-              vnpayApiUrl: paymentResponse.data.vnpayApiUrl || "",
             });
           }
         } catch (err) {
