@@ -1858,26 +1858,34 @@ export default function FileManagement({
           </div>
         </div>
       )}
-      {uploadBatches.map((batch, idx) => (
-        <MiniStatus
-          key={batch.id}
-          files={batch.type === "file" ? batch.files : []}
-          folders={batch.type === "folder" ? batch.files : []}
-          emptyFolders={batch.type === "folder" ? batch.emptyFolders : []}
-          batchId={batch.id}
-          batchType={batch.type}
-          folderName={batch.name}
-          parentId={currentFolderId}
-          moveItems={
-            batch.type === "move" || batch.type === "delete"
-              ? batch.items
-              : undefined
-          }
-          moveTargetFolderId={
-            batch.type === "move" ? batch.targetFolderId : undefined
-          }
-          useChunkedUpload={batch.useChunkedUpload}
-          onComplete={(result) => {
+      {/* Stack nhiều status: cũ trên, mới dưới, không đè lên nhau */}
+      {uploadBatches.length > 0 && (
+      <div
+        className={`fixed z-[41] flex flex-col gap-3 max-h-[calc(100vh-6rem)] overflow-y-auto ${
+          isMobile ? "bottom-6 right-6 md:hidden" : "bottom-6 right-6 lg:flex hidden"
+        }`}
+      >
+        {uploadBatches.map((batch) => (
+          <MiniStatus
+            key={batch.id}
+            files={batch.type === "file" ? batch.files : []}
+            folders={batch.type === "folder" ? batch.files : []}
+            emptyFolders={batch.type === "folder" ? batch.emptyFolders : []}
+            batchId={batch.id}
+            batchType={batch.type}
+            folderName={batch.name}
+            parentId={currentFolderId}
+            moveItems={
+              batch.type === "move" || batch.type === "delete"
+                ? batch.items
+                : undefined
+            }
+            moveTargetFolderId={
+              batch.type === "move" ? batch.targetFolderId : undefined
+            }
+            useChunkedUpload={batch.useChunkedUpload}
+            stacked={true}
+            onComplete={(result) => {
             setUploadBatches((prev) => prev.filter((b) => b.id !== batch.id));
             // For move operations, update data optimistically without refetching
             if (batch.type === "move" && result?.success !== false) {
@@ -1959,9 +1967,10 @@ export default function FileManagement({
               resetAndReload();
             }
           }}
-          style={{ marginBottom: idx > 0 ? 12 : 12 }}
-        />
-      ))}
+          />
+        ))}
+      </div>
+      )}
       <ActionZone
         isMobile={isMobile}
         selectedItems={tableActions.selectedItems}

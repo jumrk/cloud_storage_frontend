@@ -28,6 +28,7 @@ export default function ChecklistSection({
   boardMembers = [],
   checklists = [],
   onRenameChecklist,
+  onUpdateChecklist,
   onDeleteChecklist,
   onSave,
   moveCheckList,
@@ -122,6 +123,7 @@ export default function ChecklistSection({
                 data={cl}
                 members={boardMembers}
                 onRename={onRenameChecklist}
+                onUpdate={onUpdateChecklist}
                 onDelete={onDeleteChecklist}
                 onCountsChange={handleCountsChange}
               />

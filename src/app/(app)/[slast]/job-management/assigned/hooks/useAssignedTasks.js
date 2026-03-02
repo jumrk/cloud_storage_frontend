@@ -17,13 +17,15 @@ export default function useAssignedTasks() {
       const res = await service.getAssignedCards();
       const payload = res?.data;
       if (payload?.success === false) {
-        toast.error(payload?.messenger || t("job_management.errors.cannot_load_tasks"));
+        toast.error(payload?.message || payload?.messenger || t("job_management.errors.cannot_load_tasks"));
+        setTasks([]);
         return;
       }
-      setTasks(payload?.data || []);
+      setTasks(Array.isArray(payload?.data) ? payload.data : []);
     } catch (error) {
-      const msg = error?.response?.data?.messenger;
+      const msg = error?.response?.data?.message || error?.response?.data?.messenger;
       toast.error(msg || "Không tải được công việc");
+      setTasks([]);
     } finally {
       setLoading(false);
     }

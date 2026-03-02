@@ -17,6 +17,7 @@ import DescriptionPopover from "../popovers/DescriptionPopover";
 import useBoardMembers from "../../../hooks/useBoardMembers";
 import ChecklistSection from "../checklist/ChecklistSection";
 import useModalDetailCardTask from "../../../hooks/useModalDetailCardTask";
+import { CHECKLIST_TEMPLATES } from "../../../constants/checklistTemplates";
 import { AiOutlineDelete } from "react-icons/ai";
 import { useTranslations } from "next-intl";
 function ModalDetailCardTask({ open, card, onClose, onSave, boardId }) {
@@ -63,6 +64,10 @@ function ModalDetailCardTask({ open, card, onClose, onSave, boardId }) {
     handleSaveDescription,
     fetchCheckList,
     handleCreateCheckList,
+    applyChecklistTemplate,
+    boardTemplates,
+    fetchBoardTemplates,
+    createBoardChecklistTemplate,
     handleDeleteCheckList,
     handleUpdateChecklist,
     fetchComment,
@@ -70,15 +75,36 @@ function ModalDetailCardTask({ open, card, onClose, onSave, boardId }) {
     handleDeleteComment,
     setAddComment,
     moveCheckList,
-  } = useModalDetailCardTask(card, onSave, boardMembers);
+  } = useModalDetailCardTask(card, onSave, boardMembers, boardId);
   const quickMemRef = useRef(null);
   const actionMemRef = useRef(null);
   const [startOpen, setStartOpen] = useState(false);
+  const [showCreateTemplateForm, setShowCreateTemplateForm] = useState(false);
+  const [newTemplateName, setNewTemplateName] = useState("");
+  const [newTemplateItems, setNewTemplateItems] = useState([{ text: "" }]);
+  const addNewTemplateItem = () => setNewTemplateItems((prev) => [...prev, { text: "" }]);
+  const removeNewTemplateItem = (idx) =>
+    setNewTemplateItems((prev) => prev.filter((_, i) => i !== idx));
+  const setNewTemplateItemText = (idx, text) =>
+    setNewTemplateItems((prev) => prev.map((it, i) => (i === idx ? { ...it, text } : it)));
+  const handleCreateTemplateSubmit = async () => {
+    const created = await createBoardChecklistTemplate({
+      name: newTemplateName,
+      title: newTemplateName,
+      items: newTemplateItems.filter((i) => i.text?.trim()),
+    });
+    if (created) {
+      setShowCreateTemplateForm(false);
+      setNewTemplateName("");
+      setNewTemplateItems([{ text: "" }]);
+    }
+  };
   useEffect(() => {
     if (!open) return;
     refresh();
     fetchCheckList();
     fetchComment();
+    fetchBoardTemplates(boardId);
   }, [open, boardId]);
   useEffect(() => {
     setTitleDraft(card?.title ?? "");
@@ -283,34 +309,159 @@ function ModalDetailCardTask({ open, card, onClose, onSave, boardId }) {
                       {t("job_management.checklist.tasks_to_do")}
                     </button>
                     {addingChecklist && (
-                      <div className="absolute mt-2 z-10 w-80 rounded-xl border border-gray-200 bg-white p-3 shadow-xl">
-                        <div className="text-sm mb-2 text-gray-900">
+                      <div className="absolute mt-2 z-10 w-96 max-h-[80vh] overflow-y-auto rounded-xl border border-gray-200 bg-white p-3 shadow-xl">
+                        <div className="text-sm font-medium text-gray-900 mb-2">
                           {t("job_management.checklist.add_checklist")}
                         </div>
-                        <input
-                          autoFocus
-                          value={newChecklistTitle}
-                          onChange={(e) => setNewChecklistTitle(e.target.value)}
-                          onKeyDown={(e) => e.key === "Enter"}
-                          placeholder={t("job_management.card.title")}
-                          className="w-full h-10 rounded-lg border border-gray-200 bg-white px-3 outline-none focus:border-brand-400"
-                        />
-                        <div className="mt-3 flex items-center gap-2">
-                          <button
-                            className="h-9 px-4 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-sm"
-                            onClick={handleCreateCheckList}
-                          >
-                            {t("job_management.modal.add")}
-                          </button>
-                          <button
-                            className="h-9 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 text-sm hover:bg-white"
-                            onClick={() => {
-                              setAddingChecklist(false);
-                              setNewChecklistTitle("");
-                            }}
-                          >
-                            {t("job_management.modal.cancel")}
-                          </button>
+
+                        {/* Form của không gian làm việc này (chỉ board này có) */}
+                        <div className="mb-3">
+                          <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">
+                            Form của không gian này
+                          </div>
+                          {boardTemplates.length === 0 ? (
+                            <p className="text-xs text-gray-500 py-1">Chưa có form. Tạo mới bên dưới.</p>
+                          ) : (
+                            <div className="space-y-1">
+                              {boardTemplates.map((tmpl) => (
+                                <button
+                                  key={tmpl._id}
+                                  type="button"
+                                  onClick={() => applyChecklistTemplate(tmpl)}
+                                  className="w-full text-left px-3 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 hover:border-brand-200 text-sm text-gray-900"
+                                >
+                                  {tmpl.name}
+                                  <span className="block text-xs text-gray-500 mt-0.5">
+                                    {Array.isArray(tmpl.items) ? tmpl.items.length : 0} khâu
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Tạo form chuẩn mới - chỉ lưu trong không gian này */}
+                        <div className="mb-3 border-t border-gray-200 pt-3">
+                          {!showCreateTemplateForm ? (
+                            <button
+                              type="button"
+                              onClick={() => setShowCreateTemplateForm(true)}
+                              className="w-full text-left px-3 py-2 rounded-lg border border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100 text-sm text-gray-700"
+                            >
+                              + Tạo form chuẩn mới (chỉ không gian này)
+                            </button>
+                          ) : (
+                            <div className="space-y-2">
+                              <div className="text-xs font-medium text-gray-600">Tên form</div>
+                              <input
+                                value={newTemplateName}
+                                onChange={(e) => setNewTemplateName(e.target.value)}
+                                placeholder="VD: Quy trình phim thuyết minh"
+                                className="w-full h-9 rounded-lg border border-gray-200 bg-white px-3 text-sm outline-none focus:border-brand-400"
+                              />
+                              <div className="text-xs font-medium text-gray-600">Các khâu (mỗi dòng một khâu)</div>
+                              {newTemplateItems.map((it, idx) => (
+                                <div key={idx} className="flex gap-1">
+                                  <input
+                                    value={it.text}
+                                    onChange={(e) => setNewTemplateItemText(idx, e.target.value)}
+                                    placeholder={`Khâu ${idx + 1}`}
+                                    className="flex-1 h-9 rounded-lg border border-gray-200 bg-white px-3 text-sm outline-none focus:border-brand-400"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => removeNewTemplateItem(idx)}
+                                    className="h-9 w-9 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-100 shrink-0"
+                                    aria-label="Xóa khâu"
+                                  >
+                                    <AiOutlineDelete size={14} />
+                                  </button>
+                                </div>
+                              ))}
+                              <button
+                                type="button"
+                                onClick={addNewTemplateItem}
+                                className="text-xs text-brand-600 hover:underline"
+                              >
+                                + Thêm khâu
+                              </button>
+                              <div className="flex gap-2 pt-1">
+                                <button
+                                  type="button"
+                                  onClick={handleCreateTemplateSubmit}
+                                  disabled={!newTemplateName.trim()}
+                                  className="h-9 px-3 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-sm disabled:opacity-50"
+                                >
+                                  Lưu form
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setShowCreateTemplateForm(false);
+                                    setNewTemplateName("");
+                                    setNewTemplateItems([{ text: "" }]);
+                                  }}
+                                  className="h-9 px-3 rounded-lg border border-gray-200 text-gray-700 text-sm"
+                                >
+                                  Hủy
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Form mẫu (built-in) */}
+                        <div className="mb-3 border-t border-gray-200 pt-3">
+                          <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">
+                            Form mẫu
+                          </div>
+                          <div className="space-y-1">
+                            {CHECKLIST_TEMPLATES.map((tmpl) => (
+                              <button
+                                key={tmpl.id}
+                                type="button"
+                                onClick={() => applyChecklistTemplate(tmpl)}
+                                className="w-full text-left px-3 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 hover:border-brand-200 text-sm text-gray-900"
+                              >
+                                {tmpl.name}
+                                <span className="block text-xs text-gray-500 mt-0.5">
+                                  {tmpl.items.length} khâu
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="border-t border-gray-200 pt-3">
+                          <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">
+                            Hoặc tạo checklist trống
+                          </div>
+                          <input
+                            autoFocus
+                            value={newChecklistTitle}
+                            onChange={(e) => setNewChecklistTitle(e.target.value)}
+                            onKeyDown={(e) => e.key === "Enter" && handleCreateCheckList()}
+                            placeholder={t("job_management.card.title")}
+                            className="w-full h-10 rounded-lg border border-gray-200 bg-white px-3 outline-none focus:border-brand-400"
+                          />
+                          <div className="mt-3 flex items-center gap-2">
+                            <button
+                              className="h-9 px-4 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-sm"
+                              onClick={handleCreateCheckList}
+                            >
+                              {t("job_management.modal.add")}
+                            </button>
+                            <button
+                              className="h-9 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 text-sm hover:bg-white"
+                              onClick={() => {
+                                setAddingChecklist(false);
+                                setNewChecklistTitle("");
+                                setShowCreateTemplateForm(false);
+                              }}
+                            >
+                              {t("job_management.modal.cancel")}
+                            </button>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -504,6 +655,7 @@ function ModalDetailCardTask({ open, card, onClose, onSave, boardId }) {
                     <ChecklistSection
                       onDeleteChecklist={handleDeleteCheckList}
                       onRenameChecklist={handleUpdateChecklist}
+                      onUpdateChecklist={handleUpdateChecklist}
                       checklists={checkList}
                       boardMembers={boardMembers}
                       onSave={onSave}

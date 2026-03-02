@@ -69,11 +69,30 @@ export default function BoardReportPage({ boardId }) {
 
   function SelectField({ label, value, options, onSelect }) {
     const [open, setOpen] = useState(false);
+    const [dropdownRect, setDropdownRect] = useState({ top: 0, left: 0, width: 160 });
     const ref = useRef(null);
+
+    const updatePosition = () => {
+      if (ref.current) {
+        const rect = ref.current.getBoundingClientRect();
+        setDropdownRect({
+          top: rect.bottom + 8,
+          left: rect.left,
+          width: Math.max(rect.width, 160),
+        });
+      }
+    };
+
+    const handleToggle = () => {
+      if (!open) updatePosition();
+      setOpen((prev) => !prev);
+    };
 
     useEffect(() => {
       const handler = (e) => {
         if (ref.current && !ref.current.contains(e.target)) {
+          const panel = document.querySelector("[data-select-dropdown]");
+          if (panel && panel.contains(e.target)) return;
           setOpen(false);
         }
       };
@@ -84,41 +103,50 @@ export default function BoardReportPage({ boardId }) {
     const selected = options.find((opt) => opt.value === value);
 
     return (
-      <div className="relative flex flex-col gap-1 custom-scrollbar " ref={ref}>
+      <div className="relative flex flex-col gap-1 custom-scrollbar" ref={ref}>
         <label className="text-sm font-medium text-text-strong">{label}</label>
         <button
           type="button"
-          onClick={() => setOpen((prev) => !prev)}
+          onClick={handleToggle}
           className="inline-flex w-40 items-center justify-between rounded-xl border border-border bg-white px-4 py-2 text-sm font-medium text-text-strong shadow-sm transition hover:border-brand-300 hover:bg-surface-50 focus:outline-none focus:ring-2 focus:ring-brand-200"
         >
           <span>{selected?.label}</span>
           <IoChevronDown className={`transition ${open ? "rotate-180" : ""}`} />
         </button>
-        <Popover
-          open={open}
-          className="left-0 top-full mt-2 w-40 max-h-56 overflow-y-auto scrollbar-hide rounded-xl bg-white p-0"
-        >
-          <ul className="py-1 text-sm text-text-strong">
-            {options.map((option) => (
-              <li key={option.value}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onSelect(option.value);
-                    setOpen(false);
-                  }}
-                  className={`w-full px-4 py-2 text-left transition ${
-                    option.value === value
-                      ? "bg-brand-50 text-brand-600 font-semibold"
-                      : "hover:bg-surface-50"
-                  }`}
-                >
-                  {option.label}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </Popover>
+        {open &&
+          createPortal(
+            <div
+              data-select-dropdown
+              className="fixed z-[100] w-40 max-h-56 overflow-y-auto rounded-xl border border-border bg-white shadow-lg py-1 scrollbar-hide"
+              style={{
+                top: dropdownRect.top,
+                left: dropdownRect.left,
+                minWidth: dropdownRect.width,
+              }}
+            >
+              <ul className="py-1 text-sm text-text-strong">
+                {options.map((option) => (
+                  <li key={option.value}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onSelect(option.value);
+                        setOpen(false);
+                      }}
+                      className={`w-full px-4 py-2 text-left transition ${
+                        option.value === value
+                          ? "bg-brand-50 text-brand-600 font-semibold"
+                          : "hover:bg-surface-50"
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>,
+            document.body
+          )}
       </div>
     );
   }
@@ -204,6 +232,7 @@ export default function BoardReportPage({ boardId }) {
   }
 
   useEffect(() => {
+    if (!boardId) return;
     fetchReport();
   }, [
     boardId,
@@ -216,6 +245,10 @@ export default function BoardReportPage({ boardId }) {
   ]);
 
   const fetchReport = async () => {
+    if (!boardId) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       if (dateMode === "custom") {
@@ -239,20 +272,29 @@ export default function BoardReportPage({ boardId }) {
 
       const response = await service.getBoardReport(params);
 
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
       if (response.data?.success) {
-        setData(response.data.data);
+        const payload = response.data.data;
+        setData({
+          rows: Array.isArray(payload?.rows) ? payload.rows : [],
+          days: Array.isArray(payload?.days) ? payload.days : [],
+          summary: payload?.summary ?? { totalRows: 0, totalDays: 0 },
+          month: payload?.month,
+          year: payload?.year,
+        });
       } else {
         toast.error(response.data?.message || "Không thể tải báo cáo");
       }
     } catch (error) {
       console.error("Error fetching report:", error);
-      if (error.response?.status === 403) {
+      const status = error.response?.status;
+      if (status === 403) {
         toast.error("Chỉ chủ board mới xem được báo cáo");
         router.back();
+      } else if (status === 404) {
+        toast.error("Không tìm thấy board");
+        router.back();
       } else {
-        toast.error("Có lỗi xảy ra khi tải báo cáo");
+        toast.error(error.response?.data?.message || "Có lỗi xảy ra khi tải báo cáo");
       }
     } finally {
       setLoading(false);
@@ -318,27 +360,55 @@ export default function BoardReportPage({ boardId }) {
     const top = popoverPosition.y + 8;
     const left = popoverPosition.x;
 
+    // Dữ liệu có thể là time-tracking (duration) hoặc checklist hoàn thành (completedAt + text)
     const content =
       filterType === "members"
-        ? cellData.map((session, idx) => (
-            <div
-              key={idx}
-              className="text-xs border-b border-border  pb-2 last:border-b-0"
-            >
-              <div className="font-medium text-text-strong mb-1">
-                {session.cardTitle}
+        ? cellData.map((item, idx) =>
+            item.duration != null || item.startTime ? (
+              <div
+                key={idx}
+                className="text-xs border-b border-border  pb-2 last:border-b-0"
+              >
+                <div className="font-medium text-text-strong mb-1">
+                  {item.cardTitle}
+                </div>
+                <div className="text-text-muted space-y-0.5">
+                  <div>Thời gian: {formatDuration(item.duration || 0)}</div>
+                  {item.startTime && (
+                    <div className="text-[11px]">
+                      {formatDate(item.startTime)}
+                      {item.endTime && ` - ${formatDate(item.endTime)}`}
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="text-text-muted space-y-0.5">
-                <div>Thời gian: {formatDuration(session.duration)}</div>
-                {session.startTime && (
-                  <div className="text-[11px]">
-                    {formatDate(session.startTime)}
-                    {session.endTime && ` - ${formatDate(session.endTime)}`}
-                  </div>
-                )}
+            ) : (
+              <div
+                key={idx}
+                className="text-xs border-b border-border pb-2 last:border-b-0"
+              >
+                <div className="font-medium text-text-strong mb-1">
+                  {item.cardTitle}
+                </div>
+                <div className="font-medium text-text-strong mb-1 flex items-center gap-1">
+                  <span className="text-green-500">✓</span>
+                  {item.text}
+                </div>
+                <div className="text-text-muted space-y-0.5">
+                  {item.completedAt && (
+                    <div className="text-[11px]">
+                      Hoàn thành: {formatDate(item.completedAt)}
+                    </div>
+                  )}
+                  {item.assignee && (
+                    <div className="text-[11px]">
+                      Người làm: {item.assignee.fullName || item.assignee.email}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))
+            )
+          )
         : cellData.map((item, idx) => (
             <div
               key={idx}
@@ -442,25 +512,29 @@ export default function BoardReportPage({ boardId }) {
           rowData.push("");
         } else if (filterType === "members") {
           totalActiveDays += 1;
-          const minutes = cellData.reduce(
-            (sum, session) => sum + (session.duration || 0),
-            0
-          );
+          const hasDuration = cellData.some((s) => s.duration != null || s.startTime);
+          const minutes = hasDuration
+            ? cellData.reduce((sum, s) => sum + (s.duration || 0), 0)
+            : 0;
           totalMinutes += minutes;
 
           const detailText = cellData
-            .map(
-              (session, idx) =>
-                `${idx + 1}. ${session.cardTitle || "Task"} (${
-                  formatDuration(session.duration || 0).minutes
-                }m)`
-            )
+            .map((session, idx) => {
+              if (session.duration != null || session.startTime) {
+                return `${idx + 1}. ${session.cardTitle || "Task"} (${formatDuration(session.duration || 0)})`;
+              }
+              return `${idx + 1}. ${session.cardTitle || "Task"}: ${session.text || "Hoàn thành"}`;
+            })
             .join("\n");
 
           detailSummary.push(
-            `Ngày ${day}: ${cellData.length} phiên\n${detailText}`
+            `Ngày ${day}: ${cellData.length} mục\n${detailText}`
           );
-          rowData.push(`${cellData.length} phiên - ${minutes} phút`);
+          rowData.push(
+            hasDuration
+              ? `${cellData.length} phiên - ${minutes} phút`
+              : `${cellData.length} mục hoàn thành`
+          );
         } else {
           totalActiveDays += 1;
           detailSummary.push(
@@ -533,8 +607,10 @@ export default function BoardReportPage({ boardId }) {
               Báo cáo tổng kết
             </h1>
             <p className="text-sm text-text-muted">
-              {dateMode === "month" && data?.month && data?.year
-                ? `Tháng ${data.month}/${data.year}`
+              {loading
+                ? "Đang tải dữ liệu..."
+                : dateMode === "month"
+                ? `Tháng ${selectedMonth}/${selectedYear}`
                 : dateMode === "custom"
                 ? `Từ ${customStartDate || "..."} đến ${customEndDate || "..."}`
                 : "Đang tải dữ liệu..."}

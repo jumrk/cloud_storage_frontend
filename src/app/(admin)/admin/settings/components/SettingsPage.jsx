@@ -8,6 +8,7 @@ import {
   FiMic,
   FiVolume2,
   FiCreditCard,
+  FiHardDrive,
 } from "react-icons/fi";
 import useSettingsPage from "../hooks/useSettingsPage";
 import AISettingsTab from "./AISettingsTab";
@@ -15,6 +16,7 @@ import AIOCRSettingsTab from "./AIOCRSettingsTab";
 import AIASRSettingsTab from "./AIASRSettingsTab";
 import AIVoiceSettingsTab from "./AIVoiceSettingsTab";
 import PaymentSettingsTab from "./PaymentSettingsTab";
+import StorageSettingsTab from "./StorageSettingsTab";
 
 const TABS = [
   { id: "chat", label: "AI Chat", icon: FiMessageCircle },
@@ -22,6 +24,7 @@ const TABS = [
   { id: "asr", label: "AI ASR", icon: FiVolume2 },
   { id: "voice", label: "AI Lồng tiếng", icon: FiMic },
   { id: "payment", label: "Thanh toán", icon: FiCreditCard },
+  { id: "storage", label: "Lưu trữ", icon: FiHardDrive },
 ];
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("chat");
@@ -47,6 +50,10 @@ export default function SettingsPage() {
     setPaymentSettings,
     paymentSettingsLoading,
     handleSavePaymentSettings,
+    storageSettings,
+    setStorageSettings,
+    storageSettingsLoading,
+    handleSaveStorageSettings,
   } = useSettingsPage();
   return (
     <div className="w-full max-w-6xl mx-auto px-4 py-6">
@@ -129,6 +136,14 @@ export default function SettingsPage() {
                 setSettings={setPaymentSettings}
                 loading={paymentSettingsLoading}
                 onSave={handleSavePaymentSettings}
+              />
+            )}
+            {activeTab === "storage" && (
+              <StorageSettingsTab
+                settings={storageSettings}
+                setSettings={setStorageSettings}
+                loading={storageSettingsLoading}
+                onSave={handleSaveStorageSettings}
               />
             )}
           </>

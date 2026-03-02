@@ -12,14 +12,18 @@ const StatusCard = ({
   style,
   headerIcon,
   headerColor = "text-brand",
+  stacked = false, // true = nằm trong stack nhiều card, dùng relative để xếp dọc thay vì fixed chồng lấn
 }) => {
+  const positionClass = stacked
+    ? "relative z-[9999] w-[90vw] md:w-[400px] shrink-0"
+    : "fixed bottom-4 right-4 z-[9999] w-[90vw] md:w-[400px]";
   return (
     <motion.div
       initial={{ y: 100, opacity: 0, scale: 0.9 }}
       animate={{ y: 0, opacity: 1, scale: 1 }}
       exit={{ y: 100, opacity: 0, scale: 0.9 }}
       transition={{ type: "spring", stiffness: 300, damping: 25 }}
-      className="fixed bottom-4 right-4 z-[9999] w-[90vw] md:w-[400px] bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden"
+      className={`${positionClass} bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden`}
       style={style}
     >
       {/* Header */}

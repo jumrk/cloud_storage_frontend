@@ -97,6 +97,7 @@ const MiniStatusBatch = ({
   batchId,
   onComplete,
   style,
+  stacked = false,
   emptyFolders = [],
   folderName,
   batchType,
@@ -2109,6 +2110,7 @@ const MiniStatusBatch = ({
                 headerIcon={<FiMove size={18} />}
                 headerColor="text-brand"
                 style={style}
+                stacked={stacked}
              >
                 <div className="space-y-2">
                     {moveItems?.map((item, idx) => (
@@ -2129,6 +2131,7 @@ const MiniStatusBatch = ({
                 headerIcon={<FiFolder size={18} />}
                 headerColor="text-brand"
                 style={style}
+                stacked={stacked}
              >
                 <div className="flex items-center gap-2 text-xs mt-1">
                      <div className="p-1 rounded bg-yellow-100/50 text-yellow-600">
@@ -2157,6 +2160,7 @@ const MiniStatusBatch = ({
                 headerIcon={<FiTrash2 size={18} />}
                 headerColor="text-danger" // Red for delete
                 style={style}
+                stacked={stacked}
              >
                 <div className="space-y-2">
                     {moveItems?.map((item, idx) => (
@@ -2194,6 +2198,7 @@ const MiniStatusBatch = ({
                 headerIcon={<FiUpload size={18} />}
                 headerColor="text-brand"
                 style={style}
+                stacked={stacked}
              >
                 <div className="space-y-2 mt-1">
                     {(fileStates.some((f) => f.status === "uploading") || fileStates.some((f) => f.status === "paused")) && (
@@ -2339,6 +2344,7 @@ const MiniStatus = ({
   moveItems,
   moveTargetFolderId,
   useChunkedUpload = false,
+  stacked = false,
 }) => {
   const sharedPausedAllRef = useRef(false);
   const [sharedResumeTrigger, setSharedResumeTrigger] = useState(0);
@@ -2355,6 +2361,7 @@ const MiniStatus = ({
           batchId={batchId}
           onComplete={onComplete}
           style={style}
+          stacked={stacked}
         />
       ) : batchType === "move" ? (
         <MiniStatusBatch
@@ -2364,6 +2371,7 @@ const MiniStatus = ({
           style={style}
           moveItems={moveItems}
           moveTargetFolderId={moveTargetFolderId}
+          stacked={stacked}
         />
       ) : batchType === "delete" || batchType === "permanent-delete" ? (
         <MiniStatusBatch
@@ -2372,6 +2380,7 @@ const MiniStatus = ({
           onComplete={onComplete}
           style={style}
           moveItems={moveItems}
+          stacked={stacked}
         />
       ) : (
         <>
@@ -2387,6 +2396,7 @@ const MiniStatus = ({
               pausedAllRef={sharedPausedAllRef}
               resumeTrigger={sharedResumeTriggerValue}
               onResumeAll={handleResumeAll}
+              stacked={stacked}
             />
           )}
           {folders && folders.length > 0 && (
@@ -2403,6 +2413,7 @@ const MiniStatus = ({
               pausedAllRef={sharedPausedAllRef}
               resumeTrigger={sharedResumeTriggerValue}
               onResumeAll={handleResumeAll}
+              stacked={stacked}
             />
           )}
         </>

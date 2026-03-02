@@ -21,7 +21,7 @@ export default function AssignedPage() {
   }, [tasks, normalizedQuery]);
 
   return (
-    <div className="w-full px-4 py-6 sm:px-8 bg-white h-full">
+    <div className="w-full px-4 py-6 sm:px-8 bg-white h-full min-h-0 overflow-y-auto">
       <div className="mb-6">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
           {t("job_management.pages.assigned_to_me")}

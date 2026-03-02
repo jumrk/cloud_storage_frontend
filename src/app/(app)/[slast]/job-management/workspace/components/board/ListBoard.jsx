@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import {
   IoAdd,
   IoEllipsisHorizontal,
@@ -17,7 +17,24 @@ import {
 import ListBoardSkeleton from "@/shared/skeletons/ListBoardSkeleton";
 import EmptySlot from "./EmptySlot";
 import { useBoardDnd } from "./context/BoardDndContext";
+import { useBoardContext, getBoardFilterDateRange, FILTER_PERIOD_ALL } from "./context/BoardContext";
 import { useTranslations } from "next-intl";
+
+function cardMatchesFilter(card, filterPeriod, filterMemberId) {
+  if (filterMemberId) {
+    const memberIds = (card.members || []).map((m) => String(m._id ?? m.id ?? m));
+    if (!memberIds.includes(String(filterMemberId))) return false;
+  }
+  if (filterPeriod && filterPeriod !== FILTER_PERIOD_ALL) {
+    const range = getBoardFilterDateRange(filterPeriod);
+    if (!range) return true;
+    const updated = card.updatedAt ? new Date(card.updatedAt) : null;
+    if (!updated) return false;
+    return updated >= range.start && updated < range.end;
+  }
+  return true;
+}
+
 function ListBoard({
   id,
   handleUpdate,
@@ -26,6 +43,7 @@ function ListBoard({
   headerRightSlot,
   boardId,
 }) {
+  const { filterPeriod, filterMemberId } = useBoardContext();
   const {
     cards,
     loading,
@@ -56,6 +74,14 @@ function ListBoard({
   } = useListBoard({ id, title, handleUpdate });
   const { registerList } = useBoardDnd();
   const t = useTranslations();
+
+  const filteredCards = useMemo(() => {
+    if (!filterPeriod && !filterMemberId) return cards;
+    return cards.filter((c) => cardMatchesFilter(c, filterPeriod, filterMemberId));
+  }, [cards, filterPeriod, filterMemberId]);
+
+  const displayCount = filteredCards.length;
+
   useEffect(() => {
     const detach = registerList(id, {
       setCards: (updater) =>
@@ -89,7 +115,9 @@ function ListBoard({
               >
                 {title}
               </div>
-              <div className="text-xs text-gray-600 mt-0.5">({count})</div>
+              <div className="text-xs text-gray-600 mt-0.5">
+                ({displayCount}{filterPeriod !== FILTER_PERIOD_ALL || filterMemberId ? ` / ${count}` : ""})
+              </div>
             </div>
             <div className="shrink-0 flex items-center gap-1">
               {headerRightSlot}
@@ -186,20 +214,22 @@ function ListBoard({
             </form>
           )}
           <SortableContext
-            items={cards.map((c) => String(c._id))}
+            items={filteredCards.map((c) => String(c._id))}
             strategy={verticalListSortingStrategy}
           >
-            <div className="mt-2 space-y-2">
+            <div className="main-content-scrollbar mt-2 max-h-[calc(100vh-200px)] min-h-0 overflow-y-auto overflow-x-hidden space-y-2">
               {loading ? (
                 <div className="text-sm text-gray-600 py-2 text-center">
                   {t("job_management.board.loading")}
                 </div>
-              ) : cards.length === 0 ? (
+              ) : filteredCards.length === 0 ? (
                 <div className="text-sm text-gray-600 py-2 text-center">
-                  {t("job_management.board.no_cards_yet")}
+                  {cards.length === 0
+                    ? t("job_management.board.no_cards_yet")
+                    : t("job_management.board.no_matching_filter")}
                 </div>
               ) : (
-                cards.map((c, idx) => (
+                filteredCards.map((c, idx) => (
                   <SortableCardTask
                     key={c._id}
                     listId={id}
@@ -217,7 +247,7 @@ function ListBoard({
                   />
                 ))
               )}
-              <EmptySlot listId={id} count={cards.length} />
+              <EmptySlot listId={id} count={filteredCards.length} />
             </div>
           </SortableContext>
         </div>

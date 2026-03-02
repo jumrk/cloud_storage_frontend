@@ -34,7 +34,11 @@ export default function MembersPopover({
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return members;
-    return members.filter((m) => (m.fullName || "").toLowerCase().includes(q));
+    return members.filter(
+      (m) =>
+        (m.fullName || "").toLowerCase().includes(q) ||
+        (m.email || "").toLowerCase().includes(q)
+    );
   }, [members, query]);
   const isChecked = (id) => selectedIds.includes(id);
   const toggle = (id) => {
@@ -45,21 +49,33 @@ export default function MembersPopover({
   };
   const [coords, setCoords] = useState({ top: 0, left: 0 });
 
+  const popoverWidth = 320;
+  const gap = 8;
+
   useEffect(() => {
     if (!open || !anchorEl) return;
     const updatePosition = () => {
       const rect = anchorEl.getBoundingClientRect();
-      const scrollY = window.scrollY;
-      const scrollX = window.scrollX;
-      // Position below the anchor
-      let top = rect.bottom + scrollY + 8;
-      let left = rect.left + scrollX;
-      
-      // Basic bounds check (optional, but good for UX)
-      if (left + 320 > window.innerWidth) {
-        left = window.innerWidth - 330; 
+
+      // fixed position = viewport, không cộng scroll
+      // Ưu tiên hiện bên phải (bên cạnh), không đủ chỗ thì sang trái
+      let left;
+      const spaceRight = window.innerWidth - rect.right;
+      const spaceLeft = rect.left;
+
+      if (spaceRight >= popoverWidth + gap) {
+        left = rect.right + gap;
+      } else if (spaceLeft >= popoverWidth + gap) {
+        left = rect.left - popoverWidth - gap;
+      } else {
+        left = rect.left;
+        if (left + popoverWidth > window.innerWidth) left = window.innerWidth - popoverWidth - 10;
       }
-      
+
+      let top = rect.top;
+      if (top + 400 > window.innerHeight) top = window.innerHeight - 420;
+      if (top < 8) top = 8;
+
       setCoords({ top, left });
     };
     updatePosition();
@@ -144,7 +160,7 @@ export default function MembersPopover({
       </div>
     </div>
   );
-  
-  if (typeof document === 'undefined') return null;
+
+  if (typeof document === "undefined") return null;
   return ReactDOM.createPortal(content, document.body);
 }

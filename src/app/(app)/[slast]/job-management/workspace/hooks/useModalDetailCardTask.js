@@ -1,4 +1,6 @@
 import checklistService from "../services/checkListService";
+import checklistItemService from "../services/checkListItemService";
+import checklistTemplateService from "../services/checklistTemplateService";
 import { useRef, useState } from "react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
@@ -36,8 +38,10 @@ const HTML_EXTS = [
   }),
   TextAlign.configure({ types: ["heading", "paragraph"] }),
 ];
-export default function useModalDetailCardTask(card, onSave, boardMembers) {
+export default function useModalDetailCardTask(card, onSave, boardMembers, boardId) {
   const t = useTranslations();
+  const { getByBoardId: getBoardTemplates, create: createBoardTemplate } =
+    checklistTemplateService();
   const COLOR_PALETTE = [
     "#16a34a",
     "#a16207",
@@ -52,6 +56,7 @@ export default function useModalDetailCardTask(card, onSave, boardMembers) {
   ];
   const { getChecklists, createChecklist, deleteChecklist, updateChecklist } =
     checklistService();
+  const { createItem: createChecklistItem } = checklistItemService();
   const { createComment, deleteComment, getCommentsByCard, updateComment } =
     commentService();
 
@@ -65,6 +70,7 @@ export default function useModalDetailCardTask(card, onSave, boardMembers) {
 
   const [newChecklistTitle, setNewChecklistTitle] = useState("");
   const [checkList, setCheckList] = useState([]);
+  const [boardTemplates, setBoardTemplates] = useState([]);
 
   const [comment, setComment] = useState([]);
   const [addComment, setAddComment] = useState("");
@@ -94,6 +100,20 @@ export default function useModalDetailCardTask(card, onSave, boardMembers) {
       : hasDescription
       ? generateHTML(descDoc, HTML_EXTS)
       : "";
+
+  // Form chuẩn của không gian làm việc (chỉ board này)
+  const fetchBoardTemplates = async (bid) => {
+    if (!bid) return;
+    try {
+      const res = await getBoardTemplates(bid);
+      const payload = res?.data;
+      if (payload?.success && Array.isArray(payload?.data)) {
+        setBoardTemplates(payload.data);
+      }
+    } catch {
+      setBoardTemplates([]);
+    }
+  };
 
   // Checklist
   const fetchCheckList = async () => {
@@ -130,6 +150,66 @@ export default function useModalDetailCardTask(card, onSave, boardMembers) {
       toast.error(msg);
     }
   };
+
+  /** Áp dụng form công việc chuẩn: tạo 1 checklist + đủ các mục theo template */
+  const applyChecklistTemplate = async (template) => {
+    const title = template?.title ?? template?.name;
+    const items = Array.isArray(template?.items) ? template.items : [];
+    if (!cardId || !title || items.length === 0) {
+      toast.error(t("job_management.errors.general_error"));
+      return;
+    }
+    try {
+      const res = await createChecklist(cardId, title);
+      const payload = res?.data;
+      if (!payload?.success || !payload?.data?._id) {
+        toast.error(payload?.messenger || t("job_management.errors.general_error"));
+        return;
+      }
+      const checklistId = payload.data._id;
+      for (const item of items) {
+        await createChecklistItem(checklistId, {
+          text: item.text || "",
+          assignee: item.defaultAssigneeId || null,
+          dueAt: null,
+        });
+      }
+      await fetchCheckList();
+      setAddingChecklist(false);
+      toast.success(t("job_management.success.add_success"));
+    } catch (error) {
+      const msg = error?.response?.data?.messenger || t("job_management.errors.general_error");
+      toast.error(msg);
+    }
+  };
+
+  /** Tạo form chuẩn mới (chỉ lưu trong không gian làm việc này) */
+  const createBoardChecklistTemplate = async ({ name, title, items }) => {
+    if (!boardId || !name?.trim()) {
+      toast.error(t("job_management.errors.enter_board_title"));
+      return null;
+    }
+    const itemList = Array.isArray(items) ? items.filter((i) => i?.text?.trim()) : [];
+    try {
+      const res = await createBoardTemplate(boardId, {
+        name: name.trim(),
+        title: (title || name).trim(),
+        items: itemList.map((i) => ({ text: i.text.trim(), defaultAssigneeId: i.defaultAssigneeId || null })),
+      });
+      const payload = res?.data;
+      if (!payload?.success || !payload?.data) {
+        toast.error(payload?.messenger || t("job_management.errors.general_error"));
+        return null;
+      }
+      setBoardTemplates((prev) => [payload.data, ...prev]);
+      toast.success(t("job_management.success.add_success"));
+      return payload.data;
+    } catch (error) {
+      const msg = error?.response?.data?.messenger || t("job_management.errors.general_error");
+      toast.error(msg);
+      return null;
+    }
+  };
   const handleDeleteCheckList = async (checklistId) => {
     try {
       const res = await deleteChecklist(checklistId);
@@ -145,9 +225,15 @@ export default function useModalDetailCardTask(card, onSave, boardMembers) {
       toast.error(msg);
     }
   };
-  const handleUpdateChecklist = async (checklistId, title) => {
+  const handleUpdateChecklist = async (checklistId, patch) => {
+    const body = {};
+    if (patch?.title !== undefined) body.title = patch.title;
+    if (patch?.pos !== undefined) body.pos = patch.pos;
+    if (patch?.isDone !== undefined) body.isDone = patch.isDone;
+    if (patch?.assignee !== undefined) body.assignee = patch.assignee;
+    if (Object.keys(body).length === 0) return;
     try {
-      const res = await updateChecklist(checklistId, { title });
+      const res = await updateChecklist(checklistId, body);
       const payload = res?.data;
       if (!payload.success) {
         toast.error(payload?.messenger || t("job_management.errors.cannot_edit"));
@@ -391,6 +477,10 @@ export default function useModalDetailCardTask(card, onSave, boardMembers) {
     handleSaveDescription,
     fetchCheckList,
     handleCreateCheckList,
+    applyChecklistTemplate,
+    boardTemplates,
+    fetchBoardTemplates,
+    createBoardChecklistTemplate,
     handleDeleteCheckList,
     handleUpdateChecklist,
     fetchComment,

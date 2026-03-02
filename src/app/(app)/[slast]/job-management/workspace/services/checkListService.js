@@ -10,10 +10,12 @@ export default function checklistService() {
   const getChecklists = (cardId) => {
     return axiosClient.get(`/api/job-management/cards/${cardId}/checklists`);
   };
-  const updateChecklist = (checklistId, { title, pos } = {}) => {
+  const updateChecklist = (checklistId, { title, pos, isDone, assignee } = {}) => {
     return axiosClient.put(`/api/job-management/checklists/${checklistId}`, {
       title,
       pos,
+      isDone,
+      assignee: assignee || null,
     });
   };
 

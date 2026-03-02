@@ -247,7 +247,7 @@ const useFileManagementPage = ({
       }
 
       if (batches.length > 0) {
-        setUploadBatches((prev) => [...batches, ...prev]);
+        setUploadBatches((prev) => [...prev, ...batches]);
       }
     })();
   }, []);

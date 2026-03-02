@@ -30,14 +30,14 @@ export default function ChecklistItemRow({
   const [assignee, setAssignee] = useState(
     typeof item.assignee === "string"
       ? item.assignee
-      : item.assignee?.id || item.assignee?._id || ""
+      : item.assignee?.id || item.assignee?._id || "",
   );
   const [dueAt, setDueAt] = useState(item.dueAt || null);
   const [dueOpen, setDueOpen] = useState(false);
   const [memOpen, setMemOpen] = useState(false);
   const assigneeObj = useMemo(
     () => members.find((m) => (m.id ?? m._id) === assignee) || null,
-    [members, assignee]
+    [members, assignee],
   );
   const memberBtnRef = useRef(null);
   const commitText = async () => {
@@ -63,7 +63,6 @@ export default function ChecklistItemRow({
   };
   return (
     <div className="flex items-center relative gap-2 py-1">
-      
       <input
         type="checkbox"
         className="h-4 w-4 accent-brand-600"
@@ -89,7 +88,6 @@ export default function ChecklistItemRow({
           className="inline-flex items-center gap-1 h-8 rounded-full bg-warning-400/90 text-gray-900 text-xs font-medium px-2.5 shadow-sm hover:brightness-95"
           title={t("job_management.checklist.due_date")}
         >
-          
           <IoTimeOutline className="opacity-90" /> {fmtShortVN(dueAt)}
         </button>
       ) : (
@@ -100,7 +98,6 @@ export default function ChecklistItemRow({
           title={t("job_management.checklist.add_date")}
           aria-label={t("job_management.checklist.add_date")}
         >
-          
           <IoTimeOutline className="text-gray-600" />
         </button>
       )}
@@ -119,7 +116,6 @@ export default function ChecklistItemRow({
           title={assigneeObj.fullName ?? t("job_management.card.members")}
           aria-label={t("job_management.checklist.edit_member")}
         >
-          
           {assigneeObj.avatar ? (
             <img
               src={getAvatarUrl(assigneeObj.avatar)}
@@ -139,7 +135,6 @@ export default function ChecklistItemRow({
           title={t("job_management.checklist.assign")}
           aria-label={t("job_management.checklist.assign")}
         >
-          
           <IoPersonAddOutline className="text-gray-600" />
         </button>
       )}
@@ -158,7 +153,6 @@ export default function ChecklistItemRow({
         title={t("job_management.checklist.delete_item")}
         aria-label={t("job_management.checklist.delete_item")}
       >
-        
         <IoTrashOutline />
       </button>
     </div>

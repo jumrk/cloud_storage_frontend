@@ -6,6 +6,7 @@ import aiAsrSettingsService from "../services/aiAsrSettingsService";
 import aiOcrSettingsService from "../services/aiOcrSettingsService";
 import aiVoiceSettingsService from "../services/aiVoiceSettingsService";
 import paymentSettingsService from "../services/paymentSettingsService";
+import storageSettingsService from "../services/storageSettingsService";
 import toast from "react-hot-toast";
 
 export default function useSettingsPage() {
@@ -59,6 +60,14 @@ export default function useSettingsPage() {
     vnpayUrl: "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html",
   });
   const [paymentSettingsLoading, setPaymentSettingsLoading] = useState(false);
+
+  // Storage Settings state (Drive vs HDD)
+  const [storageSettings, setStorageSettings] = useState({
+    storageMode: "drive",
+    localStorageRoot: "",
+    localStorageShard: "user",
+  });
+  const [storageSettingsLoading, setStorageSettingsLoading] = useState(false);
 
   const [loadingSettings, setLoadingSettings] = useState(true);
 
@@ -131,6 +140,20 @@ export default function useSettingsPage() {
         } catch (err) {
             console.error("Error loading payment settings:", err);
             // Don't toast here to avoid spam if one service fails
+        }
+
+        // Load Storage settings
+        try {
+          const storageResponse = await storageSettingsService.getSettings();
+          if (storageResponse.success && storageResponse.data) {
+            setStorageSettings({
+              storageMode: storageResponse.data.storageMode || "drive",
+              localStorageRoot: storageResponse.data.localStorageRoot || "",
+              localStorageShard: storageResponse.data.localStorageShard || "user",
+            });
+          }
+        } catch (err) {
+          console.error("Error loading storage settings:", err);
         }
 
       } catch (error) {
@@ -241,6 +264,26 @@ export default function useSettingsPage() {
     }
   };
 
+  const handleSaveStorageSettings = async () => {
+    setStorageSettingsLoading(true);
+    try {
+      const response = await storageSettingsService.updateSettings(storageSettings);
+      if (response.success) {
+        if (response.data) {
+          setStorageSettings((prev) => ({ ...prev, ...response.data }));
+        }
+        toast.success(response.message || "Đã lưu cài đặt Lưu trữ thành công!");
+      } else {
+        toast.error(response.error || "Lỗi khi lưu cài đặt Lưu trữ");
+      }
+    } catch (error) {
+      console.error("Error saving Storage settings:", error);
+      toast.error(error.response?.data?.error || "Lỗi khi lưu cài đặt Lưu trữ");
+    } finally {
+      setStorageSettingsLoading(false);
+    }
+  };
+
   return {
     aiSettings,
     setAiSettings,
@@ -257,12 +300,16 @@ export default function useSettingsPage() {
     paymentSettings,
     setPaymentSettings,
     paymentSettingsLoading,
+    storageSettings,
+    setStorageSettings,
+    storageSettingsLoading,
     loadingSettings,
     handleSaveAiSettings,
     handleSaveOcrSettings,
     handleSaveAsrSettings,
     handleSaveVoiceSettings,
     handleSavePaymentSettings,
+    handleSaveStorageSettings,
   };
 }
 

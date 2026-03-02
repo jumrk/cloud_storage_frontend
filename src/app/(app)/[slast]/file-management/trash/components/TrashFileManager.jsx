@@ -682,25 +682,27 @@ export default function TrashFileManager() {
         cancelText={confirmDialog.cancelText}
       />
 
-      {permanentDeleteBatches.map((batch, idx) => (
-        <MiniStatus
-          key={batch.id}
-          batchType="permanent-delete"
-          batchId={batch.id}
-          moveItems={batch.items}
-          onComplete={(result) => {
-            setPermanentDeleteBatches((prev) =>
-              prev.filter((b) => b.id !== batch.id)
-            );
-            if (result?.success !== false) {
-              fetchDeletedItems();
-            }
-          }}
-          style={{
-            bottom: `${6 + idx * 360}px`,
-          }}
-        />
-      ))}
+      {permanentDeleteBatches.length > 0 && (
+        <div className="fixed bottom-6 right-6 z-[41] flex flex-col gap-3 max-h-[calc(100vh-6rem)] overflow-y-auto">
+          {permanentDeleteBatches.map((batch) => (
+            <MiniStatus
+              key={batch.id}
+              batchType="permanent-delete"
+              batchId={batch.id}
+              moveItems={batch.items}
+              stacked
+              onComplete={(result) => {
+                setPermanentDeleteBatches((prev) =>
+                  prev.filter((b) => b.id !== batch.id)
+                );
+                if (result?.success !== false) {
+                  fetchDeletedItems();
+                }
+              }}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
